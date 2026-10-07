@@ -173,6 +173,9 @@ input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--i
 .rec .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; min-width: 0; }
 .rec .pct { font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rec .memo { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; grid-column: 1 / -1; }
+.rec-actions { display: flex; gap: 2px; align-items: center; }
+.memo-edit { grid-column: 1 / -1; display: grid; gap: 8px; }
+.memo-edit .row { justify-content: flex-end; }
 .empty { color: var(--muted); font-size: 14.5px; padding: 26px 18px; background: var(--bg); border-radius: 18px; text-align: center; }
 .empty .btn { margin-top: 12px; }
 footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding: 4px 6px; }
@@ -780,6 +783,13 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       renderHistory();
       return true;
     },
+    async updateNote(id, note) {
+      if (this.mode === "db") { await this.db.collection("data/users/" + this.uid).doc(id).update({ note }); return; }
+      const r = this.items.find(x => x.id === id);
+      if (r) r.note = note;
+      if (!this.saveLocal()) throw new Error("save-failed");
+      renderHistory();
+    },
     async remove(id) {
       if (this.mode === "db") { await this.db.collection("data/users/" + this.uid).doc(id).delete(); return; }
       this.items = this.items.filter(r => r.id !== id); this.saveLocal(); renderHistory();
@@ -835,12 +845,46 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
           <span class="small muted num">${fmt(r.ts)}</span>
           ${r.example ? `<span class="chip example">예시 사진</span>` : ""}
         </div>
-        <button class="btn ghost danger small" type="button" data-del="${esc(r.id)}">삭제</button>
+        <span class="rec-actions">
+          <button class="btn ghost small" type="button" data-edit="${esc(r.id)}">메모 수정</button>
+          <button class="btn ghost danger small" type="button" data-del="${esc(r.id)}">삭제</button>
+        </span>
         ${r.thumb ? `<img src="${esc(r.thumb)}" alt="${fmt(r.ts)} 스트립">` : ""}
-        ${r.note ? `<span class="memo">${esc(r.note)}</span>` : ""}
+        ${editing && editing.id === r.id
+          ? `<form class="memo-edit" data-edit-form="${esc(r.id)}">
+               <input id="memo-edit-input" type="text" maxlength="80" value="${esc(editing.draft)}" placeholder="메모를 적어 주세요" aria-label="메모">
+               <span class="row">
+                 <button class="btn ghost small" type="button" data-cancel>취소</button>
+                 <button class="btn primary small" type="submit">저장</button>
+               </span>
+               ${editing.error ? `<span class="small" style="color:var(--warn)">${esc(editing.error)}</span>` : ""}
+             </form>`
+          : r.note ? `<span class="memo">${esc(r.note)}</span>` : ""}
       </li>`).join("");
+    const inp = $("#memo-edit-input");
+    if (inp && editing.focus) { editing.focus = false; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
   }
+  // memo editing: which record is open and its unsaved text survive re-renders
+  let editing = null;
+  $("#records").addEventListener("input", e => { if (e.target.id === "memo-edit-input" && editing) editing.draft = e.target.value; });
+  $("#records").addEventListener("keydown", e => { if (e.key === "Escape" && editing) { editing = null; renderHistory(); } });
+  $("#records").addEventListener("submit", async e => {
+    const f = e.target.closest("[data-edit-form]");
+    if (!f) return;
+    e.preventDefault();
+    const id = f.dataset.editForm, note = editing.draft.trim().slice(0, 80);
+    f.querySelectorAll("button, input").forEach(el => el.disabled = true);
+    try { await store.updateNote(id, note); editing = null; renderHistory(); toast("메모를 고쳤어요", false); }
+    catch (err) { editing.error = "저장하지 못했어요. 잠시 뒤 다시 눌러 주세요."; renderHistory(); }
+  });
   $("#records").addEventListener("click", async e => {
+    const ed = e.target.closest("[data-edit]");
+    if (ed) {
+      const r = store.items.find(x => x.id === ed.dataset.edit);
+      editing = { id: ed.dataset.edit, draft: (r && r.note) || "", focus: true };
+      renderHistory(); return;
+    }
+    if (e.target.closest("[data-cancel]")) { editing = null; renderHistory(); return; }
     const b = e.target.closest("[data-del]");
     if (!b) return;
     if (b.dataset.armed) {
@@ -901,14 +945,15 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     try { localStorage.setItem("hcg-tab", name); } catch (e) {}
     window.scrollTo({ top: 0 });
     if (name === "records" && store.items.length) renderTrend(store.items);
+    if (name === "records") $("#toast").hidden = true;
   }
   let resizeTimer = null;
   addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("#panel-records").hidden && store.items.length) renderTrend(store.items); }, 200); });
   document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
   document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) showTab(g.dataset.go); });
   let toastTimer = null;
-  function toast(text) {
-    $("#toastText").textContent = text; $("#toast").hidden = false;
+  function toast(text, withLink = true) {
+    $("#toastText").textContent = text; $("#toastGo").hidden = !withLink; $("#toast").hidden = false;
     clearTimeout(toastTimer); toastTimer = setTimeout(() => { $("#toast").hidden = true; }, 4000);
   }
   $("#toastGo").addEventListener("click", () => { $("#toast").hidden = true; showTab("records"); });
@@ -938,7 +983,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
 .update-actions { display: flex; gap: 8px; }
 </style>
 <script>
-window.APP_VERSION = "fd8d2e1a";
+window.APP_VERSION = "3f0a7778";
 (() => {
   const foot = document.querySelector("footer");
   if (foot) { const p = document.createElement("p"); p.textContent = "앱 버전 " + window.APP_VERSION; foot.appendChild(p); }
