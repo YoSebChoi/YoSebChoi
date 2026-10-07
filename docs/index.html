@@ -801,12 +801,52 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
 })();
 </script>
 
+<div class="update-bar" id="updateBar" role="status" hidden>
+  <span>새 버전이 나왔어요. 기록은 그대로 남아요.</span>
+  <span class="update-actions">
+    <button class="btn ghost" id="updateLater" type="button">나중에</button>
+    <button class="btn primary" id="updateNow" type="button">지금 업데이트</button>
+  </span>
+</div>
+<style>
+.update-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: 10px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface); color: var(--ink); border-top: 1px solid var(--rule); box-shadow: 0 -6px 20px rgba(0,0,0,.12); font-size: 14px; }
+.update-actions { display: flex; gap: 8px; }
+</style>
 <script>
-if ("serviceWorker" in navigator) {
-  addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
-}
-// ask the browser not to evict the locally stored records
-if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+window.APP_VERSION = "ab1bcae0";
+(() => {
+  const foot = document.querySelector("footer");
+  if (foot) { const p = document.createElement("p"); p.textContent = "앱 버전 " + window.APP_VERSION; foot.appendChild(p); }
+  // ask the browser not to evict the locally stored records
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if (!("serviceWorker" in navigator)) return;
+  const bar = document.getElementById("updateBar");
+  let waiting = null, reloading = false;
+  const offer = w => { waiting = w; bar.hidden = false; };
+  document.getElementById("updateNow").addEventListener("click", () => {
+    if (waiting) waiting.postMessage("skip-waiting"); else location.reload();
+  });
+  document.getElementById("updateLater").addEventListener("click", () => { bar.hidden = true; });
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloading) return; reloading = true; location.reload();
+  });
+  addEventListener("load", async () => {
+    try {
+      const reg = await navigator.serviceWorker.register("sw.js");
+      if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+      reg.addEventListener("updatefound", () => {
+        const w = reg.installing;
+        if (w) w.addEventListener("statechange", () => {
+          if (w.state === "installed" && navigator.serviceWorker.controller) offer(w);
+        });
+      });
+      // look for a new version whenever the app comes back to the foreground
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+    } catch (e) { /* offline or unsupported: the app still works */ }
+  });
+})();
 </script>
 </body>
 </html>

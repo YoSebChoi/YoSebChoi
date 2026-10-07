@@ -8,6 +8,7 @@ worker, and draws the app icons.
 
     python3 webapp/build_pwa.py
 """
+import hashlib
 import json
 from pathlib import Path
 
@@ -16,7 +17,6 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "webapp" / "index.html"
 OUT = ROOT / "docs"
-VERSION = "4"  # bump to make installed apps pick up a new build
 
 HEAD = """<!doctype html>
 <html lang="ko">
@@ -34,12 +34,52 @@ HEAD = """<!doctype html>
 """
 
 TAIL = """
+<div class="update-bar" id="updateBar" role="status" hidden>
+  <span>새 버전이 나왔어요. 기록은 그대로 남아요.</span>
+  <span class="update-actions">
+    <button class="btn ghost" id="updateLater" type="button">나중에</button>
+    <button class="btn primary" id="updateNow" type="button">지금 업데이트</button>
+  </span>
+</div>
+<style>
+.update-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: 10px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface); color: var(--ink); border-top: 1px solid var(--rule); box-shadow: 0 -6px 20px rgba(0,0,0,.12); font-size: 14px; }
+.update-actions { display: flex; gap: 8px; }
+</style>
 <script>
-if ("serviceWorker" in navigator) {
-  addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
-}
-// ask the browser not to evict the locally stored records
-if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+window.APP_VERSION = "__VERSION__";
+(() => {
+  const foot = document.querySelector("footer");
+  if (foot) { const p = document.createElement("p"); p.textContent = "앱 버전 " + window.APP_VERSION; foot.appendChild(p); }
+  // ask the browser not to evict the locally stored records
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if (!("serviceWorker" in navigator)) return;
+  const bar = document.getElementById("updateBar");
+  let waiting = null, reloading = false;
+  const offer = w => { waiting = w; bar.hidden = false; };
+  document.getElementById("updateNow").addEventListener("click", () => {
+    if (waiting) waiting.postMessage("skip-waiting"); else location.reload();
+  });
+  document.getElementById("updateLater").addEventListener("click", () => { bar.hidden = true; });
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloading) return; reloading = true; location.reload();
+  });
+  addEventListener("load", async () => {
+    try {
+      const reg = await navigator.serviceWorker.register("sw.js");
+      if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+      reg.addEventListener("updatefound", () => {
+        const w = reg.installing;
+        if (w) w.addEventListener("statechange", () => {
+          if (w.state === "installed" && navigator.serviceWorker.controller) offer(w);
+        });
+      });
+      // look for a new version whenever the app comes back to the foreground
+      document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+    } catch (e) { /* offline or unsupported: the app still works */ }
+  });
+})();
 </script>
 </body>
 </html>
@@ -62,35 +102,35 @@ MANIFEST = {
     ],
 }
 
-SW = """// 시약선 노트 service worker: app shell cached for offline use
-const CACHE = "hcg-notes-v%s";
+SW = """// 시약선 노트 service worker: the app runs from its cached copy; a new
+// version installs in the background and waits until the person taps update.
+const CACHE = "hcg-notes-__VERSION__";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))));
 });
+self.addEventListener("message", e => { if (e.data === "skip-waiting") self.skipWaiting(); });
 self.addEventListener("activate", e => {
+  // only old app files are removed; records live in the page's storage, not here
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => k.startsWith("hcg-notes-") && k !== CACHE).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
   if (req.mode === "navigate") {
-    // network first so updates arrive; cached page when offline
-    e.respondWith(fetch(req).then(res => {
-      const copy = res.clone(); caches.open(CACHE).then(c => c.put("./index.html", copy)); return res;
-    }).catch(() => caches.match("./index.html")));
+    e.respondWith(caches.open(CACHE).then(c => c.match("./index.html")).then(hit => hit || fetch(req)));
     return;
   }
-  // everything else (icons, Google Fonts): cache first, fill on miss
-  e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
-    if (res.ok || res.type === "opaque") { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
+  // icons, Google Fonts: cache first, fill on miss
+  e.respondWith(caches.open(CACHE).then(c => c.match(req).then(hit => hit || fetch(req).then(res => {
+    if (res.ok || res.type === "opaque") c.put(req, res.clone());
     return res;
-  })));
+  }))));
 });
-""" % VERSION
+"""
 
 
 def icon(size, maskable=False):
@@ -114,14 +154,16 @@ def icon(size, maskable=False):
 def main():
     OUT.mkdir(exist_ok=True)
     body = SRC.read_text(encoding="utf-8")
-    (OUT / "index.html").write_text(HEAD + body + TAIL, encoding="utf-8")
+    # the version follows the content, so every real change offers an update
+    version = hashlib.sha256((HEAD + body + TAIL + SW + json.dumps(MANIFEST)).encode()).hexdigest()[:8]
+    (OUT / "index.html").write_text((HEAD + body + TAIL).replace("__VERSION__", version), encoding="utf-8")
     (OUT / "manifest.webmanifest").write_text(json.dumps(MANIFEST, ensure_ascii=False, indent=2), encoding="utf-8")
-    (OUT / "sw.js").write_text(SW, encoding="utf-8")
+    (OUT / "sw.js").write_text(SW.replace("__VERSION__", version), encoding="utf-8")
     icon(192).save(OUT / "icon-192.png")
     icon(512).save(OUT / "icon-512.png")
     icon(512, maskable=True).save(OUT / "icon-maskable-512.png")
     (OUT / ".nojekyll").write_text("")
-    print("built", *sorted(p.name for p in OUT.iterdir()))
+    print("built version", version, "->", *sorted(p.name for p in OUT.iterdir()))
 
 
 if __name__ == "__main__":
