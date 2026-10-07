@@ -1,0 +1,784 @@
+<title>시약선 노트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column like a lab notebook page — capture, reading, then the dated log. */
+:root {
+  --bg: #f8f5f6;
+  --surface: #ffffff;
+  --ink: #2a2026;
+  --muted: #76666e;
+  --rule: #e7dde2;
+  --accent: #a3245c;        /* colloidal-gold line colour */
+  --accent-soft: #f7e4ec;
+  --c-mark: #2f5d8a;
+  --warn: #9a5b00;
+  --warn-soft: #fbefd9;
+  --font-display: "Gowun Batang", "Noto Serif KR", "AppleMyungjo", serif;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161117; --surface: #201922; --ink: #f2e9ee; --muted: #a9999f; --rule: #3a2e38;
+    --accent: #f27ca9; --accent-soft: #3b1f2d; --c-mark: #84b4e2; --warn: #f0b45a; --warn-soft: #3a2a12;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161117; --surface: #201922; --ink: #f2e9ee; --muted: #a9999f; --rule: #3a2e38;
+  --accent: #f27ca9; --accent-soft: #3b1f2d; --c-mark: #84b4e2; --warn: #f0b45a; --warn-soft: #3a2a12;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 720px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
+h1, h2 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; line-height: 1.25; }
+h1 { font-size: 30px; }
+h2 { font-size: 21px; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+header { display: grid; gap: 6px; }
+header .tag { font-size: 12px; letter-spacing: .08em; color: var(--accent); font-weight: 600; }
+section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+
+/* capture */
+.capture { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn { appearance: none; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); font: inherit; font-weight: 500;
+  border-radius: 999px; padding: 9px 16px; cursor: pointer; line-height: 1.3; }
+.btn:hover { border-color: var(--muted); }
+.btn:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--accent); }
+.btn[disabled] { opacity: .5; cursor: default; }
+.tips { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13.5px; display: grid; gap: 2px; }
+
+/* reading */
+.reading-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.big { font-family: var(--font-mono); font-size: 56px; font-weight: 500; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); }
+.chip.example { background: var(--warn-soft); color: var(--warn); }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.metric { border-top: 1px solid var(--rule); padding-top: 8px; display: grid; gap: 2px; }
+.metric .k { font-size: 12px; color: var(--muted); letter-spacing: .02em; }
+.metric .v { font-family: var(--font-mono); font-size: 17px; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .big { font-size: 46px; } }
+.note { font-size: 13.5px; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); }
+.note.warn { background: var(--warn-soft); color: var(--warn); }
+
+.strip-view { display: grid; gap: 0; }
+.strip-view canvas { width: 100%; height: auto; display: block; border-radius: 6px 6px 0 0; image-rendering: auto; }
+.profile { position: relative; }
+.profile svg { width: 100%; height: 110px; display: block; overflow: visible; }
+.profile .lbl { position: absolute; top: 2px; transform: translateX(-50%); font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+.lbl.c { color: var(--c-mark); } .lbl.t { color: var(--accent); }
+.axis-note { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+
+details { border-top: 1px solid var(--rule); padding-top: 12px; }
+summary { cursor: pointer; font-weight: 500; }
+.photo-box { display: grid; gap: 10px; margin-top: 10px; }
+.photo-box canvas { width: 100%; height: auto; display: block; border-radius: 8px; touch-action: manipulation; background: var(--bg); }
+.photo-box canvas.picking { cursor: crosshair; outline: 2px solid var(--accent); }
+.pick-step { font-weight: 600; color: var(--accent); }
+
+.save { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 10px; align-items: end; }
+@media (max-width: 560px) { .save { grid-template-columns: 1fr; } }
+label.f { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); min-width: 0; }
+input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--rule);
+  border-radius: 10px; padding: 8px 10px; width: 100%; min-width: 0; }
+
+/* history */
+.hist-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.trend { position: relative; }
+.trend svg { width: 100%; height: 200px; display: block; overflow: visible; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 6px;
+  white-space: nowrap; transform: translate(-50%, -120%); }
+.records { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.rec { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding: 12px 0; border-top: 1px solid var(--rule); }
+.rec:first-child { border-top: 0; }
+.rec img { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 4px; grid-column: 1 / -1; }
+.rec .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; min-width: 0; }
+.rec .pct { font-family: var(--font-mono); font-size: 18px; font-variant-numeric: tabular-nums; }
+.rec .memo { color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
+.empty { color: var(--muted); font-size: 14px; padding: 18px; border: 1px dashed var(--rule); border-radius: 12px; text-align: center; }
+footer { font-size: 12.5px; color: var(--muted); display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+@media (prefers-reduced-motion: no-preference) { .panel { transition: border-color .2s; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="tag">LATERAL FLOW · hCG</span>
+    <h1>시약선 노트</h1>
+    <p class="muted">임신테스트기 사진에서 대조선(C) 대비 시약선(T)이 얼마나 진한지 재고, 날짜별로 기록해요. 사진은 이 기기 밖으로 보내지 않아요.</p>
+  </header>
+
+  <section aria-labelledby="cap-h">
+    <h2 id="cap-h" class="sr">사진 고르기</h2>
+    <div class="capture">
+      <label class="btn primary" for="file">사진 찍기 · 고르기</label>
+      <input id="file" type="file" accept="image/*" class="sr">
+      <span class="muted small" id="fileName">아래는 예시 스트립으로 잰 결과예요.</span>
+    </div>
+    <ul class="tips">
+      <li>검사 후 <b>3~5분 안에</b> 찍은 사진만 의미가 있어요.</li>
+      <li>그림자 없이 밝은 곳에서, 정면으로, 초점을 맞춰 찍어 주세요.</li>
+      <li>분홍색 HCG 손잡이가 사진에 다 나오게 찍으면 스트립을 자동으로 찾아요.</li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="res-h">
+    <div class="panel" id="result">
+      <div class="reading-head">
+        <h2 id="res-h">측정 결과</h2>
+        <span class="chip example" id="exampleChip">예시</span>
+      </div>
+      <div id="resultBody"></div>
+      <div class="strip-view" id="stripView">
+        <canvas id="stripCanvas" aria-label="펴서 잘라낸 스트립"></canvas>
+        <div class="profile" id="profile"></div>
+        <div class="axis-note"><span>← 흡수부 쪽</span><span>손잡이(HCG) 쪽 →</span></div>
+      </div>
+      <details id="photoDetails">
+        <summary>원본 사진에서 위치 확인 · 직접 지정</summary>
+        <div class="photo-box">
+          <p class="small muted" id="pickHelp">파란 선이 대조선, 분홍 선이 시약선 위에 있어야 해요. 틀렸다면 직접 지정해 주세요.</p>
+          <canvas id="photoCanvas"></canvas>
+          <div class="capture">
+            <button class="btn" id="pickBtn" type="button">직접 지정하기</button>
+            <button class="btn ghost" id="pickCancel" type="button" hidden>취소</button>
+            <button class="btn ghost" id="autoBtn" type="button" hidden>자동 인식으로 되돌리기</button>
+          </div>
+        </div>
+      </details>
+      <form class="save" id="saveForm">
+        <label class="f">검사 시각<input id="when" type="datetime-local" required></label>
+        <label class="f">메모<input id="memo" type="text" maxlength="80" placeholder="예: 아침 첫 소변, ○○ 테스트기"></label>
+        <button class="btn primary" id="saveBtn" type="submit">기록에 저장</button>
+      </form>
+      <p class="small" id="saveMsg" role="status"></p>
+    </div>
+  </section>
+
+  <section aria-labelledby="hist-h">
+    <div class="hist-head">
+      <h2 id="hist-h">기록</h2>
+      <span class="small muted" id="storeNote">불러오는 중…</span>
+    </div>
+    <div class="panel" id="historyPanel">
+      <div class="trend" id="trend"></div>
+      <ul class="records" id="records"></ul>
+    </div>
+  </section>
+
+  <footer>
+    <p><b>참고용이에요.</b> 사진 속 두 선을 비교한 값일 뿐 진단이 아니고, hCG 수치(mIU/mL)로 바꿀 수 없어요. 임신 확인은 병원 혈액검사로 하세요.</p>
+    <p>다른 날끼리 비교할 때는 같은 제품, 비슷한 시간대, 같은 조명에서 찍은 사진끼리 보세요. 5분이 지나 생긴 회색 증발선은 판단할 수 없어요.</p>
+  </footer>
+</div>
+
+<script>
+/* ===================== analysis core (pure; mirrors analyze_strip.py) ===================== */
+const LineAnalysis = (() => {
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+  function pctSorted(s, q) {
+    if (!s.length) return 0;
+    const p = (q / 100) * (s.length - 1), i = Math.floor(p), f = p - i;
+    return i + 1 < s.length ? s[i] * (1 - f) + s[i + 1] * f : s[i];
+  }
+  function percentile(arr, q) { return pctSorted(Float64Array.from(arr).sort(), q); }
+  function median(arr) { return percentile(arr, 50); }
+  function oddK(k) { return Math.max(1, Math.floor(k) | 1); }
+  function smooth(x, k) {
+    k = oddK(k);
+    if (k === 1) return Float64Array.from(x);
+    const n = x.length, pad = k >> 1, out = new Float64Array(n);
+    for (let i = 0; i < n; i++) {
+      let s = 0;
+      for (let j = i - pad; j <= i + pad; j++) s += x[clamp(j, 0, n - 1)];
+      out[i] = s / k;
+    }
+    return out;
+  }
+  function runPct(x, win, q) {
+    win = Math.max(3, Math.floor(win) | 1);
+    const n = x.length, pad = win >> 1, out = new Float64Array(n), buf = new Float64Array(win);
+    for (let i = 0; i < n; i++) {
+      for (let j = 0; j < win; j++) buf[j] = x[clamp(i - pad + j, 0, n - 1)];
+      out[i] = pctSorted(buf.slice().sort(), q);
+    }
+    return out;
+  }
+  function sample(img, x, y) {
+    const { data, W, H } = img;
+    x = clamp(x, 0, W - 1.001); y = clamp(y, 0, H - 1.001);
+    const x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+    const i00 = (y0 * W + x0) * 4, i10 = i00 + 4, i01 = i00 + W * 4, i11 = i01 + 4;
+    const out = [0, 0, 0];
+    for (let c = 0; c < 3; c++) {
+      out[c] = (data[i00 + c] * (1 - fx) + data[i10 + c] * fx) * (1 - fy) + (data[i01 + c] * (1 - fx) + data[i11 + c] * fx) * fy;
+    }
+    return out;
+  }
+  // frame: column i sits at (cx,cy) + (t0+i)*(ux,uy); rows run along v = (-uy, ux)
+  function bandProfiles(img, fr, halfW) {
+    const rows = Math.max(3, Math.round(2 * halfW));
+    const vx = -fr.uy, vy = fr.ux;
+    const R = new Float64Array(fr.n), G = new Float64Array(fr.n);
+    const cr = new Float64Array(rows), cg = new Float64Array(rows);
+    for (let i = 0; i < fr.n; i++) {
+      const bx = fr.cx + (fr.t0 + i) * fr.ux, by = fr.cy + (fr.t0 + i) * fr.uy;
+      for (let j = 0; j < rows; j++) {
+        const s = -halfW + (j + 0.5) * (2 * halfW / rows);
+        const p = sample(img, bx + s * vx, by + s * vy);
+        cr[j] = p[0]; cg[j] = p[1];
+      }
+      R[i] = median(cr); G[i] = median(cg);
+    }
+    return { R, G };
+  }
+  function odOf(prof, lineW) {
+    const ps = smooth(prof, lineW * 0.3);
+    const bg = smooth(runPct(ps, lineW * 5, 85), lineW * 3);
+    const od = new Float64Array(ps.length);
+    for (let i = 0; i < ps.length; i++) od[i] = Math.max(-1, -Math.log10(Math.max(ps[i], 1) / Math.max(bg[i], 1)));
+    return od;
+  }
+  function findPeaks(y, minH, minDist) {
+    const idx = [];
+    for (let i = 1; i < y.length - 1; i++) if (y[i] >= y[i - 1] && y[i] > y[i + 1] && y[i] >= minH) idx.push(i);
+    idx.sort((a, b) => y[b] - y[a]);
+    const kept = [];
+    for (const i of idx) if (kept.every(j => Math.abs(i - j) >= minDist)) kept.push(i);
+    return kept.sort((a, b) => a - b);
+  }
+  function area(y, i, half) {
+    let s = 0;
+    for (let j = Math.max(0, i - half); j < Math.min(y.length, i + half + 1); j++) s += Math.max(0, y[j]);
+    return s;
+  }
+  function largestComponent(grid, gw, gh) {
+    const seen = new Uint8Array(gw * gh); let best = null;
+    for (let k = 0; k < grid.length; k++) {
+      if (!grid[k] || seen[k]) continue;
+      const comp = [k], stack = [k]; seen[k] = 1;
+      while (stack.length) {
+        const c = stack.pop(), x = c % gw, y = (c / gw) | 0;
+        const nb = [x > 0 ? c - 1 : -1, x < gw - 1 ? c + 1 : -1, y > 0 ? c - gw : -1, y < gh - 1 ? c + gw : -1];
+        for (const m of nb) if (m >= 0 && grid[m] && !seen[m]) { seen[m] = 1; stack.push(m); comp.push(m); }
+      }
+      if (!best || comp.length > best.length) best = comp;
+    }
+    const out = new Uint8Array(gw * gh);
+    if (best) for (const k of best) out[k] = 1;
+    return { mask: out, size: best ? best.length : 0 };
+  }
+  const isPink = (r, g, b) => r - g > 28 && r > 120 && b - g > -10;
+
+  function detectHandle(img) {
+    const { data, W, H } = img;
+    const sc = Math.max(2, Math.round(Math.max(W, H) / 460));
+    const gw = Math.floor(W / sc), gh = Math.floor(H / sc);
+    const cnt = new Uint32Array(gw * gh);
+    for (let y = 0; y < gh * sc; y++) for (let x = 0; x < gw * sc; x++) {
+      const i = (y * W + x) * 4;
+      if (isPink(data[i], data[i + 1], data[i + 2])) cnt[((y / sc) | 0) * gw + ((x / sc) | 0)]++;
+    }
+    const grid = new Uint8Array(gw * gh);
+    for (let k = 0; k < grid.length; k++) grid[k] = cnt[k] > 0.25 * sc * sc ? 1 : 0;
+    const { mask, size } = largestComponent(grid, gw, gh);
+    if (size < 20) return null;
+    let n = 0, sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0;
+    const inComp = (x, y) => { const gx = (x / sc) | 0, gy = (y / sc) | 0; return gx < gw && gy < gh && mask[gy * gw + gx]; };
+    for (let y = 0; y < gh * sc; y++) for (let x = 0; x < gw * sc; x++) {
+      const i = (y * W + x) * 4;
+      if (inComp(x, y) && isPink(data[i], data[i + 1], data[i + 2])) { n++; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y; }
+    }
+    const cx = sx / n, cy = sy / n;
+    const a = sxx / n - cx * cx, c = syy / n - cy * cy, b = sxy / n - cx * cy;
+    const lam = (a + c) / 2 + Math.sqrt(((a - c) / 2) ** 2 + b * b);
+    let vx = b, vy = lam - a;
+    if (Math.hypot(vx, vy) < 1e-9) { vx = a >= c ? 1 : 0; vy = a >= c ? 0 : 1; }
+    let ang = Math.atan2(vy, vx);
+    if (ang > Math.PI / 2) ang -= Math.PI;
+    if (ang < -Math.PI / 2) ang += Math.PI;
+    const ax = Math.cos(ang), ay = Math.sin(ang);
+    const step = Math.max(1, Math.ceil(n / 300000));
+    const proj = [], perp = []; let k = 0;
+    for (let y = 0; y < gh * sc; y++) for (let x = 0; x < gw * sc; x++) {
+      const i = (y * W + x) * 4;
+      if (inComp(x, y) && isPink(data[i], data[i + 1], data[i + 2]) && (k++ % step === 0)) {
+        const dx = x - cx, dy = y - cy;
+        proj.push(dx * ax + dy * ay); perp.push(-dx * ay + dy * ax);
+      }
+    }
+    const ps = Float64Array.from(proj).sort(), qs = Float64Array.from(perp).sort();
+    return { cx, cy, ax, ay, L: pctSorted(ps, 99.5) - pctSorted(ps, 0.5), W: pctSorted(qs, 99) - pctSorted(qs, 1) };
+  }
+
+  function colourOD(R, G, lineW) {
+    const odG = odOf(G, lineW), odR = odOf(R, lineW);
+    return { od: odG.map((v, i) => v - odR[i]), odG };
+  }
+
+  function measure(od, odG, stripW, lineW, pick) {
+    const n = od.length;
+    const dev = Float64Array.from(od, v => Math.abs(v - median(od)));
+    const noise = Math.max(median(dev) * 1.4826, 1e-4);
+    let C, T = null;
+    if (pick) {
+      const argmaxNear = (c, r) => { let best = clamp(Math.round(c), 0, n - 1); for (let i = Math.max(0, Math.round(c - r)); i <= Math.min(n - 1, Math.round(c + r)); i++) if (od[i] > od[best]) best = i; return best; };
+      C = argmaxNear(pick.c, pick.r); T = argmaxNear(pick.t, pick.r);
+    } else {
+      const peaks = findPeaks(od, Math.max(3 * noise, 0.004), lineW * 2);
+      if (!peaks.length) return { error: "no-lines" };
+      const strong = Math.max(...peaks.map(p => od[p]));
+      C = Math.max(...peaks.filter(p => od[p] >= 0.35 * strong));
+      const cands = peaks.filter(p => p >= C - stripW * 3 && p <= C - stripW * 0.5);
+      if (cands.length) T = cands.reduce((a, b) => od[b] > od[a] ? b : a);
+    }
+    if (od[C] <= 0) return { error: "no-control" };
+    const half = Math.round(lineW * 1.2);
+    const res = { noise, C, T, odC: od[C], areaC: area(od, C, half) };
+    if (T !== null && T !== C) {
+      res.odT = od[T]; res.areaT = area(od, T, half);
+      res.ratio = Math.max(0, od[T] / od[C]);
+      res.ratioArea = res.areaT / Math.max(res.areaC, 1e-9);
+      res.ratioGreen = Math.max(0, odG[T] / Math.max(odG[C], 1e-9));
+      res.snr = od[T] / noise;
+      res.detected = od[T] >= 5 * noise;
+    } else {
+      res.T = null; res.ratio = 0; res.ratioArea = 0; res.ratioGreen = 0; res.snr = 0; res.detected = false;
+    }
+    if (!res.detected) res.upper = 3 * noise / od[C];
+    const r = res.ratio;
+    res.grade = !res.detected ? "none" : r < 0.10 ? "very-faint" : r < 0.30 ? "faint" : r < 0.60 ? "medium" : r < 0.90 ? "strong" : "equal";
+    return res;
+  }
+
+  function analyzeAuto(img) {
+    const h = detectHandle(img);
+    if (!h) return { error: "no-handle" };
+    const halfW = h.W * 0.30, reach = h.L * 0.9;
+    let best = null;
+    for (const side of [-1, 1]) {
+      const fr = { cx: h.cx, cy: h.cy, ux: -side * h.ax, uy: -side * h.ay, t0: -(h.L / 2 + reach), n: Math.round(reach) };
+      const { R, G } = bandProfiles(img, fr, halfW);
+      const p90r = percentile(R, 90), p90g = percentile(G, 90);
+      const od = G.map((g, i) => -Math.log10(Math.max(g, 1) / Math.max(1, p90g)) + Math.log10(Math.max(R[i], 1) / Math.max(1, p90r)));
+      const hi = Math.floor(od.length * 0.97), lo = hi - Math.floor(od.length * 0.5);
+      let score = -Infinity; for (let i = Math.max(0, lo); i < hi; i++) score = Math.max(score, od[i]);
+      if (!best || score > best.score) best = { score, fr, R, G };
+    }
+    const fr = { ...best.fr, n: Math.round(reach - 0.02 * h.L) };
+    const R = best.R.slice(0, fr.n), G = best.G.slice(0, fr.n);
+    const lineW = Math.max(3, h.W * 0.10);
+    const { od, odG } = colourOD(R, G, lineW);
+    const m = measure(od, odG, h.W, lineW, null);
+    return { mode: "auto", frame: fr, stripW: h.W, od, odG, ...m };
+  }
+
+  function analyzeManual(img, pc, pt) {
+    const d = Math.hypot(pc.x - pt.x, pc.y - pt.y);
+    if (d < 6) return { error: "too-close" };
+    const ux = (pc.x - pt.x) / d, uy = (pc.y - pt.y) / d;
+    const stripW = d / 1.5, lineW = Math.max(3, stripW * 0.10);
+    const fr = { cx: pt.x, cy: pt.y, ux, uy, t0: -0.9 * d, n: Math.round(2.3 * d) };
+    const { R, G } = bandProfiles(img, fr, stripW * 0.30);
+    const { od, odG } = colourOD(R, G, lineW);
+    const m = measure(od, odG, stripW, lineW, { c: 1.9 * d, t: 0.9 * d, r: 0.2 * d });
+    return { mode: "manual", frame: fr, stripW, od, odG, ...m };
+  }
+
+  return { analyzeAuto, analyzeManual, sample };
+})();
+if (typeof module !== "undefined") module.exports = LineAnalysis;
+/* ===================== end analysis core ===================== */
+</script>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const GRADE = {
+    "none": "시약선 안 보임", "very-faint": "아주 희미", "faint": "희미",
+    "medium": "중간", "strong": "진함", "equal": "대조선 수준",
+  };
+  const MAXDIM = 2400;
+  const pct = v => (v * 100 < 10 ? (v * 100).toFixed(1) : Math.round(v * 100)) + "%";
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  let work = null;      // { canvas, data, W, H, isSample, fileTime }
+  let current = null;   // analysis result
+  let view = null;      // photo canvas view rect in image px
+  let pick = null;      // manual pick state
+
+  /* ---------- image loading ---------- */
+  function setWork(src, w, h, meta) {
+    const s = Math.min(1, MAXDIM / Math.max(w, h));
+    const c = document.createElement("canvas");
+    c.width = Math.round(w * s); c.height = Math.round(h * s);
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(src, 0, 0, c.width, c.height);
+    work = { canvas: c, data: ctx.getImageData(0, 0, c.width, c.height).data, W: c.width, H: c.height, ...meta };
+    view = { x: 0, y: 0, w: c.width, h: c.height };
+  }
+
+  function makeSample() {
+    const c = document.createElement("canvas"); c.width = 1600; c.height = 760;
+    const g = c.getContext("2d");
+    g.fillStyle = "#e8e6ea"; g.fillRect(0, 0, c.width, c.height);
+    g.save(); g.translate(800, 380); g.rotate(-0.035); g.translate(-800, -380);
+    g.fillStyle = "#d4d1d6"; g.fillRect(150, 300, 1330, 160);            // pouch
+    g.fillStyle = "#f6f6f3"; g.fillRect(190, 350, 1250, 62);             // strip
+    g.fillStyle = "#1f1f1f"; g.fillRect(410, 350, 10, 62);               // MAX bar
+    g.fillStyle = "#eeeae9"; g.fillRect(560, 350, 440, 62);              // membrane window
+    g.fillStyle = "rgba(150, 26, 82, 0.16)"; g.fillRect(842, 350, 9, 62); // T
+    g.fillStyle = "rgba(150, 26, 82, 0.80)"; g.fillRect(932, 350, 9, 62); // C
+    g.fillStyle = "#f4b5ca"; g.fillRect(1000, 350, 440, 62);             // handle
+    g.fillStyle = "#c2185b"; g.font = "bold 28px sans-serif";
+    for (let x = 1005; x < 1430; x += 80) { g.fillText("HCG", x, 375); g.fillText("HCG", x + 30, 405); }
+    g.restore();
+    const im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+    let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5);
+    for (let i = 0; i < d.length; i += 4) { const n = rnd() * 6; d[i] += n; d[i + 1] += n; d[i + 2] += n; }
+    g.putImageData(im, 0, 0);
+    return c;
+  }
+
+  function nowLocal(ts) {
+    const d = new Date(ts); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
+
+  $("#file").addEventListener("change", e => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const url = URL.createObjectURL(f), img = new Image();
+    img.onload = () => {
+      setWork(img, img.naturalWidth, img.naturalHeight, { isSample: false, fileTime: f.lastModified });
+      URL.revokeObjectURL(url);
+      $("#fileName").textContent = f.name;
+      $("#when").value = nowLocal(f.lastModified && f.lastModified <= Date.now() ? f.lastModified : Date.now());
+      $("#memo").value = "";
+      run();
+    };
+    img.onerror = () => { $("#fileName").textContent = "이 사진을 열 수 없어요. JPG나 PNG 사진을 골라 주세요."; };
+    img.src = url;
+    e.target.value = "";
+  });
+
+  /* ---------- analysis + rendering ---------- */
+  function run(manual) {
+    endPick();
+    current = manual ? LineAnalysis.analyzeManual(work, manual.c, manual.t) : LineAnalysis.analyzeAuto(work);
+    $("#exampleChip").hidden = !work.isSample;
+    $("#autoBtn").hidden = !manual;
+    $("#saveMsg").textContent = "";
+    renderResult();
+    drawPhoto();
+  }
+
+  function renderResult() {
+    const body = $("#resultBody"), r = current;
+    $("#saveBtn").disabled = !!r.error;
+    if (r.error) {
+      const msg = {
+        "no-handle": "분홍색 HCG 손잡이를 찾지 못했어요.",
+        "no-lines": "스트립에서 선을 찾지 못했어요.",
+        "no-control": "대조선을 찾지 못했어요.",
+        "too-close": "두 점이 너무 가까워요.",
+      }[r.error];
+      body.innerHTML = `<p class="note warn">${msg} 아래 ‘원본 사진에서 위치 확인’을 열고 <b>직접 지정하기</b>로 대조선과 시약선을 눌러 주세요.</p>`;
+      $("#stripView").hidden = true;
+      $("#photoDetails").open = true;
+      return;
+    }
+    $("#stripView").hidden = false;
+    const vals = [r.ratio, r.ratioArea, r.ratioGreen];
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const consistent = r.detected && hi <= lo * 1.3 + 0.01;
+    body.innerHTML = `
+      <div style="display:grid;gap:14px">
+        <div class="reading-head">
+          <span class="big">${r.detected ? pct(r.ratio) : "—"}</span>
+          <span class="chip"><span class="dot"></span>${GRADE[r.grade]}</span>
+        </div>
+        <p class="muted">${r.detected
+          ? `대조선 진하기를 100으로 볼 때 시약선은 약 <b>${Math.round(r.ratio * 100)}</b> 정도예요.`
+          : `시약선이 노이즈와 구분되지 않아요. 있다면 대조선의 <b>${pct(r.upper)}</b> 이하예요.`}</p>
+        <div class="metrics">
+          <div class="metric"><span class="k">피크 비 T/C</span><span class="v">${pct(r.ratio)}</span></div>
+          <div class="metric"><span class="k">면적 비 T/C</span><span class="v">${pct(r.ratioArea)}</span></div>
+          <div class="metric"><span class="k">녹색 채널 비</span><span class="v">${pct(r.ratioGreen)}</span></div>
+          <div class="metric"><span class="k">신호/노이즈</span><span class="v">${r.snr ? r.snr.toFixed(1) : "—"}</span></div>
+        </div>
+        ${r.detected ? `<p class="note ${consistent ? "" : "warn"}">${consistent
+          ? "세 가지 측정값이 비슷해서 믿을 만한 결과예요."
+          : "측정값끼리 차이가 커요. 그림자·반사·초점을 확인하고 다시 찍어 보세요."}</p>` : ""}
+        ${r.mode === "manual" ? `<p class="small muted">직접 지정한 위치로 잰 결과예요.</p>` : ""}
+      </div>`;
+    drawStrip();
+    drawProfile();
+  }
+
+  function drawStrip(target, opts) {
+    const r = current, fr = r.frame, W = r.stripW;
+    const c = target || $("#stripCanvas");
+    const from = opts ? opts.from : 0, to = opts ? opts.to : fr.n;
+    const half = (opts ? opts.half : 0.6) * W;
+    const outW = opts ? opts.w : Math.min(900, to - from);
+    const outH = opts ? opts.h : Math.max(24, Math.round(outW * (2 * half) / (to - from)));
+    c.width = outW; c.height = outH;
+    const g = c.getContext("2d"), im = g.createImageData(outW, outH), d = im.data;
+    const vx = -fr.uy, vy = fr.ux;
+    for (let y = 0; y < outH; y++) for (let x = 0; x < outW; x++) {
+      const t = fr.t0 + from + (x + 0.5) * (to - from) / outW, s = -half + (y + 0.5) * 2 * half / outH;
+      const p = LineAnalysis.sample(work, fr.cx + t * fr.ux + s * vx, fr.cy + t * fr.uy + s * vy);
+      const k = (y * outW + x) * 4; d[k] = p[0]; d[k + 1] = p[1]; d[k + 2] = p[2]; d[k + 3] = 255;
+    }
+    g.putImageData(im, 0, 0);
+    return c;
+  }
+
+  function drawProfile() {
+    const r = current, od = r.od, n = od.length, H = 100;
+    const top = Math.max(0.02, ...od);
+    const y = v => (H - 6 - (H - 14) * Math.max(0, v) / top).toFixed(1);
+    let d = ""; for (let i = 0; i < n; i++) d += (i ? "L" : "M") + i + " " + y(od[i]);
+    const nl = y(3 * r.noise);
+    const mark = (i, cls) => i == null ? "" :
+      `<line x1="${i}" x2="${i}" y1="0" y2="${H}" stroke="var(${cls === "c" ? "--c-mark" : "--accent"})" stroke-width="1.5" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`;
+    const lbl = (i, cls, txt) => i == null ? "" : `<span class="lbl ${cls}" style="left:${(i / n * 100).toFixed(2)}%">${txt}</span>`;
+    $("#profile").innerHTML = `
+      <svg viewBox="0 0 ${n} ${H}" preserveAspectRatio="none" role="img" aria-label="스트립을 따라 잰 선의 진하기 그래프">
+        <line x1="0" x2="${n}" y1="${H - 6}" y2="${H - 6}" stroke="var(--rule)" vector-effect="non-scaling-stroke"/>
+        <line x1="0" x2="${n}" y1="${nl}" y2="${nl}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 4" opacity=".6" vector-effect="non-scaling-stroke"/>
+        ${mark(r.C, "c")}${mark(r.T, "t")}
+        <path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      </svg>
+      ${lbl(r.C, "c", "C")}${lbl(r.T, "t", "T")}`;
+  }
+
+  function drawPhoto() {
+    const c = $("#photoCanvas"), v = view;
+    const maxW = 1200, s = Math.min(1, maxW / v.w);
+    c.width = Math.round(v.w * s); c.height = Math.round(v.h * s);
+    const g = c.getContext("2d");
+    g.drawImage(work.canvas, v.x, v.y, v.w, v.h, 0, 0, c.width, c.height);
+    const P = (x, y) => [(x - v.x) * s, (y - v.y) * s];
+    const lw = Math.max(2, 3 * c.width / 900);
+    const r = current;
+    if (r && !r.error && !pick) {
+      const fr = r.frame, vx = -fr.uy, vy = fr.ux, hw = r.stripW * 0.6;
+      const at = (t, sd) => P(fr.cx + (fr.t0 + t) * fr.ux + sd * vx, fr.cy + (fr.t0 + t) * fr.uy + sd * vy);
+      g.lineWidth = lw; g.strokeStyle = "rgba(255,255,255,.9)"; g.setLineDash([6, 5]);
+      g.beginPath(); [at(0, -hw), at(fr.n, -hw), at(fr.n, hw), at(0, hw)].forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p)); g.closePath(); g.stroke();
+      g.setLineDash([]);
+      const line = (i, col) => { if (i == null) return; g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(...at(i, -hw * 1.6)); g.lineTo(...at(i, -hw * 1.05)); g.moveTo(...at(i, hw * 1.05)); g.lineTo(...at(i, hw * 1.6)); g.stroke(); };
+      line(r.C, "#2f7fe0"); line(r.T, "#e0287a");
+    }
+    if (pick) {
+      for (const [k, col] of [["c", "#2f7fe0"], ["t", "#e0287a"]]) if (pick[k]) {
+        const [x, y] = P(pick[k].x, pick[k].y);
+        g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.arc(x, y, 10 * lw / 2, 0, Math.PI * 2); g.stroke();
+      }
+    }
+  }
+
+  /* ---------- manual picking: zoom, then tap C, then T ---------- */
+  const STEPS = { zoom: "1단계 · 스트립의 결과창(두 선 근처)을 눌러 확대하세요.", c: "2단계 · 대조선(C, 손잡이에 가까운 진한 선)을 누르세요.", t: "3단계 · 시약선(T)이 있는 자리를 누르세요. 안 보이면 대조선에서 약간 떨어진 예상 위치를 누르세요." };
+  function startPick() {
+    pick = { step: "zoom" };
+    view = { x: 0, y: 0, w: work.W, h: work.H };
+    $("#photoCanvas").classList.add("picking");
+    $("#pickCancel").hidden = false; $("#pickBtn").hidden = true;
+    $("#pickHelp").innerHTML = `<span class="pick-step">${STEPS.zoom}</span>`;
+    drawPhoto();
+  }
+  function endPick() {
+    pick = null;
+    $("#photoCanvas").classList.remove("picking");
+    $("#pickCancel").hidden = true; $("#pickBtn").hidden = false;
+    $("#pickHelp").textContent = "파란 표시가 대조선, 분홍 표시가 시약선 위에 있어야 해요. 틀렸다면 직접 지정해 주세요.";
+  }
+  $("#pickBtn").addEventListener("click", () => work && startPick());
+  $("#pickCancel").addEventListener("click", () => { endPick(); view = { x: 0, y: 0, w: work.W, h: work.H }; drawPhoto(); });
+  $("#autoBtn").addEventListener("click", () => { view = { x: 0, y: 0, w: work.W, h: work.H }; run(); });
+  $("#photoCanvas").addEventListener("click", e => {
+    if (!pick) return;
+    const c = e.currentTarget, rect = c.getBoundingClientRect();
+    const x = view.x + (e.clientX - rect.left) / rect.width * view.w;
+    const y = view.y + (e.clientY - rect.top) / rect.height * view.h;
+    if (pick.step === "zoom") {
+      const w = Math.max(200, work.W / 4), h = w * work.H / work.W;
+      view = { x: Math.min(Math.max(0, x - w / 2), work.W - w), y: Math.min(Math.max(0, y - h / 2), work.H - h), w, h };
+      pick.step = "c";
+    } else if (pick.step === "c") {
+      pick.c = { x, y }; pick.step = "t";
+    } else {
+      pick.t = { x, y };
+      const sel = { c: pick.c, t: pick.t };
+      view = { x: 0, y: 0, w: work.W, h: work.H };
+      run(sel);
+      return;
+    }
+    $("#pickHelp").innerHTML = `<span class="pick-step">${STEPS[pick.step]}</span>`;
+    drawPhoto();
+  });
+
+  /* ---------- records: private per-person db, else this browser ---------- */
+  const store = {
+    mode: "loading", items: [], db: null, uid: null, unsub: null,
+    async init() {
+      try {
+        if (window.claude && typeof window.claude.use === "function") {
+          const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+          const uid = user ? await user.id() : null;
+          if (db && uid) {
+            this.db = db; this.uid = uid; this.mode = "db";
+            this.unsub = db.collection("data/users/" + uid).orderBy("ts", "asc").onSnapshot(
+              snap => { this.items = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderHistory(); },
+              () => { this.useLocal(); });
+            renderHistory();
+            return;
+          }
+        }
+      } catch (e) { /* fall through */ }
+      this.useLocal();
+    },
+    useLocal() {
+      if (this.unsub) { try { this.unsub(); } catch (e) {} this.unsub = null; }
+      this.mode = "local"; this.db = null;
+      try { this.items = JSON.parse(localStorage.getItem("hcg-records") || "[]"); } catch (e) { this.items = []; }
+      this.items.sort((a, b) => a.ts - b.ts);
+      renderHistory();
+    },
+    saveLocal() { try { localStorage.setItem("hcg-records", JSON.stringify(this.items)); return true; } catch (e) { return false; } },
+    async add(rec) {
+      if (this.mode === "db") {
+        try { await this.db.collection("data/users/" + this.uid).add(rec); return true; }
+        catch (e) {
+          if (e && e.code === "quota_exceeded") throw new Error("저장 공간이 가득 찼어요. 오래된 기록을 지운 뒤 다시 저장해 주세요.");
+          this.useLocal();
+        }
+      }
+      this.items.push({ id: "l" + Date.now().toString(36), ...rec });
+      this.items.sort((a, b) => a.ts - b.ts);
+      if (!this.saveLocal()) throw new Error("이 브라우저에 저장할 수 없어요. 비공개 창이면 일반 창에서 열어 주세요.");
+      renderHistory();
+      return true;
+    },
+    async remove(id) {
+      if (this.mode === "db") { await this.db.collection("data/users/" + this.uid).doc(id).delete(); return; }
+      this.items = this.items.filter(r => r.id !== id); this.saveLocal(); renderHistory();
+    },
+  };
+
+  $("#saveForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const r = current;
+    if (!r || r.error) return;
+    const ts = new Date($("#when").value).getTime();
+    if (!isFinite(ts)) { $("#saveMsg").textContent = "검사 시각을 입력해 주세요."; return; }
+    // thumbnail aligned on the control line so stacked records line up
+    const W = r.stripW, thumb = drawStrip(document.createElement("canvas"), { from: r.C - 2.6 * W, to: r.C + 0.6 * W, half: 0.5, w: 320, h: 100 });
+    const rec = {
+      ts, createdAt: Date.now(), note: $("#memo").value.trim().slice(0, 80),
+      ratio: +r.ratio.toFixed(4), ratioArea: +r.ratioArea.toFixed(4), ratioGreen: +r.ratioGreen.toFixed(4),
+      snr: +(r.snr || 0).toFixed(1), detected: r.detected, grade: r.grade, mode: r.mode,
+      example: !!work.isSample, thumb: thumb.toDataURL("image/jpeg", 0.82),
+    };
+    $("#saveBtn").disabled = true;
+    try { await store.add(rec); $("#saveMsg").textContent = "기록에 저장했어요."; }
+    catch (err) { $("#saveMsg").textContent = err.message; }
+    finally { $("#saveBtn").disabled = false; }
+  });
+
+  /* ---------- history: trend + list ---------- */
+  const fmt = ts => { const d = new Date(ts); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+  function renderHistory() {
+    const items = store.items;
+    $("#storeNote").textContent = store.mode === "db" ? "내 계정에 저장 · 나만 볼 수 있어요"
+      : store.mode === "local" ? "이 브라우저에만 저장돼요" : "불러오는 중…";
+    const list = $("#records");
+    if (!items.length) {
+      $("#trend").innerHTML = "";
+      list.innerHTML = `<li class="empty">아직 기록이 없어요. 사진을 재고 <b>기록에 저장</b>을 누르면 여기에 날짜순으로 쌓이고, 두 개부터 변화 그래프가 그려져요.</li>`;
+      return;
+    }
+    renderTrend(items);
+    list.innerHTML = items.slice().reverse().map(r => `
+      <li class="rec">
+        <div class="meta">
+          <span class="pct">${r.detected ? pct(r.ratio) : "—"}</span>
+          <span class="chip"><span class="dot"></span>${GRADE[r.grade] || ""}</span>
+          <span class="mono small muted">${fmt(r.ts)}</span>
+          ${r.example ? `<span class="chip example">예시 사진</span>` : ""}
+        </div>
+        <button class="btn ghost danger small" type="button" data-del="${esc(r.id)}">삭제</button>
+        ${r.thumb ? `<img src="${esc(r.thumb)}" alt="${fmt(r.ts)} 스트립">` : ""}
+        ${r.note ? `<span class="memo">${esc(r.note)}</span>` : ""}
+      </li>`).join("");
+  }
+  $("#records").addEventListener("click", async e => {
+    const b = e.target.closest("[data-del]");
+    if (!b) return;
+    if (b.dataset.armed) {
+      b.disabled = true;
+      try { await store.remove(b.dataset.del); } catch (err) { b.disabled = false; b.textContent = "삭제 실패"; }
+    } else {
+      b.dataset.armed = "1"; b.textContent = "정말 삭제";
+      setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "삭제"; } }, 3500);
+    }
+  });
+
+  function renderTrend(items) {
+    const box = $("#trend");
+    if (items.length < 2) { box.innerHTML = `<p class="small muted">기록이 두 개 이상이면 변화 그래프가 보여요.</p>`; return; }
+    const W = 640, H = 200, padL = 40, padR = 14, padT = 12, padB = 26;
+    const t0 = items[0].ts, t1 = items[items.length - 1].ts, span = Math.max(1, t1 - t0);
+    const yMax = Math.max(100, Math.ceil(Math.max(...items.map(r => r.ratio * 100)) / 25) * 25);
+    const X = t => padL + (W - padL - padR) * (t - t0) / span, Y = v => padT + (H - padT - padB) * (1 - v / yMax);
+    let grid = "";
+    for (let v = 0; v <= yMax; v += 25) grid += `<line x1="${padL}" x2="${W - padR}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--rule)"/><text x="${padL - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--font-mono)">${v}%</text>`;
+    const pts = items.map(r => [X(r.ts), Y(r.detected ? r.ratio * 100 : 0)]);
+    const path = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("");
+    const last = pts[pts.length - 1];
+    box.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="날짜별 시약선 진하기 변화">
+        ${grid}
+        <text x="${padL}" y="${H - 6}" font-size="11" fill="var(--muted)" font-family="var(--font-mono)">${fmt(t0)}</text>
+        <text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--font-mono)">${fmt(t1)}</text>
+        <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
+        ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`).join("")}
+        <circle cx="${last[0]}" cy="${last[1]}" r="6" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+        <rect id="hit" x="${padL}" y="0" width="${W - padL - padR}" height="${H}" fill="transparent"/>
+      </svg>
+      <div class="tip" hidden></div>`;
+    const svg = box.querySelector("svg"), tip = box.querySelector(".tip");
+    svg.addEventListener("pointermove", e => {
+      const rc = svg.getBoundingClientRect(), x = (e.clientX - rc.left) / rc.width * W;
+      let k = 0; pts.forEach((p, i) => { if (Math.abs(p[0] - x) < Math.abs(pts[k][0] - x)) k = i; });
+      const r = items[k];
+      tip.hidden = false;
+      tip.style.left = (pts[k][0] / W * rc.width) + "px"; tip.style.top = (pts[k][1] / H * rc.height) + "px";
+      tip.textContent = `${fmt(r.ts)} · ${r.detected ? pct(r.ratio) : "안 보임"}`;
+    });
+    svg.addEventListener("pointerleave", () => { tip.hidden = true; });
+  }
+
+  /* ---------- start ---------- */
+  const s = makeSample();
+  setWork(s, s.width, s.height, { isSample: true, fileTime: Date.now() });
+  $("#when").value = nowLocal(Date.now());
+  run();
+  store.init();
+})();
+</script>
