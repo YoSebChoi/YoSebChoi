@@ -56,6 +56,10 @@ section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-w
 .btn.ghost { background: transparent; }
 .btn.danger { color: var(--accent); }
 .btn[disabled] { opacity: .5; cursor: default; }
+/* the real file input covers the whole button: a tap lands on it directly, which every in-app browser honours */
+.file-btn { position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 100px; }
+.file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .tips { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13.5px; display: grid; gap: 2px; }
 
 /* reading */
@@ -123,8 +127,7 @@ footer { font-size: 12.5px; color: var(--muted); display: grid; gap: 4px; border
   <section aria-labelledby="cap-h">
     <h2 id="cap-h" class="sr">사진 고르기</h2>
     <div class="capture">
-      <label class="btn primary" for="file">사진 찍기 · 고르기</label>
-      <input id="file" type="file" accept="image/*" class="sr">
+      <span class="btn primary file-btn">사진 찍기 · 고르기<input id="file" type="file" accept="image/*" aria-label="사진 찍기 · 고르기"></span>
       <span class="muted small" id="fileName">아래는 예시 스트립으로 잰 결과예요.</span>
     </div>
     <ul class="tips">
