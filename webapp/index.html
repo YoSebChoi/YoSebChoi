@@ -1,161 +1,225 @@
 <title>시약선 노트</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap">
 <style>
-/* Layout: one narrow column like a lab notebook page — capture, reading, then the dated log. */
+/* Layout: a quiet two-room app — 측정 and 기록 — switched from a soft tab bar at the bottom.
+   Mood: early-morning mist over celadon; paper-soft cards, rounded edges, no hard lines. */
 :root {
-  --bg: #f8f5f6;
-  --surface: #ffffff;
-  --ink: #2a2026;
-  --muted: #76666e;
-  --rule: #e7dde2;
-  --accent: #a3245c;        /* colloidal-gold line colour */
-  --accent-soft: #f7e4ec;
-  --c-mark: #2f5d8a;
-  --warn: #9a5b00;
-  --warn-soft: #fbefd9;
+  --bg: #edf1ec;
+  --mist: #dde7e0;
+  --surface: #f8faf6;
+  --surface-2: #e7ece5;
+  --ink: #2f3934;
+  --muted: #6e7b74;
+  --rule: #d8e0d7;
+  --accent: #985470;        /* dusty plum-rose: the colour of a test line, softened */
+  --accent-soft: #eee0e5;
+  --c-mark: #4b7d71;        /* celadon green for the control line */
+  --warn: #84672c;
+  --warn-soft: #f0e9d8;
+  --shadow: 0 1px 2px rgba(47, 57, 52, .05), 0 10px 30px rgba(47, 57, 52, .07);
   --font-display: "Gowun Batang", "Noto Serif KR", "AppleMyungjo", serif;
-  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --tabbar-h: 64px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #161117; --surface: #201922; --ink: #f2e9ee; --muted: #a9999f; --rule: #3a2e38;
-    --accent: #f27ca9; --accent-soft: #3b1f2d; --c-mark: #84b4e2; --warn: #f0b45a; --warn-soft: #3a2a12;
+    --bg: #161b19; --mist: #1c2421; --surface: #1f2623; --surface-2: #28302c; --ink: #e3eae4; --muted: #99a79e; --rule: #313b36;
+    --accent: #d797af; --accent-soft: #392630; --c-mark: #8dbfb0; --warn: #dcbd78; --warn-soft: #332b1b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .25), 0 10px 30px rgba(0, 0, 0, .25);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #161117; --surface: #201922; --ink: #f2e9ee; --muted: #a9999f; --rule: #3a2e38;
-  --accent: #f27ca9; --accent-soft: #3b1f2d; --c-mark: #84b4e2; --warn: #f0b45a; --warn-soft: #3a2a12;
+  --bg: #161b19; --mist: #1c2421; --surface: #1f2623; --surface-2: #28302c; --ink: #e3eae4; --muted: #99a79e; --rule: #313b36;
+  --accent: #d797af; --accent-soft: #392630; --c-mark: #8dbfb0; --warn: #dcbd78; --warn-soft: #332b1b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .25), 0 10px 30px rgba(0, 0, 0, .25);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
-.wrap { max-width: 720px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; }
-h1, h2 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; line-height: 1.25; }
-h1 { font-size: 30px; }
-h2 { font-size: 21px; }
+body {
+  background: var(--bg);
+  background-image: radial-gradient(120% 60% at 50% -10%, var(--mist), transparent 70%);
+  background-repeat: no-repeat;
+  color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.75;
+}
+.app { max-width: 640px; margin: 0 auto; padding-inline: 18px; padding-block: 30px calc(var(--tabbar-h) + 40px + env(safe-area-inset-bottom, 0px));
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; line-height: 1.35; letter-spacing: -.005em; }
+h1 { font-size: 26px; }
+h2 { font-size: 20px; }
 p { margin: 0; }
 .muted { color: var(--muted); }
-.small { font-size: 13px; }
-.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-header { display: grid; gap: 6px; }
-header .tag { font-size: 12px; letter-spacing: .08em; color: var(--accent); font-weight: 600; }
-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
-.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding: 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+.small { font-size: 13.5px; }
+.num { font-variant-numeric: tabular-nums; }
 
-/* capture */
-.capture { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
-.btn { appearance: none; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); font: inherit; font-weight: 500;
-  border-radius: 999px; padding: 9px 16px; cursor: pointer; line-height: 1.3; }
-.btn:hover { border-color: var(--muted); }
-.btn:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
-.btn.ghost { background: transparent; }
+/* header */
+.top { display: flex; align-items: center; gap: 12px; }
+.top svg { flex: none; }
+.top .sub { color: var(--muted); font-size: 14px; }
+
+/* tabs */
+.tabpanel { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .tabpanel:not([hidden]) { animation: rise .35s ease both; }
+  @keyframes rise { from { opacity: .4; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center;
+  padding: 8px 18px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 -1px 0 var(--rule); }
+.tabbar .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 420px; }
+.tab { appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13.5px; cursor: pointer;
+  display: grid; justify-items: center; gap: 2px; padding: 6px 0 4px; border-radius: 16px; position: relative; }
+.tab svg { width: 24px; height: 24px; }
+.tab[aria-selected="true"] { color: var(--accent); background: var(--accent-soft); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.badge { position: absolute; top: 4px; left: calc(50% + 10px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+  background: var(--accent); color: var(--surface); font-size: 11px; line-height: 18px; text-align: center; }
+
+/* cards */
+.card { background: var(--surface); border-radius: 24px; padding: 22px; box-shadow: var(--shadow);
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
+.card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+
+/* buttons */
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { appearance: none; border: 0; background: var(--surface-2); color: var(--ink); font: inherit; border-radius: 999px;
+  padding: 10px 18px; cursor: pointer; line-height: 1.3; transition: filter .2s; }
+.btn:hover { filter: brightness(.97); }
+.btn:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.primary { background: var(--accent); color: var(--surface); }
+.btn.ghost { background: transparent; color: var(--muted); }
 .btn.danger { color: var(--accent); }
+.btn.small { padding: 6px 12px; font-size: 13.5px; }
 .btn[disabled] { opacity: .5; cursor: default; }
 /* the real file input covers the whole button: a tap lands on it directly, which every in-app browser honours */
-.file-btn { position: relative; overflow: hidden; }
+.file-btn { position: relative; overflow: hidden; padding: 13px 22px; font-size: 16px; }
 .file-btn input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; font-size: 100px; }
 .file-btn:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
-.tips { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13.5px; display: grid; gap: 2px; }
+
+details.tips-box summary { cursor: pointer; color: var(--muted); font-size: 14px; list-style: none; }
+details.tips-box summary::before { content: "＋ "; }
+details.tips-box[open] summary::before { content: "－ "; }
+.tips { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; display: grid; gap: 4px; }
 
 /* reading */
-.reading-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
-.big { font-family: var(--font-mono); font-size: 56px; font-weight: 500; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 999px;
-  background: var(--accent-soft); color: var(--accent); }
+.reading-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.big { font-family: var(--font-display); font-size: 58px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 3px 11px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
 .chip.example { background: var(--warn-soft); color: var(--warn); }
-.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-.metric { border-top: 1px solid var(--rule); padding-top: 8px; display: grid; gap: 2px; }
-.metric .k { font-size: 12px; color: var(--muted); letter-spacing: .02em; }
-.metric .v { font-family: var(--font-mono); font-size: 17px; font-variant-numeric: tabular-nums; }
-@media (max-width: 520px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .big { font-size: 46px; } }
-.note { font-size: 13.5px; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); }
+.chip .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.metric { background: var(--bg); border-radius: 14px; padding: 10px 12px; display: grid; gap: 0; }
+.metric .k { font-size: 12px; color: var(--muted); }
+.metric .v { font-size: 18px; font-variant-numeric: tabular-nums; }
+@media (max-width: 520px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .big { font-size: 50px; } }
+.note { font-size: 14px; padding: 10px 14px; border-radius: 14px; background: var(--accent-soft); }
 .note.warn { background: var(--warn-soft); color: var(--warn); }
 
-.strip-view { display: grid; gap: 0; }
-.strip-view canvas { width: 100%; height: auto; display: block; border-radius: 6px 6px 0 0; image-rendering: auto; }
+.strip-view { display: grid; gap: 0; background: var(--bg); border-radius: 16px; padding: 10px 10px 6px; }
+.strip-view canvas { width: 100%; height: auto; display: block; border-radius: 8px; }
 .profile { position: relative; }
-.profile svg { width: 100%; height: 110px; display: block; overflow: visible; }
-.profile .lbl { position: absolute; top: 2px; transform: translateX(-50%); font-family: var(--font-mono); font-size: 12px; font-weight: 500; }
+.profile svg { width: 100%; height: 100px; display: block; overflow: visible; }
+.profile .lbl { position: absolute; top: 2px; transform: translateX(-50%); font-size: 12px; font-weight: 700; }
 .lbl.c { color: var(--c-mark); } .lbl.t { color: var(--accent); }
 .axis-note { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
 
-details { border-top: 1px solid var(--rule); padding-top: 12px; }
-summary { cursor: pointer; font-weight: 500; }
+details.photo { border-top: 1px solid var(--rule); padding-top: 14px; }
+details.photo summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 .photo-box { display: grid; gap: 10px; margin-top: 10px; }
-.photo-box canvas { width: 100%; height: auto; display: block; border-radius: 8px; touch-action: manipulation; background: var(--bg); }
+.photo-box canvas { width: 100%; height: auto; display: block; border-radius: 14px; touch-action: manipulation; background: var(--bg); }
 .photo-box canvas.picking { cursor: crosshair; outline: 2px solid var(--accent); }
-.pick-step { font-weight: 600; color: var(--accent); }
+.pick-step { color: var(--accent); }
 
-.save { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 10px; align-items: end; }
+.save { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 10px; align-items: end;
+  border-top: 1px solid var(--rule); padding-top: 16px; }
 @media (max-width: 560px) { .save { grid-template-columns: 1fr; } }
-label.f { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); min-width: 0; }
-input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--rule);
-  border-radius: 10px; padding: 8px 10px; width: 100%; min-width: 0; }
+label.f { display: grid; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
+input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--ink); background: var(--bg); border: 0;
+  border-radius: 14px; padding: 10px 12px; width: 100%; min-width: 0; }
 
-/* history */
-.hist-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.toast { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + 18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);
+  z-index: 6; display: flex; align-items: center; gap: 12px; background: var(--ink); color: var(--bg); border-radius: 999px;
+  padding: 8px 8px 8px 18px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px); white-space: nowrap; }
+.toast .btn { background: var(--bg); color: var(--ink); padding: 6px 14px; font-size: 13.5px; }
+
+/* records */
+.summary { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline; }
+.summary .figure { font-family: var(--font-display); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .trend { position: relative; }
-.trend svg { width: 100%; height: 200px; display: block; overflow: visible; }
-.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12px; padding: 5px 8px; border-radius: 6px;
-  white-space: nowrap; transform: translate(-50%, -120%); }
+.trend svg { width: 100%; height: auto; display: block; overflow: visible; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: 12.5px; padding: 4px 10px; border-radius: 10px;
+  white-space: nowrap; transform: translate(-50%, -125%); }
 .records { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
-.rec { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; padding: 12px 0; border-top: 1px solid var(--rule); }
-.rec:first-child { border-top: 0; }
-.rec img { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 4px; grid-column: 1 / -1; }
-.rec .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; min-width: 0; }
-.rec .pct { font-family: var(--font-mono); font-size: 18px; font-variant-numeric: tabular-nums; }
-.rec .memo { color: var(--muted); font-size: 13.5px; overflow-wrap: anywhere; }
-.empty { color: var(--muted); font-size: 14px; padding: 18px; border: 1px dashed var(--rule); border-radius: 12px; text-align: center; }
-footer { font-size: 12.5px; color: var(--muted); display: grid; gap: 4px; border-top: 1px solid var(--rule); padding-top: 14px; }
+.rec { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 16px 0; border-top: 1px solid var(--rule); }
+.rec:first-child { border-top: 0; padding-top: 0; }
+.rec img { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 10px; grid-column: 1 / -1; }
+.rec .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; min-width: 0; }
+.rec .pct { font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rec .memo { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; grid-column: 1 / -1; }
+.empty { color: var(--muted); font-size: 14.5px; padding: 26px 18px; background: var(--bg); border-radius: 18px; text-align: center; }
+.empty .btn { margin-top: 12px; }
+footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding: 4px 6px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-@media (prefers-reduced-motion: no-preference) { .panel { transition: border-color .2s; } }
 </style>
 
-<div class="wrap">
-  <header>
-    <span class="tag">LATERAL FLOW · hCG</span>
-    <h1>시약선 노트</h1>
-    <p class="muted">임신테스트기 사진에서 대조선(C) 대비 시약선(T)이 얼마나 진한지 재고, 날짜별로 기록해요. 사진은 이 기기 밖으로 보내지 않아요.</p>
+<div class="app">
+  <header class="top">
+    <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+      <rect width="40" height="40" rx="12" fill="var(--accent-soft)"/>
+      <rect x="7" y="16" width="26" height="8" rx="4" fill="var(--surface)"/>
+      <rect x="24" y="16" width="9" height="8" rx="4" fill="var(--accent)" opacity=".45"/>
+      <rect x="15" y="16" width="1.6" height="8" fill="var(--accent)" opacity=".35"/>
+      <rect x="20" y="16" width="1.6" height="8" fill="var(--accent)"/>
+    </svg>
+    <div>
+      <h1>시약선 노트</h1>
+      <p class="sub" id="tabSub">오늘의 테스트기를 천천히 들여다봐요</p>
+    </div>
   </header>
 
-  <section aria-labelledby="cap-h">
-    <h2 id="cap-h" class="sr">사진 고르기</h2>
-    <div class="capture">
-      <span class="btn primary file-btn">앨범에서 사진 고르기<input id="file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="앨범에서 사진 고르기"></span>
-      <span class="muted small" id="fileName">아래는 예시 스트립으로 잰 결과예요.</span>
+  <!-- 측정 -->
+  <section class="tabpanel" id="panel-measure" role="tabpanel" aria-labelledby="tab-measure">
+    <div class="card">
+      <div class="card-head">
+        <h2>사진 고르기</h2>
+        <span class="small muted">사진은 이 기기 밖으로 나가지 않아요</span>
+      </div>
+      <div class="row">
+        <span class="btn primary file-btn">앨범에서 사진 고르기<input id="file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="앨범에서 사진 고르기"></span>
+        <span class="muted small" id="fileName">아래는 예시 스트립으로 잰 결과예요.</span>
+      </div>
+      <details class="tips-box">
+        <summary>잘 찍는 법</summary>
+        <ul class="tips">
+          <li>검사 후 <b>3~5분 안에</b> 찍은 사진만 의미가 있어요.</li>
+          <li>그림자 없이 밝은 곳에서, 정면으로, 초점을 맞춰 찍어 주세요.</li>
+          <li>분홍색 HCG 손잡이가 사진에 다 나오게 찍으면 스트립을 자동으로 찾아요.</li>
+          <li id="browserHint">버튼을 눌러도 앨범이 안 열리면, 링크를 <b>크롬 같은 브라우저에서</b> 열어 주세요.</li>
+        </ul>
+      </details>
     </div>
-    <ul class="tips">
-      <li>검사 후 <b>3~5분 안에</b> 찍은 사진만 의미가 있어요.</li>
-      <li>그림자 없이 밝은 곳에서, 정면으로, 초점을 맞춰 찍어 주세요.</li>
-      <li>분홍색 HCG 손잡이가 사진에 다 나오게 찍으면 스트립을 자동으로 찾아요.</li>
-      <li id="browserHint">버튼을 눌러도 앨범이 안 열리면, 링크를 <b>크롬 같은 브라우저에서</b> 열어 주세요. 일부 앱 안의 화면에서는 사진 선택 창이 막혀 있어요.</li>
-    </ul>
-  </section>
 
-  <section aria-labelledby="res-h">
-    <div class="panel" id="result">
-      <div class="reading-head">
-        <h2 id="res-h">측정 결과</h2>
+    <div class="card" id="result">
+      <div class="card-head">
+        <h2>측정 결과</h2>
         <span class="chip example" id="exampleChip">예시</span>
       </div>
       <div id="resultBody"></div>
       <div class="strip-view" id="stripView">
         <canvas id="stripCanvas" aria-label="펴서 잘라낸 스트립"></canvas>
         <div class="profile" id="profile"></div>
-        <div class="axis-note"><span>← 흡수부 쪽</span><span>손잡이(HCG) 쪽 →</span></div>
+        <div class="axis-note"><span>← 흡수부 쪽</span><span>손잡이 쪽 →</span></div>
       </div>
-      <details id="photoDetails">
+      <details class="photo" id="photoDetails">
         <summary>원본 사진에서 위치 확인 · 직접 지정</summary>
         <div class="photo-box">
-          <p class="small muted" id="pickHelp">파란 선이 대조선, 분홍 선이 시약선 위에 있어야 해요. 틀렸다면 직접 지정해 주세요.</p>
+          <p class="small muted" id="pickHelp">초록 표시가 대조선, 분홍 표시가 시약선 위에 있어야 해요. 틀렸다면 직접 지정해 주세요.</p>
           <canvas id="photoCanvas"></canvas>
-          <div class="capture">
+          <div class="row">
             <button class="btn" id="pickBtn" type="button">직접 지정하기</button>
             <button class="btn ghost" id="pickCancel" type="button" hidden>취소</button>
             <button class="btn ghost" id="autoBtn" type="button" hidden>자동 인식으로 되돌리기</button>
@@ -164,29 +228,53 @@ footer { font-size: 12.5px; color: var(--muted); display: grid; gap: 4px; border
       </details>
       <form class="save" id="saveForm">
         <label class="f">검사 시각<input id="when" type="datetime-local" required></label>
-        <label class="f">메모<input id="memo" type="text" maxlength="80" placeholder="예: 아침 첫 소변, ○○ 테스트기"></label>
-        <button class="btn primary" id="saveBtn" type="submit">기록에 저장</button>
+        <label class="f">메모<input id="memo" type="text" maxlength="80" placeholder="예: 아침 첫 소변"></label>
+        <button class="btn primary" id="saveBtn" type="submit">기록에 남기기</button>
       </form>
       <p class="small" id="saveMsg" role="status"></p>
     </div>
   </section>
 
-  <section aria-labelledby="hist-h">
-    <div class="hist-head">
-      <h2 id="hist-h">기록</h2>
-      <span class="small muted" id="storeNote">불러오는 중…</span>
-    </div>
-    <div class="panel" id="historyPanel">
+  <!-- 기록 -->
+  <section class="tabpanel" id="panel-records" role="tabpanel" aria-labelledby="tab-records" hidden>
+    <div class="card">
+      <div class="card-head">
+        <h2>흐름</h2>
+        <span class="small muted" id="storeNote">불러오는 중…</span>
+      </div>
+      <div class="summary" id="summary"></div>
       <div class="trend" id="trend"></div>
+    </div>
+    <div class="card">
+      <h2>지난 기록</h2>
       <ul class="records" id="records"></ul>
     </div>
   </section>
 
   <footer>
-    <p><b>참고용이에요.</b> 사진 속 두 선을 비교한 값일 뿐 진단이 아니고, hCG 수치(mIU/mL)로 바꿀 수 없어요. 임신 확인은 병원 혈액검사로 하세요.</p>
-    <p>다른 날끼리 비교할 때는 같은 제품, 비슷한 시간대, 같은 조명에서 찍은 사진끼리 보세요. 5분이 지나 생긴 회색 증발선은 판단할 수 없어요.</p>
+    <p>사진 속 두 선을 비교한 참고용 값이에요. 진단이 아니고 hCG 수치로 바꿀 수 없어요. 임신 확인은 병원 혈액검사로 하세요.</p>
+    <p>다른 날끼리는 같은 제품, 비슷한 시간대, 같은 조명에서 찍은 사진끼리 비교해 주세요.</p>
   </footer>
 </div>
+
+<nav class="tabbar" aria-label="화면 전환">
+  <div class="tabs" role="tablist">
+    <button class="tab" id="tab-measure" role="tab" aria-selected="true" aria-controls="panel-measure" type="button" data-tab="measure">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+        <rect x="3" y="9" width="18" height="6" rx="3"/><path d="M9.5 9v6M12.5 9v6"/><path d="M15.5 9.4v5.2" opacity=".5"/>
+      </svg>
+      측정
+    </button>
+    <button class="tab" id="tab-records" role="tab" aria-selected="false" aria-controls="panel-records" type="button" data-tab="records">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M5 4.5h11a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3z"/><path d="M5 16.5a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/>
+      </svg>
+      기록
+      <span class="badge" id="recBadge" hidden>0</span>
+    </button>
+  </div>
+</nav>
+<div class="toast" id="toast" role="status" hidden><span id="toastText"></span><button class="btn" id="toastGo" type="button">기록 보기</button></div>
 
 <script>
 /* ===================== analysis core (pure; mirrors analyze_strip.py) ===================== */
@@ -586,10 +674,10 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       g.beginPath(); [at(0, -hw), at(fr.n, -hw), at(fr.n, hw), at(0, hw)].forEach((p, i) => i ? g.lineTo(...p) : g.moveTo(...p)); g.closePath(); g.stroke();
       g.setLineDash([]);
       const line = (i, col) => { if (i == null) return; g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(...at(i, -hw * 1.6)); g.lineTo(...at(i, -hw * 1.05)); g.moveTo(...at(i, hw * 1.05)); g.lineTo(...at(i, hw * 1.6)); g.stroke(); };
-      line(r.C, "#2f7fe0"); line(r.T, "#e0287a");
+      line(r.C, "#3f9a85"); line(r.T, "#c4507c");
     }
     if (pick) {
-      for (const [k, col] of [["c", "#2f7fe0"], ["t", "#e0287a"]]) if (pick[k]) {
+      for (const [k, col] of [["c", "#3f9a85"], ["t", "#c4507c"]]) if (pick[k]) {
         const [x, y] = P(pick[k].x, pick[k].y);
         g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.arc(x, y, 10 * lw / 2, 0, Math.PI * 2); g.stroke();
       }
@@ -610,7 +698,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     pick = null;
     $("#photoCanvas").classList.remove("picking");
     $("#pickCancel").hidden = true; $("#pickBtn").hidden = false;
-    $("#pickHelp").textContent = "파란 표시가 대조선, 분홍 표시가 시약선 위에 있어야 해요. 틀렸다면 직접 지정해 주세요.";
+    $("#pickHelp").textContent = "초록 표시가 대조선, 분홍 표시가 시약선 위에 있어야 해요. 틀렸다면 직접 지정해 주세요.";
   }
   $("#pickBtn").addEventListener("click", () => work && startPick());
   $("#pickCancel").addEventListener("click", () => { endPick(); view = { x: 0, y: 0, w: work.W, h: work.H }; drawPhoto(); });
@@ -700,7 +788,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       example: !!work.isSample, thumb: thumb.toDataURL("image/jpeg", 0.82),
     };
     $("#saveBtn").disabled = true;
-    try { await store.add(rec); $("#saveMsg").textContent = "기록에 저장했어요."; }
+    try { await store.add(rec); $("#saveMsg").textContent = ""; toast("기록에 남겼어요"); }
     catch (err) { $("#saveMsg").textContent = err.message; }
     finally { $("#saveBtn").disabled = false; }
   });
@@ -711,19 +799,27 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     const items = store.items;
     $("#storeNote").textContent = store.mode === "db" ? "내 계정에 저장 · 나만 볼 수 있어요"
       : store.mode === "local" ? "이 기기에만 저장돼요" : "불러오는 중…";
-    const list = $("#records");
+    const list = $("#records"), badge = $("#recBadge");
+    badge.hidden = !items.length; badge.textContent = items.length;
     if (!items.length) {
-      $("#trend").innerHTML = "";
-      list.innerHTML = `<li class="empty">아직 기록이 없어요. 사진을 재고 <b>기록에 저장</b>을 누르면 여기에 날짜순으로 쌓이고, 두 개부터 변화 그래프가 그려져요.</li>`;
+      $("#summary").innerHTML = "";
+      $("#trend").innerHTML = `<p class="empty">아직 기록이 없어요.<br>측정 탭에서 사진을 재고 <b>기록에 남기기</b>를 누르면<br>여기에 날짜순으로 차곡차곡 쌓여요.<br><button class="btn primary small" type="button" data-go="measure">측정하러 가기</button></p>`;
+      list.innerHTML = `<li class="small muted">남긴 기록이 여기에 보여요.</li>`;
       return;
     }
+    const last = items[items.length - 1], prev = items.length > 1 ? items[items.length - 2] : null;
+    const diff = prev ? Math.round((last.ratio - prev.ratio) * 100) : null;
+    $("#summary").innerHTML = `
+      <div><div class="small muted">가장 최근</div><div class="figure">${last.detected ? pct(last.ratio) : "—"}</div></div>
+      <div><div class="small muted">지난번보다</div><div class="figure">${diff === null ? "—" : (diff > 0 ? "+" : "") + diff + "%p"}</div></div>
+      <div><div class="small muted">남긴 기록</div><div class="figure">${items.length}</div></div>`;
     renderTrend(items);
     list.innerHTML = items.slice().reverse().map(r => `
       <li class="rec">
         <div class="meta">
           <span class="pct">${r.detected ? pct(r.ratio) : "—"}</span>
           <span class="chip"><span class="dot"></span>${GRADE[r.grade] || ""}</span>
-          <span class="mono small muted">${fmt(r.ts)}</span>
+          <span class="small muted num">${fmt(r.ts)}</span>
           ${r.example ? `<span class="chip example">예시 사진</span>` : ""}
         </div>
         <button class="btn ghost danger small" type="button" data-del="${esc(r.id)}">삭제</button>
@@ -746,23 +842,26 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
   function renderTrend(items) {
     const box = $("#trend");
     if (items.length < 2) { box.innerHTML = `<p class="small muted">기록이 두 개 이상이면 변화 그래프가 보여요.</p>`; return; }
-    const W = 640, H = 200, padL = 40, padR = 14, padT = 12, padB = 26;
+    // drawn at the box's real width so labels stay at true pixel size
+    const W = Math.max(280, box.clientWidth || 360), H = 190, padL = 38, padR = 10, padT = 12, padB = 26;
     const t0 = items[0].ts, t1 = items[items.length - 1].ts, span = Math.max(1, t1 - t0);
     const yMax = Math.max(100, Math.ceil(Math.max(...items.map(r => r.ratio * 100)) / 25) * 25);
     const X = t => padL + (W - padL - padR) * (t - t0) / span, Y = v => padT + (H - padT - padB) * (1 - v / yMax);
     let grid = "";
-    for (let v = 0; v <= yMax; v += 25) grid += `<line x1="${padL}" x2="${W - padR}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--rule)"/><text x="${padL - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--font-mono)">${v}%</text>`;
+    for (let v = 0; v <= yMax; v += 25) grid += `<line x1="${padL}" x2="${W - padR}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--rule)" stroke-dasharray="2 5"/><text x="${padL - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="12" style="fill:var(--muted);font-family:var(--font-body)">${v}%</text>`;
     const pts = items.map(r => [X(r.ts), Y(r.detected ? r.ratio * 100 : 0)]);
     const path = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("");
     const last = pts[pts.length - 1];
+    const areaPath = path + `L${last[0].toFixed(1)} ${Y(0)}L${pts[0][0].toFixed(1)} ${Y(0)}Z`;
     box.innerHTML = `
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="날짜별 시약선 진하기 변화">
         ${grid}
-        <text x="${padL}" y="${H - 6}" font-size="11" fill="var(--muted)" font-family="var(--font-mono)">${fmt(t0)}</text>
-        <text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--font-mono)">${fmt(t1)}</text>
-        <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round"/>
-        ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>`).join("")}
-        <circle cx="${last[0]}" cy="${last[1]}" r="6" fill="var(--accent)" stroke="var(--surface)" stroke-width="2"/>
+        <text x="${padL}" y="${H - 6}" font-size="12" style="fill:var(--muted);font-family:var(--font-body)">${fmt(t0)}</text>
+        <text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="12" style="fill:var(--muted);font-family:var(--font-body)">${fmt(t1)}</text>
+        <path d="${areaPath}" style="fill:var(--accent);opacity:.1"/>
+        <path d="${path}" fill="none" style="stroke:var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="4" style="fill:var(--accent);stroke:var(--surface)" stroke-width="2"/>`).join("")}
+        <circle cx="${last[0]}" cy="${last[1]}" r="6.5" style="fill:var(--accent);stroke:var(--surface)" stroke-width="2.5"/>
         <rect id="hit" x="${padL}" y="0" width="${W - padL - padR}" height="${H}" fill="transparent"/>
       </svg>
       <div class="tip" hidden></div>`;
@@ -778,6 +877,29 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     svg.addEventListener("pointerleave", () => { tip.hidden = true; });
   }
 
+  /* ---------- tabs ---------- */
+  const SUB = { measure: "오늘의 테스트기를 천천히 들여다봐요", records: "지나온 날들을 한눈에 봐요" };
+  function showTab(name) {
+    for (const t of ["measure", "records"]) {
+      $("#panel-" + t).hidden = t !== name;
+      $("#tab-" + t).setAttribute("aria-selected", String(t === name));
+    }
+    $("#tabSub").textContent = SUB[name];
+    try { localStorage.setItem("hcg-tab", name); } catch (e) {}
+    window.scrollTo({ top: 0 });
+    if (name === "records" && store.items.length) renderTrend(store.items);
+  }
+  let resizeTimer = null;
+  addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("#panel-records").hidden && store.items.length) renderTrend(store.items); }, 200); });
+  document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+  document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) showTab(g.dataset.go); });
+  let toastTimer = null;
+  function toast(text) {
+    $("#toastText").textContent = text; $("#toast").hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { $("#toast").hidden = true; }, 4000);
+  }
+  $("#toastGo").addEventListener("click", () => { $("#toast").hidden = true; showTab("records"); });
+
   /* ---------- start ---------- */
   try { if (matchMedia("(display-mode: standalone)").matches) $("#browserHint").hidden = true; } catch (e) {}
   const s = makeSample();
@@ -785,5 +907,6 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
   $("#when").value = nowLocal(Date.now());
   run();
   store.init();
+  try { if (localStorage.getItem("hcg-tab") === "records") showTab("records"); } catch (e) {}
 })();
 </script>

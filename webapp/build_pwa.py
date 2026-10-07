@@ -42,9 +42,9 @@ TAIL = """
   </span>
 </div>
 <style>
-.update-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center;
-  justify-content: space-between; gap: 10px; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
-  background: var(--surface); color: var(--ink); border-top: 1px solid var(--rule); box-shadow: 0 -6px 20px rgba(0,0,0,.12); font-size: 14px; }
+.update-bar { position: fixed; left: 0; right: 0; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: space-between; gap: 10px; padding: calc(12px + env(safe-area-inset-top, 0px)) 18px 12px;
+  background: var(--surface); color: var(--ink); box-shadow: var(--shadow); font-size: 14px; border-radius: 0 0 20px 20px; }
 .update-actions { display: flex; gap: 8px; }
 </style>
 <script>
