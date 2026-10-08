@@ -37,6 +37,7 @@ SRC = ROOT / "matjip"
 DATA = SRC / "data"
 OUT = ROOT / "docs" / "matjip"
 CACHE_FILE = DATA / "geocode_cache.json"
+TV_FILE = DATA / "baekban_kakao.json"     # 백반기행 places from Kakao Map's broadcast info
 KINDS_FILE = DATA / "baeknyeon_kinds.csv"   # 업체명,구분(음식점|기타) for names the rules cannot decide
 
 BAEKBAN = "bb"     # 허영만의 백반기행
@@ -179,7 +180,75 @@ def load(geo=None):
         if unknown:
             print(f"  {len(unknown)} names could not be told apart as restaurants or not; add them to {KINDS_FILE.name}:")
             print("  " + " | ".join(unknown))
+    stores += load_tv()
     return merge(stores)
+
+
+def load_tv():
+    """백반기행 restaurants collected from Kakao Map (see collect_tv)."""
+    if not TV_FILE.exists():
+        return []
+    data = json.loads(TV_FILE.read_text(encoding="utf-8"))
+    out = []
+    for d in data["places"]:
+        s = {"n": d["name"], "a": d["addr"], "t": [BAEKBAN], "ll": [d["lat"], d["lng"]]}
+        if d.get("menu"):
+            s["m"] = d["menu"]
+        if d.get("phone"):
+            s["p"] = d["phone"]
+        if d.get("url"):
+            s["u"] = d["url"]
+        out.append(s)
+    print(f"{TV_FILE.name}: {len(out)} restaurants (Kakao Map, {data['keyword']}, {data['fetched']})")
+    return out
+
+
+KOREA = (124.5, 33.0, 131.0, 38.7)   # lng/lat box around South Korea
+
+
+def collect_tv(geo, keyword="백반기행"):
+    """Kakao Map tags places with the TV shows that featured them, and its keyword
+    search matches those tags. One query returns at most 45 places, so the country
+    is split into smaller boxes until every box returns all of its places."""
+    found, calls = {}, 0
+
+    def search(box, depth):
+        nonlocal calls
+        rect = ",".join(f"{v:.6f}" for v in box)
+        page, total = 1, 0
+        while True:
+            url = "https://dapi.kakao.com/v2/local/search/keyword.json?" + urllib.parse.urlencode(
+                {"query": keyword, "rect": rect, "page": page, "size": 15})
+            res = geo._get(url, {"Authorization": f"KakaoAK {geo.kakao}"})
+            calls += 1
+            total = res["meta"]["total_count"]
+            if total > 45 and depth < 10:
+                break   # too many to page through here: split the box
+            for d in res["documents"]:
+                found[d["id"]] = d
+            if res["meta"]["is_end"] or page == 3:
+                return
+            page += 1
+        x1, y1, x2, y2 = box
+        mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+        for sub in ((x1, y1, mx, my), (mx, y1, x2, my), (x1, my, mx, y2), (mx, my, x2, y2)):
+            search(sub, depth + 1)
+
+    search(KOREA, 0)
+    places = []
+    for d in found.values():
+        if d.get("category_group_code") not in ("FD6", "CE7"):   # restaurants and cafés only
+            continue
+        cat = d.get("category_name", "").split(" > ")
+        places.append({
+            "name": d["place_name"], "addr": d.get("road_address_name") or d.get("address_name", ""),
+            "lat": round(float(d["y"]), 6), "lng": round(float(d["x"]), 6),
+            "menu": cat[-1] if len(cat) > 1 else "", "phone": d.get("phone", ""), "url": d.get("place_url", ""),
+        })
+    places.sort(key=lambda p: (p["addr"], p["name"]))
+    TV_FILE.write_text(json.dumps({"keyword": keyword, "fetched": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                                   "places": places}, ensure_ascii=False, indent=0), encoding="utf-8")
+    print(f"collected {len(places)} {keyword} restaurants from Kakao Map ({len(found)} places, {calls} searches)")
 
 
 def name_is_food(name, kinds):
@@ -199,6 +268,23 @@ def name_is_food(name, kinds):
     return None
 
 
+PROVINCES = [("충청북", "충북"), ("충청남", "충남"), ("전라북", "전북"), ("전라남", "전남"), ("경상북", "경북"), ("경상남", "경남"),
+             ("전남광주", "전남"), ("서울", "서울"), ("부산", "부산"), ("대구", "대구"), ("인천", "인천"), ("광주", "광주"),
+             ("대전", "대전"), ("울산", "울산"), ("세종", "세종"), ("경기", "경기"), ("강원", "강원"), ("충북", "충북"),
+             ("충남", "충남"), ("전북", "전북"), ("전남", "전남"), ("경북", "경북"), ("경남", "경남"), ("제주", "제주")]
+
+
+def addr_key(a):
+    """서울특별시/서울, 충청남도/충남 … spelled one way, spaces dropped."""
+    a = clean_addr(a)
+    first, _, rest = a.partition(" ")
+    for long, short in PROVINCES:
+        if first.startswith(long):
+            first = short
+            break
+    return (first + rest).replace(" ", "")
+
+
 def norm_name(n):
     return re.sub(r"\s+|본점|\(.*?\)|식당$", "", n)
 
@@ -207,7 +293,10 @@ def merge(stores):
     """A place that is both a 백년가게 and on 백반기행 becomes one entry with both tags."""
     out, seen = [], {}
     for s in stores:
-        key = (norm_name(s["n"]), clean_addr(s["a"]))
+        # the same place is spelled differently across lists ("사직로 12길8" / "사직로12길 8",
+        # "감골식당 성서본점" / "감골식당"), so match on the address without spaces and the
+        # first two letters of the name
+        key = (norm_name(s["n"])[:2], addr_key(s["a"]))
         if key in seen:
             prev = seen[key]
             for t in s["t"]:
@@ -360,7 +449,7 @@ self.addEventListener("fetch", e => {
     return;
   }
   // map tiles and place search always go to the network; the library and fonts are cached
-  if (/tile\\.openstreetmap|nominatim/.test(url.hostname)) return;
+  if (/tile\\.openstreetmap|cartocdn|nominatim/.test(url.hostname)) return;
   e.respondWith(caches.open(CACHE).then(c => c.match(req).then(hit => hit || fetch(req).then(res => {
     if (res.ok || res.type === "opaque") c.put(req, res.clone());
     return res;
@@ -390,6 +479,8 @@ def icon(size, maskable=False):
 def main():
     offline = "--offline" in sys.argv
     geo = Geocoder(offline)
+    if geo.kakao and not offline:
+        collect_tv(geo)
     stores = load(geo)
     if not offline:
         print("geocoding with", "Kakao" if geo.kakao else "OpenStreetMap Nominatim")

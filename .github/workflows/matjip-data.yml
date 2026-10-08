@@ -36,7 +36,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/matjip matjip/data/geocode_cache.json
+          git add docs/matjip matjip/data/geocode_cache.json matjip/data/baekban_kakao.json
           if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
           git commit -m "matjip: rebuild map data"
           # the branch may have moved on while addresses were being looked up
