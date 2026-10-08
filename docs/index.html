@@ -218,7 +218,12 @@ input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--i
 .records { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .rec { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 16px 0; border-top: 1px solid var(--rule); }
 .rec:first-child { border-top: 0; padding-top: 0; }
-.rec img { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 10px; grid-column: 1 / -1; }
+.rec img { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 10px; }
+.thumb-btn { appearance: none; border: 0; padding: 0; background: none; grid-column: 1 / -1; cursor: pointer; display: grid; gap: 4px; width: 100%; text-align: left; color: var(--muted); font: inherit; font-size: 12.5px; border-radius: 10px; }
+.thumb-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rec-detail { grid-column: 1 / -1; display: grid; gap: 10px; margin-top: -4px; }
+.rec-detail .metric .v { font-size: 15px; }
+.lu-row[data-jump] { cursor: pointer; }
 .rec .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; min-width: 0; }
 .rec .pct { font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rec .memo { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; grid-column: 1 / -1; }
@@ -345,7 +350,7 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding:
       <div class="lineup" id="lineup"></div>
     </div>
     <div class="card">
-      <h2>지난 기록</h2>
+      <div class="card-head"><h2>지난 기록</h2><span class="small muted">스트립을 누르면 그래프가 보여요</span></div>
       <ul class="records" id="records"></ul>
     </div>
     <div class="card">
@@ -766,15 +771,20 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
   }
 
   function drawProfile() {
-    const r = current, od = r.od, n = od.length, H = 100;
+    $("#profile").innerHTML = profileHtml(current.od, current.C, current.T, current.noise);
+  }
+  // line-darkness graph along the strip; x matches the strip image above it
+  function profileHtml(od, C, T, noise) {
+    const n = od.length, H = 100;
     const top = Math.max(0.02, ...od);
     const y = v => (H - 6 - (H - 14) * Math.max(0, v) / top).toFixed(1);
     let d = ""; for (let i = 0; i < n; i++) d += (i ? "L" : "M") + i + " " + y(od[i]);
-    const nl = y(3 * r.noise);
+    const nl = y(3 * noise);
     const mark = (i, cls) => i == null ? "" :
       `<line x1="${i}" x2="${i}" y1="0" y2="${H}" stroke="var(${cls === "c" ? "--c-mark" : "--accent"})" stroke-width="1.5" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/>`;
     const lbl = (i, cls, txt) => i == null ? "" : `<span class="lbl ${cls}" style="left:${(i / n * 100).toFixed(2)}%">${txt}</span>`;
-    $("#profile").innerHTML = `
+    const r = { C, T };
+    return `
       <svg viewBox="0 0 ${n} ${H}" preserveAspectRatio="none" role="img" aria-label="스트립을 따라 잰 선의 진하기 그래프">
         <line x1="0" x2="${n}" y1="${H - 6}" y2="${H - 6}" stroke="var(--rule)" vector-effect="non-scaling-stroke"/>
         <line x1="0" x2="${n}" y1="${nl}" y2="${nl}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="2 4" opacity=".6" vector-effect="non-scaling-stroke"/>
@@ -913,6 +923,14 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
   const lget = (k, d = null) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
   const lset = (k, v) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
 
+  // the graph saved with a record covers exactly the thumbnail's span, resampled to 160 points
+  function stripProfile(r) {
+    const W = r.stripW, from = r.C - 2.6 * W, to = r.C + 0.6 * W, N = 160, od = r.od;
+    const at = x => { x = Math.min(Math.max(x, 0), od.length - 1); const i = Math.floor(x), f = x - i; return i + 1 < od.length ? od[i] * (1 - f) + od[i + 1] * f : od[i]; };
+    const pts = []; for (let k = 0; k < N; k++) pts.push(+at(from + (k + 0.5) * (to - from) / N).toFixed(4));
+    const idx = x => x == null ? null : Math.round((x - from) / (to - from) * N - 0.5);
+    return { od: pts, c: idx(r.C), t: r.T == null ? null : idx(r.T), noise: +r.noise.toFixed(4) };
+  }
   function stripThumb(r) {
     // thumbnail aligned on the control line (C at 81.25% of its width) so stacked records line up
     const W = r.stripW;
@@ -930,7 +948,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       ts, createdAt: Date.now(), note: $("#memo").value.trim().slice(0, 80), product,
       ratio: +r.ratio.toFixed(4), ratioArea: +r.ratioArea.toFixed(4), ratioGreen: +r.ratioGreen.toFixed(4),
       snr: +(r.snr || 0).toFixed(1), detected: r.detected, grade: r.grade, mode: r.mode,
-      consistent: isConsistent(r), example: false, thumb: r.thumbUrl || (r.thumbUrl = stripThumb(r)),
+      consistent: isConsistent(r), example: false, thumb: r.thumbUrl || (r.thumbUrl = stripThumb(r)), profile: stripProfile(r),
     };
     $("#saveBtn").disabled = true;
     try {
@@ -947,8 +965,8 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
   const fmt = ts => { const d = new Date(ts); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
   const dayParts = ts => { const d = new Date(ts); return [`${d.getMonth() + 1}/${d.getDate()}`, `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`]; };
   const shown = r => r.detected ? r.ratio : 0;
-  function luRow(label, sub, thumb, value, cls = "") {
-    return `<div class="lu-row ${cls}"><span class="lu-date"><b>${esc(label)}</b>${esc(sub)}</span>
+  function luRow(label, sub, thumb, value, cls = "", jump = null) {
+    return `<div class="lu-row ${cls}"${jump ? ` data-jump="${esc(jump)}" role="button" tabindex="0" aria-label="${esc(label + " " + sub)} 기록 보기"` : ""}><span class="lu-date"><b>${esc(label)}</b>${esc(sub)}</span>
       <span class="lu-strip" style="${thumb ? `background-image:url('${esc(thumb)}')` : ""}"></span>
       <span class="lu-pct">${esc(value)}</span></div>`;
   }
@@ -1020,7 +1038,8 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
           <button class="btn ghost small" type="button" data-edit="${esc(r.id)}">수정</button>
           <button class="btn ghost danger small" type="button" data-del="${esc(r.id)}">삭제</button>
         </span>
-        ${r.thumb ? `<img src="${esc(r.thumb)}" alt="${fmt(r.ts)} 스트립">` : ""}
+        ${r.thumb ? `<button class="thumb-btn" type="button" data-open="${esc(r.id)}" aria-expanded="${String(openIds.has(r.id))}"><img src="${esc(r.thumb)}" alt="${fmt(r.ts)} 스트립">${openIds.has(r.id) ? "" : "<span>눌러서 그래프 보기</span>"}</button>` : ""}
+        ${openIds.has(r.id) ? detailHtml(r) : ""}
         ${editing && editing.id === r.id
           ? `<form class="memo-edit" data-edit-form="${esc(r.id)}">
                <div class="edit-grid">
@@ -1047,10 +1066,25 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     renderHistory();
   });
 
+  const openIds = new Set();
+  function detailHtml(r) {
+    const p = r.profile;
+    const graph = p && Array.isArray(p.od) && p.od.length > 4
+      ? `<div class="profile">${profileHtml(p.od, p.c, p.t, p.noise || 0)}</div><div class="axis-note"><span>← 흡수부 쪽</span><span>손잡이 쪽 →</span></div>`
+      : `<p class="small muted">이 기록은 그래프를 저장하기 전에 남긴 거라 그래프가 없어요.</p>`;
+    return `<div class="rec-detail">${graph}
+      <div class="metrics">
+        <div class="metric"><span class="k">피크 비 T/C</span><span class="v">${pct(r.ratio)}</span></div>
+        <div class="metric"><span class="k">면적 비 T/C</span><span class="v">${pct(r.ratioArea || 0)}</span></div>
+        <div class="metric"><span class="k">녹색 채널 비</span><span class="v">${pct(r.ratioGreen || 0)}</span></div>
+        <div class="metric"><span class="k">신호/노이즈</span><span class="v">${r.snr ? Number(r.snr).toFixed(1) : "—"}</span></div>
+      </div>
+      ${uncertain(r) ? `<p class="note warn">측정값끼리 차이가 컸던 기록이에요.</p>` : ""}</div>`;
+  }
   function renderLineup(items) {
     const withThumb = items.filter(r => r.thumb);
     $("#lineupCard").hidden = !withThumb.length;
-    $("#lineup").innerHTML = luHead() + withThumb.map(r => { const [d, t] = dayParts(r.ts); return luRow(d, t, r.thumb, r.detected ? pct(r.ratio) : "—"); }).join("");
+    $("#lineup").innerHTML = luHead() + withThumb.map(r => { const [d, t] = dayParts(r.ts); return luRow(d, t, r.thumb, r.detected ? pct(r.ratio) : "—", "", r.id); }).join("");
   }
 
   // record editing: which record is open and its unsaved fields survive re-renders
@@ -1070,6 +1104,8 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     catch (err) { editing.error = "저장하지 못했어요. 잠시 뒤 다시 눌러 주세요."; renderHistory(); }
   });
   $("#records").addEventListener("click", async e => {
+    const op = e.target.closest("[data-open]");
+    if (op) { const id = op.dataset.open; openIds.has(id) ? openIds.delete(id) : openIds.add(id); renderHistory(); return; }
     const ed = e.target.closest("[data-edit]");
     if (ed) {
       const r = store.items.find(x => x.id === ed.dataset.edit);
@@ -1088,12 +1124,17 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "삭제"; } }, 3500);
     }
   });
-  function jumpTo(id) {
+  function jumpTo(id, open = true) {
+    if (open && !openIds.has(id)) { openIds.add(id); renderHistory(); }
     const li = $("#records").querySelector(`[data-id="${CSS.escape(id)}"]`);
     if (!li) return;
     li.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
     li.classList.remove("flash"); void li.offsetWidth; li.classList.add("flash");
   }
+
+  const lineupJump = e => { const row = e.target.closest("[data-jump]"); if (row) jumpTo(row.dataset.jump); };
+  $("#lineup").addEventListener("click", lineupJump);
+  $("#lineup").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); lineupJump(e); } });
 
   function renderTrend(items) {
     const box = $("#trend");
@@ -1185,6 +1226,9 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       thumb: typeof r.thumb === "string" && r.thumb.length < 400000 && THUMB_RE.test(r.thumb) ? r.thumb : "",
     };
     if (typeof r.consistent === "boolean") out.consistent = r.consistent;
+    const p = r.profile, okIdx = v => v === null || (Number.isInteger(v) && v >= 0 && v < 400);
+    if (p && Array.isArray(p.od) && p.od.length > 4 && p.od.length <= 400 && p.od.every(v => typeof v === "number" && isFinite(v)) && okIdx(p.c) && okIdx(p.t ?? null))
+      out.profile = { od: p.od.map(Number), c: p.c, t: p.t ?? null, noise: isFinite(Number(p.noise)) ? Number(p.noise) : 0 };
     return out;
   }
   $("#importFile").addEventListener("change", async e => {
@@ -1308,7 +1352,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
 .update-actions { display: flex; gap: 8px; }
 </style>
 <script>
-window.APP_VERSION = "aa9c1a44";
+window.APP_VERSION = "0ee8f4ea";
 (() => {
   const foot = document.querySelector("footer");
   if (foot) { const p = document.createElement("p"); p.textContent = "앱 버전 " + window.APP_VERSION; foot.appendChild(p); }
