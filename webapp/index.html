@@ -232,6 +232,15 @@ input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--i
 .fchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .file-btn.plain { padding: 10px 18px; font-size: inherit; }
 
+/* app update sheet (Android app only) */
+.app-update { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: grid; justify-items: center;
+  padding: 0 14px calc(14px + env(safe-area-inset-bottom, 0px)); background: rgba(15, 20, 18, .28); top: 0; align-content: end; }
+.app-update .sheet { width: 100%; max-width: 480px; background: var(--surface); border-radius: 24px; padding: 22px;
+  box-shadow: var(--shadow), inset 0 0 0 1px var(--edge); display: grid; gap: 12px; }
+.app-update .bar { height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.app-update .bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+@media (prefers-reduced-motion: no-preference) { .app-update:not([hidden]) .sheet { animation: rise .35s ease both; } }
+
 /* records */
 .summary { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline; }
 .summary .figure { font-family: var(--font-display); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -453,6 +462,17 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding:
     </button>
   </div>
 </nav>
+<div class="app-update" id="appUpdate" role="dialog" aria-modal="true" aria-labelledby="appUpdateTitle" hidden>
+  <div class="sheet">
+    <h2 id="appUpdateTitle">새 버전이 나왔어요</h2>
+    <p class="muted" id="appUpdateText">업데이트해도 기록은 그대로 남아요.</p>
+    <div class="bar" id="appUpdateBar" hidden><span></span></div>
+    <div class="row" style="justify-content:flex-end">
+      <button class="btn ghost" id="appUpdateLater" type="button">나중에</button>
+      <button class="btn primary" id="appUpdateGo" type="button">업데이트</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" hidden><span id="toastText"></span><button class="btn" id="toastGo" type="button">기록 보기</button></div>
 
 <script>
@@ -1425,6 +1445,56 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
   $("#timerStop").addEventListener("click", stopTimer);
   document.addEventListener("visibilitychange", () => { if (timer && document.visibilityState === "visible") { renderTimer(); if ((Date.now() - timer.start) / 1000 < READ_UNTIL) keepAwake(); } });
 
+  /* ---------- app update (Android app only): newer APK on the GitHub release → install in place ---------- */
+  const RELEASE_API = "https://api.github.com/repos/YoSebChoi/YoSebChoi/releases/tags/hcg-apk";
+  async function checkAppUpdate() {
+    if (!native) return;
+    try {
+      const info = await ncall("App", "getInfo");
+      const current = parseInt(info && info.build, 10) || 0;
+      const res = await fetch(RELEASE_API, { cache: "no-store", headers: { Accept: "application/vnd.github+json" } });
+      if (!res.ok) return;
+      const rel = await res.json();
+      const m = /빌드\s*(\d+)/.exec(rel.body || ""), latest = m ? +m[1] : 0;
+      const apk = (rel.assets || []).find(a => a.name === "hcg-notes.apk");
+      if (!apk || latest <= current) return;
+      showAppUpdate(latest, apk.browser_download_url);
+    } catch (e) { /* offline or rate-limited: try again next launch */ }
+  }
+  function showAppUpdate(build, url) {
+    const box = $("#appUpdate"), go = $("#appUpdateGo"), text = $("#appUpdateText"), bar = $("#appUpdateBar");
+    text.textContent = "업데이트해도 기록은 그대로 남아요. 설치 화면이 뜨면 업데이트를 눌러 주세요.";
+    bar.hidden = true; go.disabled = false; go.textContent = "업데이트";
+    box.hidden = false; go.focus();
+    $("#appUpdateLater").onclick = () => { box.hidden = true; };
+    go.onclick = async () => {
+      // apps installed before in-app updates existed: let the browser fetch the APK once
+      if (!(Cap.isPluginAvailable && Cap.isPluginAvailable("HcgUpdate"))) {
+        text.textContent = "브라우저에서 새 버전을 내려받아요. 받은 파일을 눌러 설치하면, 다음부터는 앱 안에서 바로 업데이트돼요.";
+        location.href = url;
+        return;
+      }
+      go.disabled = true; go.textContent = "받는 중…"; bar.hidden = false;
+      let sub = null;
+      try {
+        sub = await nlisten("HcgUpdate", "progress", p => {
+          if (p && p.percent >= 0) { bar.firstElementChild.style.width = p.percent + "%"; go.textContent = `받는 중… ${p.percent}%`; }
+        });
+        const r = await ncall("HcgUpdate", "install", { url });
+        if (r && r.needsPermission) {
+          text.textContent = "처음 한 번만, 열린 설정 화면에서 「이 출처 허용」을 켜고 돌아와 업데이트를 다시 눌러 주세요.";
+          bar.hidden = true; go.disabled = false; go.textContent = "업데이트";
+        } else {
+          text.textContent = "설치 화면에서 업데이트를 누르면 끝나요. 앱이 잠시 닫혔다가 새 버전으로 열려요.";
+          go.textContent = "설치 화면 열림";
+        }
+      } catch (e) {
+        text.textContent = "새 버전을 받지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.";
+        bar.hidden = true; go.disabled = false; go.textContent = "다시 시도";
+      } finally { try { sub && sub.remove && sub.remove(); } catch (e) {} }
+    };
+  }
+
   /* ---------- tabs ---------- */
   const SUB = { measure: "오늘의 테스트기를 천천히 들여다봐요", records: "지나온 날들을 한눈에 봐요" };
   function showTab(name) {
@@ -1459,6 +1529,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     // back: close what is open first, then go back to 측정, then leave the app running in the background
     nlisten("App", "backButton", () => {
       if (!$("#toast").hidden) $("#toast").hidden = true;
+      if (!$("#appUpdate").hidden) { $("#appUpdate").hidden = true; return; }
       if (editing) { editing = null; renderHistory(); return; }
       if (pick) { endPick(); view = { x: 0, y: 0, w: work.W, h: work.H }; drawPhoto(); return; }
       if (!$("#panel-records").hidden) {
@@ -1478,5 +1549,6 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
   const savedTimer = Number(lget("hcg-timer"));
   if (savedTimer && Date.now() - savedTimer < KEEP * 1000) startTimer(savedTimer); else { lset("hcg-timer", null); renderTimer(); }
   if (lget("hcg-tab") === "records") showTab("records");
+  setTimeout(checkAppUpdate, 2600);   // after the splash
 })();
 </script>
