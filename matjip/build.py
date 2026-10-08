@@ -24,6 +24,7 @@ import os
 import re
 import sys
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -227,8 +228,18 @@ class Geocoder:
 
     def _get(self, url, headers):
         req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=20) as res:
-            return json.loads(res.read().decode("utf-8"))
+        try:
+            with urllib.request.urlopen(req, timeout=20) as res:
+                return json.loads(res.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            if "kakao" in url and e.code in (401, 403):
+                # a refused key fails every lookup: stop rather than publish a mostly empty map
+                body = e.read().decode("utf-8", "replace")[:300]
+                raise SystemExit(
+                    f"Kakao refused the key (HTTP {e.code}): {body}\n"
+                    "401: KAKAO_REST_KEY is not a REST API key (check 앱 > 플랫폼 키 > REST API 키, no spaces).\n"
+                    "403: turn on 앱 > 제품 설정 > 카카오맵 > 사용 설정, and leave 허용 IP empty.")
+            raise
 
     def _kakao(self, query, keyword=False):
         kind = "keyword" if keyword else "address"
