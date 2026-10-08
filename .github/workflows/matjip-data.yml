@@ -10,6 +10,9 @@ on:
       - "matjip/**"
       - ".github/workflows/matjip-data.yml"
   workflow_dispatch:
+  # monthly refresh: new 백반기행 places on Kakao Map, re-checks of 백년가게 that may have closed
+  schedule:
+    - cron: "17 18 1 * *"   # 03:17 KST on the 2nd
 
 permissions:
   contents: write
@@ -31,7 +34,15 @@ jobs:
       - name: Geocode and build
         env:
           KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
         run: python3 matjip/build.py
+      - name: Check the built app in a browser
+        run: |
+          cd matjip/check
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.48.2 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          node check_app.mjs
       - name: Commit the built map
         run: |
           git config user.name "github-actions[bot]"

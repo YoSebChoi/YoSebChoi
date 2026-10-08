@@ -198,6 +198,8 @@ def load_tv():
             s["p"] = d["phone"]
         if d.get("url"):
             s["u"] = d["url"]
+        if d.get("cat"):
+            s["c"] = d["cat"]
         out.append(s)
     print(f"{TV_FILE.name}: {len(out)} restaurants (Kakao Map, {data['keyword']}, {data['fetched']})")
     return out
@@ -243,7 +245,8 @@ def collect_tv(geo, keyword="백반기행"):
         places.append({
             "name": d["place_name"], "addr": d.get("road_address_name") or d.get("address_name", ""),
             "lat": round(float(d["y"]), 6), "lng": round(float(d["x"]), 6),
-            "menu": cat[-1] if len(cat) > 1 else "", "phone": d.get("phone", ""), "url": d.get("place_url", ""),
+            "menu": cat[-1] if len(cat) > 1 else "", "cat": d.get("category_name", ""),
+            "phone": d.get("phone", ""), "url": d.get("place_url", ""),
         })
     places.sort(key=lambda p: (p["addr"], p["name"]))
     TV_FILE.write_text(json.dumps({"keyword": keyword, "fetched": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
@@ -285,6 +288,25 @@ def addr_key(a):
     return (first + rest).replace(" ", "")
 
 
+# food kinds for the filter, from Kakao's category path, the menu and the name (first match wins)
+GROUPS = [
+    ("빵·카페", r"제과|베이커리|빵|카페|커피|다방|디저트|떡|과자|케익|케이크|빙수|단팥|찻집|다원|블랑제리"),
+    ("중식", r"중식|중국|반점|짬뽕|짜장|탕수육|딤섬|만두"),
+    ("일식·양식", r"일식|초밥|스시|돈까스|돈가스|양식|레스토랑|경양식|피자|이탈리|스테이크|소바|우동"),
+    ("면", r"냉면|국수|칼국수|막국수|밀면|면옥|라면|쫄면|수제비|모밀|메밀|국시"),
+    ("해산물", r"해물|생선|횟집|회집|회센터|물회|복집|복국|복어|아구|아귀|물텀벙|장어|낙지|게장|굴밥|조개|대게|꽃게|갈치|고등어|조기|굴비|"
+              r"생태|동태|명태|황태|코다리|꼬막|전복|문어|오징어|쭈꾸미|주꾸미|새우|홍어|민어|짱뚱어|다슬기|재첩|매운탕|어죽|(^|\s)회(\s|$)"),
+    ("국밥·탕", r"국밥|해장국|설렁탕|설농탕|곰탕|탕|찌개|전골|순대|추어|육개장|감자국|선지|국$"),
+    ("고기", r"육류|고기|갈비|불고기|숯불|구이|곱창|막창|족발|보쌈|삼겹|한우|닭|오리|치킨|통닭|돼지|정육|식육|주물럭"),
+    ("한식", r"한식|한정식|백반|정식|밥|두부|비빔|쌈|묵|산채|기사식당|식당|분식|김밥|떡볶이"),
+]
+
+
+def group_of(s):
+    text = " ".join(filter(None, [s.get("c", "").replace("음식점 >", ""), s.get("m", ""), s["n"]]))
+    return next((g for g, rx in GROUPS if re.search(rx, text)), "기타")
+
+
 def norm_name(n):
     return re.sub(r"\s+|본점|\(.*?\)|식당$", "", n)
 
@@ -315,6 +337,8 @@ class Geocoder:
         self.offline = offline
         self.kakao = os.environ.get("KAKAO_REST_KEY", "").strip()
         self.cache = json.loads(CACHE_FILE.read_text(encoding="utf-8")) if CACHE_FILE.exists() else {}
+        # "place:" lookups matched by address only; "place2:" replaced them
+        self.cache = {k: v for k, v in self.cache.items() if not k.startswith("place:")}
         self.last = 0.0
         self.looked_up = 0
 
@@ -349,6 +373,51 @@ class Geocoder:
         hits = self._get(url, {"User-Agent": "nopo-map-builder/1.0 (github.com/YoSebChoi/YoSebChoi)"})
         return [float(hits[0]["lat"]), float(hits[0]["lon"])] if hits else None
 
+    def _find_place(self, name, addr, ll=None):
+        """The Kakao place for a store: keyword search for "<시/도 시/군/구> <name>", kept when
+        its road or lot address matches, or — the official lists often carry old or lot
+        addresses — when it lies within 300 m of the store's location and the names agree."""
+        region = " ".join(addr.split()[:2])
+        url = "https://dapi.kakao.com/v2/local/search/keyword.json?" + urllib.parse.urlencode({"query": f"{region} {name}", "size": 10})
+        docs = self._get(url, {"Authorization": f"KakaoAK {self.kakao}"}).get("documents", [])
+        road = clean_addr(addr).split()[-2:]
+        want = addr_key(addr)
+        key = norm_name(name)[:2]
+
+        def near(d):
+            if not ll:
+                return False
+            dy = (float(d["y"]) - ll[0]) * 111000
+            dx = (float(d["x"]) - ll[1]) * 111000 * 0.8
+            return dx * dx + dy * dy < 300 * 300
+
+        for d in docs:
+            ra, ja = d.get("road_address_name") or "", d.get("address_name") or ""
+            if want in (addr_key(ra), addr_key(ja)) or (ra and all(t in ra for t in road)) or (ja and all(t in ja for t in road)):
+                return d
+        return next((d for d in docs if near(d) and norm_name(d["place_name"]).startswith(key)), None)
+
+    def kakao_place(self, name, addr, ll=None):
+        """(checked, place) — place is {u, c, p} when Kakao lists the store at its address.
+        A store Kakao does not list may have closed or moved. Looked up again after 60 days."""
+        key = "place2:" + name + "@" + clean_addr(addr)   # place2: lookups that also match by location
+        hit = self.cache.get(key)
+        fresh = hit and (datetime.now(timezone.utc) - datetime.fromisoformat(hit["d"])).days < 60
+        if hit and (fresh or self.offline or not self.kakao):
+            return True, hit["r"]
+        if self.offline or not self.kakao:
+            return False, None
+        try:
+            d = self._find_place(re.sub(r"\(.*?\)", "", name).strip() or name, addr, ll)
+        except SystemExit:
+            raise
+        except Exception as e:
+            print("  place lookup failed:", name, "-", e)
+            return False, None
+        r = d and {"u": d.get("place_url", ""), "c": d.get("category_name", ""), "p": d.get("phone", "")}
+        self.cache[key] = {"d": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "r": r}
+        return True, r
+
     def kakao_is_food(self, name, addr):
         """Ask Kakao what kind of place this store is (음식점 FD6 / 카페 CE7); None without a key."""
         key = "kind:" + name + "@" + clean_addr(addr)
@@ -356,15 +425,13 @@ class Geocoder:
             return self.cache[key]
         if self.offline or not self.kakao:
             return None
-        region = " ".join(addr.split()[:2])
         try:
-            url = "https://dapi.kakao.com/v2/local/search/keyword.json?" + urllib.parse.urlencode({"query": f"{region} {name}", "size": 5})
-            docs = self._get(url, {"Authorization": f"KakaoAK {self.kakao}"}).get("documents", [])
+            hit = self._find_place(name, addr)
+        except SystemExit:
+            raise
         except Exception as e:
             print("  kind lookup failed:", name, "-", e)
             return None
-        road = clean_addr(addr).split()[-2:]   # match the place on the same road
-        hit = next((d for d in docs if all(t in (d.get("road_address_name") or "") for t in road)), None)
         food = None if hit is None else hit.get("category_group_code") in ("FD6", "CE7")
         self.cache[key] = food
         return food
@@ -495,9 +562,27 @@ def main():
             placed.append(s)
         else:
             missing.append(s)
+    # 백년가게 the list gives no Kakao page for: look each up, which also tells which may have closed
+    closed = 0
+    for s in placed:
+        if BAEKNYEON in s["t"] and "place.map.kakao.com" not in s.get("u", ""):
+            checked, r = geo.kakao_place(s["n"], s["a"], s["ll"])
+            if r:
+                s["u"] = r["u"]
+                s.setdefault("c", r["c"])
+                if r["p"]:
+                    s.setdefault("p", r["p"])
+            elif checked:
+                s["q"] = 1   # not on Kakao Map at this address: may have closed or moved
+                closed += 1
+    if closed:
+        print(f"{closed} 백년가게 not found on Kakao Map at their address (marked 영업 확인 필요)")
     geo.save()
     for i, s in enumerate(placed):
         s["id"] = i
+        s["g"] = group_of(s)
+        # a key that survives rebuilds, for shared links
+        s["k"] = hashlib.sha1((norm_name(s["n"]) + addr_key(s["a"])).encode()).hexdigest()[:8]
     payload = {
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "counts": {t: sum(t in s["t"] for s in stores) for t in (BAEKNYEON, BAEKBAN)},
@@ -509,7 +594,11 @@ def main():
     (OUT / "stores.json").write_text(data, encoding="utf-8")
     page = (SRC / "index.html").read_text(encoding="utf-8")
     version = hashlib.sha256((page + SW + data + json.dumps(MANIFEST)).encode()).hexdigest()[:8]
-    (OUT / "index.html").write_text(page.replace("__VERSION__", version), encoding="utf-8")
+    # the JavaScript key is public by design (it only works on the domains registered for it)
+    js_key = os.environ.get("KAKAO_JS_KEY", "").strip()
+    if not js_key and (SRC / "kakao_js_key.txt").exists():
+        js_key = (SRC / "kakao_js_key.txt").read_text().strip()
+    (OUT / "index.html").write_text(page.replace("__VERSION__", version).replace("__KAKAO_JS_KEY__", js_key), encoding="utf-8")
     (OUT / "sw.js").write_text(SW.replace("__VERSION__", version), encoding="utf-8")
     (OUT / "manifest.webmanifest").write_text(json.dumps(MANIFEST, ensure_ascii=False, indent=2), encoding="utf-8")
     icon(192).save(OUT / "icon-192.png")
