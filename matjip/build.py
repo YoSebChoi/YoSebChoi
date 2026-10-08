@@ -277,6 +277,14 @@ PROVINCES = [("충청북", "충북"), ("충청남", "충남"), ("전라북", "�
              ("충남", "충남"), ("전북", "전북"), ("전남", "전남"), ("경북", "경북"), ("경남", "경남"), ("제주", "제주")]
 
 
+def province(name):
+    """서울특별시/서울, 충청남도/충남 … → the short form."""
+    for long, short in PROVINCES:
+        if name.startswith(long):
+            return short
+    return name
+
+
 def addr_key(a):
     """서울특별시/서울, 충청남도/충남 … spelled one way, spaces dropped."""
     a = clean_addr(a)
@@ -417,6 +425,27 @@ class Geocoder:
         r = d and {"u": d.get("place_url", ""), "c": d.get("category_name", ""), "p": d.get("phone", "")}
         self.cache[key] = {"d": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "r": r}
         return True, r
+
+    def region(self, ll):
+        """시도 / 시군구 / 법정동 of a location (Kakao coord2regioncode), so the app can list
+        every place in a region the person searches for ("화성시 동탄구", "울산 동구")."""
+        key = f"region:{ll[0]:.5f},{ll[1]:.5f}"
+        if key in self.cache:
+            return self.cache[key]
+        if self.offline or not self.kakao:
+            return None
+        try:
+            url = "https://dapi.kakao.com/v2/local/geo/coord2regioncode.json?" + urllib.parse.urlencode({"x": ll[1], "y": ll[0]})
+            docs = self._get(url, {"Authorization": f"KakaoAK {self.kakao}"}).get("documents", [])
+        except SystemExit:
+            raise
+        except Exception as e:
+            print("  region lookup failed:", ll, "-", e)
+            return None
+        d = next((d for d in docs if d.get("region_type") == "B"), docs[0] if docs else None)
+        r = d and [province(d["region_1depth_name"]), d["region_2depth_name"], d["region_3depth_name"]]
+        self.cache[key] = r
+        return r
 
     def kakao_is_food(self, name, addr):
         """Ask Kakao what kind of place this store is (음식점 FD6 / 카페 CE7); None without a key."""
@@ -577,6 +606,10 @@ def main():
                 closed += 1
     if closed:
         print(f"{closed} 백년가게 not found on Kakao Map at their address (marked 영업 확인 필요)")
+    for s in placed:
+        r = geo.region(s["ll"])
+        if r:
+            s["r"] = r
     geo.save()
     for i, s in enumerate(placed):
         s["id"] = i

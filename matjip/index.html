@@ -142,6 +142,10 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sheet-title { font-weight: 700; font-size: 19px; margin: 0; letter-spacing: -0.02em; white-space: nowrap; }
 .sheet-title b { color: var(--accent); }
+.sheet-head > div:first-child { min-width: 0; }
+.sheet-title.region { overflow: hidden; text-overflow: ellipsis; }
+.region-clear { flex: none; border: 0; background: var(--surface-2); color: var(--ink-2); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.results .count { color: var(--accent); font-weight: 700; margin-left: 6px; font-size: 13px; }
 .sheet-sub { font-size: 13px; color: var(--muted); margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .radius { flex: none; display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 2px; }
 .radius button { border: 0; background: transparent; border-radius: 8px; padding: 4px 7px; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
@@ -241,6 +245,7 @@ dialog .btn { width: 100%; }
   <div class="grab" id="grab">
     <div class="sheet-head">
       <h1 class="sheet-title" id="sheetTitle">주변 노포</h1>
+      <button class="region-clear" type="button" id="regionClear" hidden>지역 해제 ✕</button>
       <div class="radius" id="radius" role="group" aria-label="검색 반경">
         <button type="button" data-r="1000">1km</button><button type="button" data-r="3000">3km</button><button type="button" data-r="10000">10km</button><button type="button" data-r="30000">30km</button>
       </div>
@@ -349,6 +354,17 @@ dialog .btn { width: 100%; }
   let kind = store.get("kind", "");
   const passes = s => (filter === "all" || (filter === "both" ? s.t.length > 1 : filter === "mine" ? !!marks[s.k] : s.t.includes(filter)))
     && (!kind || s.g === kind);
+  // a searched region ("화성시 동탄구", "울산 동구"): the list shows every place in it
+  let region = null;
+  const PROVINCES = [["충청북", "충북"], ["충청남", "충남"], ["전라북", "전북"], ["전라남", "전남"], ["경상북", "경북"], ["경상남", "경남"], ["전남광주", "전남"]];
+  const province = n => { for (const [l, sh] of PROVINCES) if (n.startsWith(l)) return sh; return n.slice(0, 2); };
+  const inRegion = (s, R) => {
+    if (!s.r) return false;
+    if (province(s.r[0]) !== R.r1) return false;
+    if (R.r2 && !(s.r[1] === R.r2 || s.r[1].startsWith(R.r2 + " "))) return false;
+    if (R.r3 && !s.r[2].startsWith(R.r3.replace(/\d*가$/, ""))) return false;
+    return true;
+  };
   const markHtml = s => marks[s.k] === "want" ? '<span class="mark want" title="가고 싶어요">★</span>' : marks[s.k] === "been" ? '<span class="mark been" title="가 봤어요">✓</span>' : "";
   const REPORT_URL = "https://github.com/YoSebChoi/YoSebChoi/issues/new?" + new URLSearchParams({
     title: "[노포 지도 제보] ",
@@ -405,11 +421,19 @@ dialog .btn { width: 100%; }
     for (const s of stores) {
       if (!passes(s)) continue;
       const d = c.distanceTo(s.ll);
-      if (d <= radius) near.push([d, s]);
+      if (region ? inRegion(s, region) : d <= radius) near.push([d, s]);
     }
     near.sort((a, b) => a[0] - b[0]);
-    $("sheetTitle").innerHTML = near.length ? `가까운 노포 <b>${near.length}</b>곳` : "주변 노포";
-    $("sheetSub").textContent = (centerLabel ? centerLabel + " · " : "") + `지도 가운데 ＋ 기준 ${radius / 1000}km`;
+    $("radius").hidden = !!region;
+    $("regionClear").hidden = !region;
+    $("sheetTitle").classList.toggle("region", !!region);
+    if (region) {
+      $("sheetTitle").innerHTML = `${esc(region.label)} <b>${near.length}</b>곳`;
+      $("sheetSub").textContent = "지역 전체 · 지도 가운데에서 가까운 순";
+    } else {
+      $("sheetTitle").innerHTML = near.length ? `가까운 노포 <b>${near.length}</b>곳` : "주변 노포";
+      $("sheetSub").textContent = (centerLabel ? centerLabel + " · " : "") + `지도 가운데 ＋ 기준 ${radius / 1000}km`;
+    }
     const list = $("list");
     if (!stores.length) { list.innerHTML = '<div class="note">아직 지도에 올라간 식당이 없어요.</div>'; return; }
     if (filter === "mine" && !Object.keys(marks).length) {
@@ -420,16 +444,17 @@ dialog .btn { width: 100%; }
       // point at the nearest one, wherever it is
       let best = null;
       for (const s of stores) if (passes(s)) { const d = c.distanceTo(s.ll); if (!best || d < best[0]) best = [d, s]; }
-      list.innerHTML = `<div class="note">${radius / 1000}km 안에는 아직 없어요.` +
+      list.innerHTML = `<div class="note">${region ? "이 지역에는 아직 없어요." : `${radius / 1000}km 안에는 아직 없어요.`}` +
         (best ? `<br>가장 가까운 곳은 <b>${esc(best[1].n)}</b> · ${fmtDist(best[0])}<br><button type="button" id="goNearest">그곳으로 이동</button>` : "") + "</div>";
       if (best) $("goNearest").onclick = () => openDetail(best[1], true);
       return;
     }
-    list.innerHTML = near.slice(0, 80).map(([d, s]) =>
+    const cap = region ? 300 : 80;
+    list.innerHTML = near.slice(0, cap).map(([d, s]) =>
       `<button class="item" type="button" data-id="${s.id}"><span class="badge" style="--k:var(--${kindOf(s)})">${BADGE[kindOf(s)]}</span>` +
       `<span class="txt"><span class="name">${esc(s.n)}${markHtml(s)}</span><span class="meta">${tagHtml(s)}${s.q ? '<span class="check">확인 필요 · </span>' : ""}${esc([s.m || (s.g !== "기타" ? s.g : ""), shortAddr(s.a)].filter(Boolean).join(" · "))}</span></span>` +
       `<span class="dist">${fmtDist(d)}</span></button>`).join("") +
-      (near.length > 80 ? `<div class="note">가까운 80곳만 보여요. 지도를 확대하거나 반경을 줄여 보세요.</div>` : "") +
+      (near.length > cap ? `<div class="note">가까운 ${cap}곳만 보여요. 지도를 확대하거나 반경을 줄여 보세요.</div>` : "") +
       `<p class="report">찾는 곳이 없나요? <a href="${REPORT_URL}" target="_blank" rel="noopener">빠진 식당 제보하기</a></p>`;
   }
   $("list").addEventListener("click", e => {
@@ -593,6 +618,7 @@ dialog .btn { width: 100%; }
         meMarker = L.marker(ll, { icon: L.divIcon({ className: "", html: '<div class="me-dot"></div>', iconSize: [18, 18] }), interactive: false, zIndexOffset: 2000 }).addTo(map);
       } else { meMarker.setLatLng(ll); meAcc.setLatLng(ll).setRadius(pos.coords.accuracy); }
       if (selected) closeDetail();
+      region = null;
       flyTo(ll, 15, "내 위치");
     }, err => {
       btn.classList.remove("busy");
@@ -618,11 +644,16 @@ dialog .btn { width: 100%; }
     const c = map.getCenter();
     return hits.sort((a, b) => a[0] - b[0] || c.distanceTo(a[1].ll) - c.distanceTo(b[1].ll)).slice(0, 8).map(h => h[1]);
   }
-  function renderResults(q, local, places, placeState) {
+  const regionCount = R => stores.filter(s => passes(s) && inRegion(s, R)).length;
+  function renderResults(q, local, places, placeState, regions = []) {
     let h = "";
+    if (regions.length) {
+      h += "<h3>지역</h3>" + regions.map((R, i) => `<button type="button" data-g="${i}">${esc(R.label)}<span class="count">노포 ${regionCount(R)}곳</span><span class="sub">이 지역의 노포 모두 보기</span></button>`).join("");
+    }
     if (local.length) {
       h += "<h3>노포</h3>" + local.map(s => `<button type="button" data-s="${s.id}">${esc(s.n)} ${tagHtml(s)}<span class="sub">${esc(s.a)}</span></button>`).join("");
     }
+    if (!places.length && regions.length && !placeState) { results.innerHTML = h; results.hidden = false; results._places = places; results._regions = regions; return; }
     h += "<h3>장소</h3>";
     if (placeState === "loading") h += '<div class="empty">장소 찾는 중…</div>';
     else if (placeState === "error") h += '<div class="empty">장소 검색에 실패했어요. 잠시 뒤 다시 해 보세요.</div>';
@@ -631,6 +662,7 @@ dialog .btn { width: 100%; }
     results.innerHTML = h;
     results.hidden = false;
     results._places = places;
+    results._regions = regions;
   }
   // Kakao's place search (much better for Korean places) when a JavaScript key is set; else OpenStreetMap
   const KAKAO_JS_KEY = "__KAKAO_JS_KEY__";
@@ -644,23 +676,47 @@ dialog .btn { width: 100%; }
     });
     document.head.appendChild(sdk);
   }
-  const kakaoSearch = q => new Promise(resolve => {
+  // places by name and, at the same time, the query read as a region or an address
+  const kakaoSearch = q => {
     const c = map.getCenter();
-    kakaoPlaces.keywordSearch(q, (rows, status) => {
-      const places = status === kakao.maps.services.Status.OK ? rows.map(r => ({
-        title: r.place_name, sub: [r.category_name.split(" > ").pop(), r.road_address_name || r.address_name].filter(Boolean).join(" · "),
-        ll: [+r.y, +r.x], type: "poi",
-      })) : [];
-      if (places.length || !kakaoGeo) return resolve(places);
-      // nothing by name: try it as an address or a 동/구 name
-      kakaoGeo.addressSearch(q, (rs, st) => resolve(st === kakao.maps.services.Status.OK ? rs.slice(0, 6).map(r => ({
-        title: r.address_name, sub: r.road_address?.address_name || "주소", ll: [+r.y, +r.x],
-        type: r.address_type === "REGION" ? "district" : "poi",
-      })) : []));
-    }, { size: 8, location: new kakao.maps.LatLng(c.lat, c.lng), sort: kakao.maps.services.SortBy.ACCURACY });
-  });
+    const OK = kakao.maps.services.Status.OK;
+    const byName = new Promise(resolve => kakaoPlaces.keywordSearch(q, (rows, status) => resolve(status === OK ? rows.map(r => ({
+      title: r.place_name, sub: [r.category_name.split(" > ").pop(), r.road_address_name || r.address_name].filter(Boolean).join(" · "),
+      ll: [+r.y, +r.x], type: "poi",
+    })) : []), { size: 8, location: new kakao.maps.LatLng(c.lat, c.lng), sort: kakao.maps.services.SortBy.ACCURACY }));
+    const asAddress = new Promise(resolve => kakaoGeo.addressSearch(q, (rows, status) => resolve(status === OK ? rows : [])));
+    return Promise.all([byName, asAddress]).then(([places, rows]) => {
+      const regions = [], seen = new Set();
+      for (const r of rows) {
+        const a = r.address;
+        if (r.address_type !== "REGION" || !a) {
+          // a street address: offer it as a place
+          if (places.length < 8) places.push({ title: r.address_name, sub: r.road_address?.building_name || "주소", ll: [+r.y, +r.x], type: "poi" });
+          continue;
+        }
+        const R = { r1: province(a.region_1depth_name), r2: a.region_2depth_name, r3: a.region_3depth_name, ll: [+r.y, +r.x] };
+        R.label = [R.r1, R.r2, R.r3].filter(Boolean).join(" ");
+        if (!seen.has(R.label)) { seen.add(R.label); regions.push(R); }
+      }
+      return { places, regions: regions.slice(0, 5) };
+    });
+  };
+  function showRegion(R) {
+    region = R;
+    if (selected) closeDetail();
+    results.hidden = true;
+    $("q").blur();
+    const inside = stores.filter(s => passes(s) && inRegion(s, R));
+    if (inside.length) {
+      map.fitBounds(L.latLngBounds(inside.map(s => s.ll)), {
+        paddingTopLeft: [24, 150], paddingBottomRight: [24, sheetH() + 24], maxZoom: 15,
+      });
+    } else map.flyTo(R.ll, R.r3 ? 15 : R.r2 ? 13 : 10, { duration: .6 });
+    refreshList();
+  }
+  $("regionClear").addEventListener("click", () => { region = null; centerLabel = guessArea(); refreshList(); });
   async function searchPlaces(q) {
-    if (kakaoPlaces) return kakaoSearch(q);
+    if (kakaoPlaces) return (await kakaoSearch(q)).places;
     if (placeCtl) placeCtl.abort();
     placeCtl = new AbortController();
     const url = "https://nominatim.openstreetmap.org/search?" + new URLSearchParams({ q, format: "jsonv2", countrycodes: "kr", limit: "6", "accept-language": "ko" });
@@ -678,6 +734,13 @@ dialog .btn { width: 100%; }
     if (!q) { results.hidden = true; return; }
     const local = localMatches(q);
     renderResults(q, local, [], "loading");
+    if (kakaoPlaces) {
+      const { places, regions } = await kakaoSearch(q);
+      // a region name ("화성시 동탄구", "울산 동구") goes straight to that region's list
+      if (regions.length) { showRegion(regions[0]); return; }
+      renderResults(q, local, places);
+      return;
+    }
     try { renderResults(q, local, await searchPlaces(q)); }
     catch (err) { if (err.name !== "AbortError") renderResults(q, local, [], "error"); }
   });
@@ -690,7 +753,10 @@ dialog .btn { width: 100%; }
       // Kakao is quick and has no strict rate limit: look places up as you type
       clearTimeout(typeTimer);
       renderResults(q, local, [], "loading");
-      typeTimer = setTimeout(async () => { const places = await kakaoSearch(q); if ($("q").value.trim() === q) renderResults(q, local, places); }, 250);
+      typeTimer = setTimeout(async () => {
+        const { places, regions } = await kakaoSearch(q);
+        if ($("q").value.trim() === q) renderResults(q, local, places, undefined, regions);
+      }, 250);
       return;
     }
     // as-you-type shows only matching restaurants; OpenStreetMap places are looked up on 검색 (Enter)
@@ -704,7 +770,9 @@ dialog .btn { width: 100%; }
     results.hidden = true;
     $("q").blur();
     if (b.dataset.s != null) { openDetail(stores[+b.dataset.s], true); return; }
+    if (b.dataset.g != null) { showRegion(results._regions[+b.dataset.g]); return; }
     const p = results._places[+b.dataset.p];
+    region = null;
     if (selected) closeDetail();
     const zoom = /^(city|state|province|county|region)$/.test(p.type) ? 12 : /^(town|suburb|borough|city_district|district)$/.test(p.type) ? 14 : 16;
     flyTo(p.ll, zoom, p.title + " 근처");
