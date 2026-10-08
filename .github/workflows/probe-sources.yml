@@ -1,4 +1,4 @@
-# temporary: check the map tile and library URLs the app loads
+# temporary: look at the map tiles the app gets
 name: probe sources
 on:
   push:
@@ -8,17 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          for u in \
-            "https://a.basemaps.cartocdn.com/rastertiles/voyager/14/13970/6345.png" \
-            "https://a.basemaps.cartocdn.com/rastertiles/dark_all/14/13970/6345.png" \
-            "https://a.basemaps.cartocdn.com/dark_all/14/13970/6345.png" \
-            "https://a.basemaps.cartocdn.com/rastertiles/voyager/14/13970/6345@2x.png" \
-            "https://a.basemaps.cartocdn.com/dark_all/14/13970/6345@2x.png" \
-            "https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js" \
-            "https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css" \
-            "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" \
-            "https://yosebchoi.github.io/YoSebChoi/matjip/" \
-            "https://yosebchoi.github.io/YoSebChoi/matjip/stores.json" ; do
-            curl -sS -o /tmp/o -w "%{http_code} %{content_type} %{size_download}  $u\n" -m 20 "$u" || echo "fail $u"
-          done
-          curl -sS https://yosebchoi.github.io/YoSebChoi/matjip/ | grep -o 'cartocdn[^`"]*' | head
+          get() { curl -sS -m 20 -H "Referer: https://yosebchoi.github.io/" -A "Mozilla/5.0 (Linux; Android 14) Chrome/126 Mobile" -D /tmp/h -o /tmp/t "$1"; echo "== $(head -1 /tmp/h | tr -d '\r') $(stat -c %s /tmp/t) $1"; grep -i "^x-\|^cache\|^server" /tmp/h | tr -d '\r' | head -5; echo "B64:$2:$(base64 -w0 /tmp/t)"; }
+          get "https://a.basemaps.cartocdn.com/rastertiles/voyager/14/13970/6345.png" voyager
+          get "https://a.basemaps.cartocdn.com/dark_all/14/13970/6345.png" dark
+          get "https://a.basemaps.cartocdn.com/light_all/14/13970/6345.png" light
+          get "https://tile.openstreetmap.org/14/13970/6345.png" osm
