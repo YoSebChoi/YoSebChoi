@@ -230,6 +230,26 @@ dialog a { color: var(--accent); }
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const toast = (msg, ms = 2600) => { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, ms); };
 
+  // ---------- app updates (installed copy) — registered first, so the app installs even when the map library fails to load ----------
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    addEventListener("load", async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("sw.js");
+        const offer = w => {
+          toast("새 버전이 있어요. 탭하면 업데이트해요.", 8000);
+          $("toast").onclick = () => w.postMessage("skip-waiting");
+        };
+        if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+        reg.addEventListener("updatefound", () => {
+          const w = reg.installing;
+          if (w) w.addEventListener("statechange", () => { if (w.state === "installed" && navigator.serviceWorker.controller) offer(w); });
+        });
+        let reloading = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloading) { reloading = true; location.reload(); } });
+      } catch {}
+    });
+  }
+
   if (!window.L) {
     $("sheetSub").textContent = "지도를 불러오지 못했어요. 인터넷 연결을 확인한 뒤 다시 열어 주세요.";
     return;
@@ -526,7 +546,7 @@ dialog a { color: var(--accent); }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 640bbe38";
+    $("aboutVersion").textContent = "앱 버전 369304d1";
     $("about").showModal();
   });
 
@@ -544,25 +564,6 @@ dialog a { color: var(--accent); }
     $("sheetSub").textContent = "식당 목록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.";
   });
 
-  // ---------- app updates (installed copy) ----------
-  if ("serviceWorker" in navigator && location.protocol === "https:") {
-    addEventListener("load", async () => {
-      try {
-        const reg = await navigator.serviceWorker.register("sw.js");
-        const offer = w => {
-          toast("새 버전이 있어요. 탭하면 업데이트해요.", 8000);
-          $("toast").onclick = () => w.postMessage("skip-waiting");
-        };
-        if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
-        reg.addEventListener("updatefound", () => {
-          const w = reg.installing;
-          if (w) w.addEventListener("statechange", () => { if (w.state === "installed" && navigator.serviceWorker.controller) offer(w); });
-        });
-        let reloading = false;
-        navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloading) { reloading = true; location.reload(); } });
-      } catch {}
-    });
-  }
 })();
 </script>
 </body>
