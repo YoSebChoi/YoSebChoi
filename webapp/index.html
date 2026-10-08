@@ -245,7 +245,7 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding:
         <svg class="ring" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-bg" cx="32" cy="32" r="27"/><circle class="ring-fg" id="ringFg" cx="32" cy="32" r="27" pathLength="100" stroke-dasharray="0 100"/></svg>
         <div class="timer-text">
           <h2>판독 타이머</h2>
-          <p class="small muted" id="timerText">테스트기에 소변을 묻힌 직후 눌러 주세요. 3분이 되면 알려 드려요.</p>
+          <p class="small muted" id="timerText">테스트기에 소변을 묻힌 직후 눌러 주세요. 5분이 되면 알려 드려요.</p>
         </div>
         <span class="timer-clock num" id="timerClock" hidden>0:00</span>
       </div>
@@ -267,7 +267,7 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding:
       <details class="tips-box">
         <summary>잘 찍는 법</summary>
         <ul class="tips">
-          <li>검사 후 <b>3~5분 안에</b> 찍은 사진만 의미가 있어요.</li>
+          <li>검사 후 <b>5~10분 사이에</b> 찍은 사진만 의미가 있어요. 판독 타이머를 쓰면 편해요.</li>
           <li>그림자 없이 밝은 곳에서, 정면으로, 초점을 맞춰 찍어 주세요.</li>
           <li>분홍색 HCG 손잡이가 사진에 다 나오게 찍으면 스트립을 자동으로 찾아요.</li>
           <li id="browserHint">버튼을 눌러도 앨범이 안 열리면, 링크를 <b>크롬 같은 브라우저에서</b> 열어 주세요.</li>
@@ -1190,8 +1190,9 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     } catch (err) { backupMsg(err.message || "불러오지 못했어요."); }
   });
 
-  /* ---------- read timer: 3 min wait, read until 5 min ---------- */
-  const READ_FROM = 180, READ_UNTIL = 300, KEEP = 600;
+  /* ---------- read timer: 5 min wait, read until 10 min ---------- */
+  // photo window: from 5 min (alert) until 10 min after dipping
+  const READ_FROM = 300, READ_UNTIL = 600, KEEP = 900;
   let timer = null, tick = null, wake = null;
   const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
   const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
@@ -1214,7 +1215,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     card.classList.remove("ready", "late");
     if (!timer) {
       fg.setAttribute("stroke-dasharray", "0 100"); fg.style.opacity = 0; clock.hidden = true;
-      text.textContent = "테스트기에 소변을 묻힌 직후 눌러 주세요. 3분이 되면 알려 드려요.";
+      text.textContent = `테스트기에 소변을 묻힌 직후 눌러 주세요. ${READ_FROM / 60}분이 되면 알려 드려요.`;
       $("#timerStart").hidden = false; $("#timerStop").hidden = true; return;
     }
     const el = (Date.now() - timer.start) / 1000;
@@ -1230,7 +1231,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       if (!timer.readyBuzzed) { timer.readyBuzzed = true; buzz([250, 120, 250]); }
     } else {
       card.classList.add("late"); p = 1; clock.textContent = mmss(el);
-      text.textContent = "판독 시간(5분)이 지났어요. 지금부터 생긴 선은 판단하기 어려워요.";
+      text.textContent = `판독 시간(${READ_UNTIL / 60}분)이 지났어요. 지금부터 생긴 선은 판단하기 어려워요.`;
       if (!timer.lateBuzzed) { timer.lateBuzzed = true; buzz(400); releaseAwake(); }
     }
     fg.style.opacity = 1; fg.setAttribute("stroke-dasharray", `${(p * 100).toFixed(1)} 100`);
