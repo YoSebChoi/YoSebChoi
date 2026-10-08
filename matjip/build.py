@@ -522,7 +522,7 @@ MANIFEST = {
 SW = """// 노포 지도 service worker: the app shell is served from cache; the store list
 // is fetched fresh when online and falls back to the cached copy offline.
 const CACHE = "nopo-map-__VERSION__";
-const SHELL = ["./", "./index.html", "./stores.json", "./manifest.webmanifest", "./icon-192.png"];
+const SHELL = ["./", "./index.html", "./stores.json"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))));
@@ -543,6 +543,12 @@ self.addEventListener("fetch", e => {
   if (url.origin === location.origin && url.pathname.endsWith("/stores.json")) {
     e.respondWith(caches.open(CACHE).then(c => fetch(req).then(res => { if (res.ok) c.put("./stores.json", res.clone()); return res; })
       .catch(() => c.match("./stores.json"))));
+    return;
+  }
+  // the app's identity (manifest, icons) always comes from the network: installing the app reads these,
+  // and a stale copy here would install the old icon and launch screen
+  if (url.origin === location.origin && /(\\.webmanifest|\\/icon-[^/]*\\.png)$/.test(url.pathname)) {
+    e.respondWith(fetch(req, { cache: "no-store" }).catch(() => caches.match(req)));
     return;
   }
   // map tiles and place search always go to the network; the library and fonts are cached
@@ -627,21 +633,34 @@ def main():
     data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     (OUT / "stores.json").write_text(data, encoding="utf-8")
     page = (SRC / "index.html").read_text(encoding="utf-8")
-    version = hashlib.sha256((page + SW + data + json.dumps(MANIFEST)).encode()).hexdigest()[:8]
-    # the JavaScript key is public by design (it only works on the domains registered for it)
-    js_key = os.environ.get("KAKAO_JS_KEY", "").strip()
-    if not js_key and (SRC / "kakao_js_key.txt").exists():
-        js_key = (SRC / "kakao_js_key.txt").read_text().strip()
-    (OUT / "index.html").write_text(page.replace("__VERSION__", version).replace("__KAKAO_JS_KEY__", js_key), encoding="utf-8")
-    (OUT / "sw.js").write_text(SW.replace("__VERSION__", version), encoding="utf-8")
-    (OUT / "manifest.webmanifest").write_text(json.dumps(MANIFEST, ensure_ascii=False, indent=2), encoding="utf-8")
-    # the signboard icons in matjip/assets (drawn by assets/draw_icons.py); the plain drawing is a fallback
+    manifest = json.loads(json.dumps(MANIFEST))
+    # the signboard icons in matjip/assets (drawn by assets/draw_icons.py; the plain drawing is a fallback).
+    # Each is also published under a name carrying its content hash, which the manifest and the page point
+    # to, so no cache anywhere (HTTP, service worker, the phone's installer) can hand out an old icon.
+    for old in OUT.glob("icon-*.*.png"):
+        old.unlink()
     for name, size, mask in (("icon-192.png", 192, False), ("icon-512.png", 512, False), ("icon-maskable-512.png", 512, True)):
         drawn = SRC / "assets" / name
         if drawn.exists():
             shutil.copyfile(drawn, OUT / name)
         else:
             icon(size, maskable=mask).save(OUT / name)
+        hashed = name.replace(".png", f".{hashlib.sha256((OUT / name).read_bytes()).hexdigest()[:8]}.png")
+        shutil.copyfile(OUT / name, OUT / hashed)
+        for entry in manifest["icons"]:
+            if entry["src"] == name:
+                entry["src"] = hashed
+        page = page.replace(f'href="{name}"', f'href="{hashed}"')
+    manifest_text = json.dumps(manifest, ensure_ascii=False, indent=2)
+    # the version covers the manifest with its hashed icon names, so a new launch screen also counts as an update
+    version = hashlib.sha256((page + SW + data + manifest_text).encode()).hexdigest()[:8]
+    # the JavaScript key is public by design (it only works on the domains registered for it)
+    js_key = os.environ.get("KAKAO_JS_KEY", "").strip()
+    if not js_key and (SRC / "kakao_js_key.txt").exists():
+        js_key = (SRC / "kakao_js_key.txt").read_text().strip()
+    (OUT / "index.html").write_text(page.replace("__VERSION__", version).replace("__KAKAO_JS_KEY__", js_key), encoding="utf-8")
+    (OUT / "sw.js").write_text(SW.replace("__VERSION__", version), encoding="utf-8")
+    (OUT / "manifest.webmanifest").write_text(manifest_text, encoding="utf-8")
     print(f"built {version}: {len(placed)} on the map ({approx} approximate), {len(missing)} without a location")
 
 
