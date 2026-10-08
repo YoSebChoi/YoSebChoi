@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#EDF1EC</color>
+    <color name="hcg_mist">#EDF1EC</color>
+    <color name="hcg_ground">#EDF1EC</color>
+    <color name="hcg_plum">#985470</color>
+    <bool name="hcg_light_bars">true</bool>
+</resources>

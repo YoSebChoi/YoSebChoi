@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- the app icon's test strip, 142dp wide and centred: the page's own splash (webapp/index.html)
+     opens on this exact strip, so Android's launch screen and the splash read as one scene -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp" android:height="288dp" android:viewportWidth="288" android:viewportHeight="288">
+    <path android:fillColor="#FCFDFB" android:pathData="M93.882,123.118 H194.118 A20.882,20.882 0 0 1 215.0,144.0 V144.0 A20.882,20.882 0 0 1 194.118,164.882 H93.882 A20.882,20.882 0 0 1 73.0,144.0 V144.0 A20.882,20.882 0 0 1 93.882,123.118 Z" />
+    <path android:fillColor="#ECC4D3" android:pathData="M194.11700000000002,123.118 H194.118 A20.882,20.882 0 0 1 215.0,144.0 V144.0 A20.882,20.882 0 0 1 194.118,164.882 H194.11700000000002 A20.882,20.882 0 0 1 173.235,144.0 V144.0 A20.882,20.882 0 0 1 194.11700000000002,123.118 Z" />
+    <path android:fillColor="#ECC4D3" android:pathData="M173.235,123.118 H187.157 V164.882 H173.235 Z" />
+    <path android:fillColor="#EAEEE9" android:pathData="M114.764,130.775 H162.79500000000002 A4.176,4.176 0 0 1 166.971,134.951 V153.049 A4.176,4.176 0 0 1 162.79500000000002,157.225 H114.764 A4.176,4.176 0 0 1 110.588,153.049 V134.951 A4.176,4.176 0 0 1 114.764,130.775 Z" />
+    <path android:fillColor="#DEBECB" android:pathData="M128.686,130.775 H134.951 V157.225 H128.686 Z" />
+    <path android:fillColor="#985470" android:pathData="M148.176,130.775 H154.441 V157.225 H148.176 Z" />
+</vector>

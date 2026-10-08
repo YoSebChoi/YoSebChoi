@@ -1,0 +1,85 @@
+# Builds the 시약선 노트 Android app (hcg-app/, a Capacitor shell around the live web app docs/index.html)
+# and publishes it at a fixed address:
+#   https://github.com/YoSebChoi/YoSebChoi/releases/download/hcg-apk/hcg-notes.apk
+# The app loads the live page, so web updates reach it without a new APK; rebuild only when
+# hcg-app/ changes.
+# Signing: the same repository secret as the 노포 지도 app, ANDROID_SIGNING = "<password> <base64 of the
+# PKCS12 keystore>" (alias "nopo"). Without it the APK is signed with a throwaway debug key and cannot
+# install over an earlier one.
+name: 시약선 노트 APK
+
+on:
+  push:
+    paths:
+      - "hcg-app/**"
+      - ".github/workflows/hcg-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hcg-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Launcher icons from the web app's icon
+        run: pip install pillow && python3 hcg-app/make_icons.py
+      - name: Capacitor sync
+        working-directory: hcg-app
+        run: |
+          npm ci --no-audit --no-fund
+          npx cap sync android
+      - name: Signing key
+        env:
+          ANDROID_SIGNING: ${{ secrets.ANDROID_SIGNING }}
+        run: |
+          if [ -z "$ANDROID_SIGNING" ]; then
+            echo "::warning::ANDROID_SIGNING is not set: signing with a debug key (updates will need a reinstall)"
+            exit 0
+          fi
+          password="${ANDROID_SIGNING%% *}"
+          echo "::add-mask::$password"
+          echo "${ANDROID_SIGNING#* }" | tr -d ' \n' | base64 -d > "$RUNNER_TEMP/hcg.p12"
+          echo "HCG_KEYSTORE=$RUNNER_TEMP/hcg.p12" >> "$GITHUB_ENV"
+          echo "HCG_KEY_PASSWORD=$password" >> "$GITHUB_ENV"
+      - name: Build
+        working-directory: hcg-app/android
+        env:
+          HCG_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/hcg-notes.apk"
+          "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner verify --print-certs "$GITHUB_WORKSPACE/hcg-notes.apk" | head -3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hcg-notes-apk
+          path: hcg-notes.apk
+      - name: Publish the release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="시약선 노트 Android 앱 (빌드 ${{ github.run_number }}). 폰에서 hcg-notes.apk를 받아 설치하세요."
+          if gh release view hcg-apk >/dev/null 2>&1; then
+            gh release edit hcg-apk --title "시약선 노트 앱" --notes "$notes"
+          else
+            gh release create hcg-apk --title "시약선 노트 앱" --notes "$notes" --target "$GITHUB_SHA"
+          fi
+          gh release upload hcg-apk hcg-notes.apk --clobber

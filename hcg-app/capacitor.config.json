@@ -1,0 +1,20 @@
+{
+  "appId": "io.github.yosebchoi.hcgnotes",
+  "appName": "시약선 노트",
+  "webDir": "www",
+  "backgroundColor": "#edf1ec",
+  "appendUserAgent": "HcgNotesApp",
+  "server": {
+    "url": "https://yosebchoi.github.io/YoSebChoi/index.html",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_strip",
+      "iconColor": "#985470"
+    }
+  }
+}

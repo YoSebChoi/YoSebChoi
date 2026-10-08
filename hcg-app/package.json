@@ -1,0 +1,15 @@
+{
+  "name": "hcg-notes-android",
+  "private": true,
+  "description": "시약선 노트 Android app: a Capacitor shell around the live web app (docs/index.html)",
+  "dependencies": {
+    "@capacitor/android": "6.2.2",
+    "@capacitor/app": "6.0.3",
+    "@capacitor/cli": "6.2.2",
+    "@capacitor/core": "6.2.2",
+    "@capacitor/filesystem": "6.0.4",
+    "@capacitor/haptics": "6.0.3",
+    "@capacitor/local-notifications": "6.1.3",
+    "@capacitor/share": "6.0.4"
+  }
+}

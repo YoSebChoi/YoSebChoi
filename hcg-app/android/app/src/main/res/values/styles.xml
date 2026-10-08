@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/hcg_plum</item>
+        <item name="colorPrimaryDark">@color/hcg_ground</item>
+        <item name="colorAccent">@color/hcg_plum</item>
+    </style>
+
+    <!-- the app after launch: the page's ground colour behind the web view until it paints -->
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+        <item name="android:windowBackground">@color/hcg_ground</item>
+        <item name="android:statusBarColor">@color/hcg_ground</item>
+        <item name="android:navigationBarColor">@color/hcg_ground</item>
+        <item name="android:windowLightStatusBar">@bool/hcg_light_bars</item>
+        <item name="android:windowLightNavigationBar">@bool/hcg_light_bars</item>
+    </style>
+
+    <!-- launch: the misty ground with the icon's strip in the middle; the page's splash takes over from it.
+         Always the light mist, like the page's splash, so the hand-over never flashes. -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/hcg_mist</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_strip</item>
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <item name="android:statusBarColor">@color/hcg_mist</item>
+        <item name="android:navigationBarColor">@color/hcg_mist</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

@@ -677,6 +677,13 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
 <script>
 (() => {
   const $ = s => document.querySelector(s);
+  // inside the Android app (hcg-app/, Capacitor) the injected native bridge adds timer alerts that
+  // arrive with the screen off, real vibration, keep-screen-on, the share sheet and the back button.
+  // The page does not bundle @capacitor/core, so plugins are called through the bridge itself.
+  const Cap = window.Capacitor;
+  const native = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+  const ncall = (p, m, o = {}) => Cap.Plugins?.[p]?.[m] ? Cap.Plugins[p][m](o) : Cap.nativePromise(p, m, o);
+  const nlisten = (p, ev, cb) => Cap.Plugins?.[p]?.addListener ? Cap.Plugins[p].addListener(ev, cb) : Cap.nativeCallback(p, "addListener", { eventName: ev }, cb);
   const GRADE = {
     "none": "시약선 안 보임", "very-faint": "아주 희미", "faint": "희미",
     "medium": "중간", "strong": "진함", "equal": "대조선 수준",
@@ -1270,6 +1277,16 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     if (!store.items.length) { backupMsg("아직 내보낼 기록이 없어요."); return; }
     const data = JSON.stringify({ app: "hcg-line-notes", format: 1, exportedAt: new Date().toISOString(), records: store.items.map(({ id, ...r }) => r) });
     const name = `hcg-notes-backup-${nowLocal(Date.now()).slice(0, 10)}.json`, n = store.items.length;
+    if (native) {
+      try {
+        const f = await ncall("Filesystem", "writeFile", { path: name, data, directory: "CACHE", encoding: "utf8" });
+        await ncall("Share", "share", { title: "시약선 노트 백업", text: `시약선 노트 기록 ${n}개`, url: f.uri, dialogTitle: "백업 파일 저장하기·보내기" });
+        backupMsg(`기록 ${n}개를 백업 파일로 만들었어요. 저장하거나 보낸 곳에서 찾을 수 있어요.`);
+      } catch (e) {
+        backupMsg(/cancel/i.test(String(e && e.message)) ? "공유를 취소했어요. 파일은 저장되지 않았어요." : "백업 파일을 만들지 못했어요. 잠시 뒤 다시 해 주세요.");
+      }
+      return;
+    }
     const inViewer = !!(window.claude && typeof window.claude.use === "function");
     if (inViewer) {
       const dl = await window.claude.use("downloads");
@@ -1330,20 +1347,53 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
   const READ_FROM = 300, READ_UNTIL = 600, KEEP = 900;
   let timer = null, tick = null, wake = null;
   const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
-  const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+  const buzz = p => {
+    if (native) {
+      // the system vibrator, one pulse per "on" segment of the pattern
+      const seq = [].concat(p); let at = 0;
+      seq.forEach((ms, i) => { if (i % 2 === 0) setTimeout(() => ncall("Haptics", "vibrate", { duration: ms }).catch(() => {}), at); at += ms; });
+      return;
+    }
+    try { navigator.vibrate && navigator.vibrate(p); } catch (e) {}
+  };
+  const ALERTS = [501, 502];
+  async function scheduleAlerts(start) {
+    if (!native) return;
+    try {
+      const perm = await ncall("LocalNotifications", "requestPermissions");
+      if (perm && perm.display && perm.display !== "granted") {
+        $("#timerText").textContent = "알림이 꺼져 있어서, 화면이 꺼지면 알려 드릴 수 없어요. 설정에서 알림을 켜 주세요.";
+        return;
+      }
+      await ncall("LocalNotifications", "createChannel", { id: "read-timer", name: "판독 타이머", description: "5분·10분이 되면 알려 드려요", importance: 5, visibility: 1, vibration: true });
+      await ncall("LocalNotifications", "cancel", { notifications: ALERTS.map(id => ({ id })) });
+      const plan = [
+        [ALERTS[0], start + READ_FROM * 1000, "지금 찍어 주세요", `판독 시간이 됐어요. ${READ_UNTIL / 60}분이 되기 전에 사진을 찍으세요.`],
+        [ALERTS[1], start + READ_UNTIL * 1000, "판독 시간이 지났어요", "지금부터 생긴 선은 판단하기 어려워요."],
+      ].filter(([, at]) => at > Date.now() + 1000);
+      if (plan.length) await ncall("LocalNotifications", "schedule", { notifications: plan.map(([id, at, title, body]) =>
+        ({ id, title, body, channelId: "read-timer", schedule: { at: new Date(at), allowWhileIdle: true } })) });
+    } catch (e) { /* the in-page timer still works */ }
+  }
+  function cancelAlerts() { if (native) ncall("LocalNotifications", "cancel", { notifications: ALERTS.map(id => ({ id })) }).catch(() => {}); }
   async function keepAwake() {
+    if (native) { ncall("HcgScreen", "keepOn").catch(() => {}); return; }
     try { if (navigator.wakeLock && document.visibilityState === "visible" && !wake) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); } } catch (e) { wake = null; }
   }
-  function releaseAwake() { try { wake && wake.release(); } catch (e) {} wake = null; }
+  function releaseAwake() {
+    if (native) { ncall("HcgScreen", "allowOff").catch(() => {}); return; }
+    try { wake && wake.release(); } catch (e) {} wake = null;
+  }
   function startTimer(at) {
     const start = at || Date.now(), el = (Date.now() - start) / 1000;
     timer = { start, readyBuzzed: el >= READ_FROM, lateBuzzed: el >= READ_UNTIL };
     lset("hcg-timer", String(start));
     clearInterval(tick); tick = setInterval(renderTimer, 500);
     keepAwake(); renderTimer();
+    if (!at) scheduleAlerts(start);
   }
   function stopTimer() {
-    timer = null; clearInterval(tick); tick = null; lset("hcg-timer", null); releaseAwake(); renderTimer();
+    timer = null; clearInterval(tick); tick = null; lset("hcg-timer", null); releaseAwake(); cancelAlerts(); renderTimer();
   }
   function renderTimer() {
     const card = $("#timerCard"), fg = $("#ringFg"), text = $("#timerText"), clock = $("#timerClock");
@@ -1404,7 +1454,21 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     const part = h < 5 ? "고요한 새벽" : h < 11 ? "맑은 아침" : h < 17 ? "따스한 오후" : h < 21 ? "차분한 저녁" : "고요한 밤";
     $("#today").textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 ${"일월화수목금토"[d.getDay()]}요일 · ${part}`;
   })();
-  try { if (matchMedia("(display-mode: standalone)").matches) $("#browserHint").hidden = true; } catch (e) {}
+  try { if (native || matchMedia("(display-mode: standalone)").matches) $("#browserHint").hidden = true; } catch (e) {}
+  if (native) {
+    // back: close what is open first, then go back to 측정, then leave the app running in the background
+    nlisten("App", "backButton", () => {
+      if (!$("#toast").hidden) $("#toast").hidden = true;
+      if (editing) { editing = null; renderHistory(); return; }
+      if (pick) { endPick(); view = { x: 0, y: 0, w: work.W, h: work.H }; drawPhoto(); return; }
+      if (!$("#panel-records").hidden) {
+        if (openIds.size) { openIds.clear(); renderHistory(); return; }
+        showTab("measure"); return;
+      }
+      if ($("#photoDetails").open) { $("#photoDetails").open = false; return; }
+      ncall("App", "minimizeApp").catch(() => {});
+    });
+  }
   const s = makeSample();
   setWork(s, s.width, s.height, { isSample: true, fileTime: Date.now() });
   $("#when").value = nowLocal(Date.now());

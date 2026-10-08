@@ -56,6 +56,12 @@ window.APP_VERSION = "__VERSION__";
   // ask the browser not to evict the locally stored records
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if (!("serviceWorker" in navigator)) return;
+  // the Android app (hcg-app/) always loads the live page and gets the native bridge injected into it;
+  // a cached copy would skip that injection, so there is no offline copy or update prompt there
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+    return;
+  }
   const bar = document.getElementById("updateBar");
   let waiting = null, wantReload = false;
   const offer = w => { waiting = w; bar.hidden = false; };

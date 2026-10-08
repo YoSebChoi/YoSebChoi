@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- dark mode: the page's night ground (webapp/index.html --bg) -->
+    <color name="hcg_ground">#0F1412</color>
+    <bool name="hcg_light_bars">false</bool>
+</resources>
