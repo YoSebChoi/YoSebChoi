@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7a3b2e">
+<meta name="description" content="내 주변 또는 지도에서 고른 곳 근처의 백년가게와 허영만의 백반기행 맛집을 찾아요.">
+<title>노포 지도</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap">
+<style>
+/* Layout: the map fills the screen; a search bar floats on top, and a sheet at the
+   bottom lists what is near the map's centre, nearest first. Dragging the map
+   re-centres the list. Mood: rice paper, soy and hanji — an old eatery's signboard. */
+:root {
+  --bg: #f6f1e7;
+  --surface: #fffcf6;
+  --surface-2: #efe7d8;
+  --ink: #2e2620;
+  --muted: #776b60;
+  --rule: #e4d9c6;
+  --accent: #7a3b2e;          /* soy brown */
+  --accent-ink: #fffcf6;
+  --bn: #2f5d8a;              /* 백년가게: indigo, like an old signboard */
+  --bb: #c7472f;              /* 백반기행: gochujang red */
+  --both: #a0761b;            /* both: brass */
+  --me: #1f7a6d;
+  --shadow: 0 1px 2px rgba(46, 38, 32, .08), 0 8px 28px rgba(46, 38, 32, .14);
+  --font-display: "Gowun Batang", "Noto Serif KR", "AppleMyungjo", serif;
+  --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --sheet-peek: 216px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1a1714; --surface: #24201c; --surface-2: #2e2924; --ink: #efe7dc; --muted: #ab9f92; --rule: #3a342d;
+    --accent: #e0a08c; --accent-ink: #1a1714; --bn: #8db4dd; --bb: #ef8a72; --both: #dcb563; --me: #6cc7b8;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .4);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1a1714; --surface: #24201c; --surface-2: #2e2924; --ink: #efe7dc; --muted: #ab9f92; --rule: #3a342d;
+  --accent: #e0a08c; --accent-ink: #1a1714; --bn: #8db4dd; --bb: #ef8a72; --both: #dcb563; --me: #6cc7b8;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .4);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; overflow: hidden; }
+button, input { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+
+#map { position: fixed; inset: 0; background: var(--surface-2); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .leaflet-tile-pane { filter: brightness(.72) contrast(1.1) saturate(.6) invert(1) hue-rotate(180deg); } }
+:root[data-theme="dark"] .leaflet-tile-pane { filter: brightness(.72) contrast(1.1) saturate(.6) invert(1) hue-rotate(180deg); }
+.leaflet-container { font-family: var(--font-body); }
+.leaflet-control-attribution { font-size: 10px; background: color-mix(in srgb, var(--surface) 80%, transparent) !important; color: var(--muted); }
+.leaflet-control-attribution a { color: var(--muted); }
+
+/* top: search + filters */
+.top { position: fixed; z-index: 1000; left: 0; right: 0; top: 0; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0;
+  pointer-events: none; max-width: 560px; margin: 0 auto; }
+.top > * { pointer-events: auto; }
+.searchbar { display: flex; align-items: center; gap: 4px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 4px 4px 4px 14px; }
+.brand { font-family: var(--font-display); font-weight: 700; color: var(--accent); white-space: nowrap; font-size: 16px; }
+.searchbar input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 6px; outline: none; font-size: 16px; }
+.searchbar input::placeholder { color: var(--muted); }
+.icon-btn { flex: none; width: 40px; height: 40px; border: 0; border-radius: 12px; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--muted); }
+.icon-btn:hover { background: var(--surface-2); }
+.icon-btn svg { width: 20px; height: 20px; }
+.chips { display: flex; gap: 6px; margin: 4px -12px 0; overflow-x: auto; scrollbar-width: none; padding: 4px 12px 12px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 0; border-radius: 999px; padding: 6px 12px; background: var(--surface); box-shadow: var(--shadow); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; border: 2px solid var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.dot.bn { background: var(--bn); } .dot.bb { background: var(--bb); } .dot.both { background: var(--both); }
+
+/* search results */
+.results { margin-top: 8px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); max-height: min(55vh, 420px); overflow-y: auto; padding: 6px; }
+.results h3 { font-size: 12px; color: var(--muted); font-weight: 400; margin: 8px 10px 4px; }
+.results button { display: block; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 10px; padding: 9px 10px; cursor: pointer; }
+.results button:hover, .results button:focus-visible { background: var(--surface-2); outline: none; }
+.results .sub { display: block; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.results .empty { padding: 10px; color: var(--muted); font-size: 14px; }
+
+/* floating actions */
+.fab { position: fixed; z-index: 900; right: 12px; width: 48px; height: 48px; border-radius: 16px; border: 0; background: var(--surface); box-shadow: var(--shadow);
+  display: grid; place-items: center; cursor: pointer; color: var(--ink); transition: bottom .25s ease; }
+.fab svg { width: 22px; height: 22px; }
+.fab.locate { bottom: calc(var(--sheet-h, var(--sheet-peek)) + 14px); }
+.fab.locate.busy svg { animation: spin 1s linear infinite; }
+.fab.locate.on { color: var(--me); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.crosshair { position: fixed; z-index: 500; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; pointer-events: none; opacity: .55; color: var(--ink); }
+
+/* bottom sheet */
+.sheet { position: fixed; z-index: 950; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: var(--surface); border-radius: 22px 22px 0 0;
+  box-shadow: 0 -4px 30px rgba(46, 38, 32, .18); height: var(--sheet-h, var(--sheet-peek)); display: flex; flex-direction: column;
+  transition: height .25s ease; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sheet.dragging { transition: none; }
+.grab { flex: none; padding: 8px 18px 6px; cursor: grab; touch-action: none; user-select: none; }
+.grab::before { content: ""; display: block; width: 40px; height: 5px; border-radius: 3px; background: var(--rule); margin: 0 auto 8px; }
+.sheet-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.sheet-title { font-family: var(--font-display); font-weight: 700; font-size: 18px; margin: 0; }
+.sheet-sub { font-size: 13px; color: var(--muted); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radius { flex: none; font-size: 13px; color: var(--muted); }
+.radius select { border: 0; background: var(--surface-2); border-radius: 8px; padding: 3px 6px; font: inherit; color: var(--ink); }
+.list { flex: 1; overflow-y: auto; padding: 0 10px 12px; overscroll-behavior: contain; }
+.item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 11px 10px; border-radius: 14px; cursor: pointer; border: 0; background: transparent; width: 100%; text-align: left; }
+.item:hover, .item.sel { background: var(--surface-2); }
+.item .name { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.item .name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .dist { font-size: 13px; color: var(--muted); align-self: center; font-variant-numeric: tabular-nums; }
+.item .meta { grid-column: 1 / -1; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tags { display: inline-flex; gap: 4px; flex: none; }
+.tag { font-size: 11px; font-weight: 400; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+.tag.bn { color: var(--bn); background: color-mix(in srgb, var(--bn) 13%, transparent); }
+.tag.bb { color: var(--bb); background: color-mix(in srgb, var(--bb) 13%, transparent); }
+.note { font-size: 13px; color: var(--muted); padding: 14px 10px; }
+.note button { border: 0; background: var(--surface-2); border-radius: 8px; padding: 4px 10px; cursor: pointer; margin-top: 6px; }
+
+/* detail card */
+.detail { padding: 2px 18px 16px; overflow-y: auto; }
+.detail h2 { font-family: var(--font-display); font-size: 22px; margin: 2px 0 6px; line-height: 1.3; }
+.detail .tags { margin-bottom: 8px; }
+.detail .tag { font-size: 12px; padding: 2px 8px; }
+.facts { margin: 0 0 12px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 14px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }
+.facts a { color: var(--accent); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn { border: 0; border-radius: 12px; padding: 9px 14px; background: var(--surface-2); color: var(--ink); text-decoration: none; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.back { border: 0; background: transparent; color: var(--muted); padding: 0; cursor: pointer; font-size: 14px; }
+.warn { font-size: 13px; color: var(--muted); background: var(--surface-2); border-radius: 10px; padding: 8px 10px; margin: 0 0 12px; }
+
+.toast { position: fixed; z-index: 1100; left: 50%; transform: translateX(-50%); top: calc(120px + env(safe-area-inset-top, 0px)); background: var(--ink); color: var(--bg);
+  border-radius: 12px; padding: 9px 14px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
+
+/* about */
+dialog { border: 0; border-radius: 20px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); max-width: min(480px, calc(100% - 32px)); padding: 20px 22px; }
+dialog::backdrop { background: rgba(0, 0, 0, .35); }
+dialog h2 { font-family: var(--font-display); margin: 0 0 8px; font-size: 20px; }
+dialog p, dialog li { font-size: 14px; color: var(--muted); }
+dialog ul { padding-left: 18px; }
+dialog a { color: var(--accent); }
+.legend { display: flex; flex-direction: column; gap: 6px; font-size: 14px; margin: 10px 0; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+</style>
+</head>
+<body>
+<div id="map" aria-label="지도"></div>
+<svg class="crosshair" id="crosshair" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 2v6M11 14v6M2 11h6M14 11h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+
+<div class="top">
+  <form class="searchbar" id="searchForm" role="search" autocomplete="off">
+    <span class="brand">노포 지도</span>
+    <input id="q" type="search" placeholder="식당 이름, 동네, 역 이름" aria-label="식당 이름이나 장소 검색" enterkeyhint="search">
+    <button class="icon-btn" type="submit" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <button class="icon-btn" type="button" id="aboutBtn" aria-label="앱 정보"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
+  </form>
+  <div class="results" id="results" hidden></div>
+  <div class="chips" role="group" aria-label="보기 필터">
+    <button class="chip" type="button" data-f="all" aria-pressed="true">전체</button>
+    <button class="chip" type="button" data-f="bn" aria-pressed="false"><i class="dot bn"></i>백년가게</button>
+    <button class="chip" type="button" data-f="bb" aria-pressed="false"><i class="dot bb"></i>백반기행</button>
+    <button class="chip" type="button" data-f="both" aria-pressed="false"><i class="dot both"></i>둘 다</button>
+  </div>
+</div>
+
+<button class="fab locate" id="locate" type="button" aria-label="내 위치로 이동">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+</button>
+
+<section class="sheet" id="sheet" aria-label="주변 식당">
+  <div class="grab" id="grab">
+    <div class="sheet-head">
+      <h1 class="sheet-title" id="sheetTitle">주변 노포</h1>
+      <label class="radius">반경
+        <select id="radius" aria-label="검색 반경">
+          <option value="1000">1km</option>
+          <option value="3000" selected>3km</option>
+          <option value="10000">10km</option>
+          <option value="30000">30km</option>
+        </select>
+      </label>
+    </div>
+    <p class="sheet-sub" id="sheetSub">불러오는 중…</p>
+  </div>
+  <div class="list" id="list"></div>
+  <div class="detail" id="detail" hidden></div>
+</section>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<dialog id="about">
+  <h2>노포 지도</h2>
+  <p>지도 가운데(＋)를 기준으로 가까운 식당을 보여 줘요. 지도를 움직이거나 장소를 검색하면 목록도 그 위치 기준으로 바뀌어요.</p>
+  <div class="legend">
+    <span><i class="dot bn"></i>백년가게: 중소벤처기업부가 지정한 30년 이상 된 가게 중 음식점</span>
+    <span><i class="dot bb"></i>백반기행: TV조선 「식객 허영만의 백반기행」에 나온 식당</span>
+    <span><i class="dot both"></i>둘 다 해당하는 곳</span>
+  </div>
+  <p id="aboutData"></p>
+  <ul>
+    <li>방송 뒤에 옮기거나 문을 닫은 곳이 있을 수 있어요. 가기 전에 지도 앱에서 영업 여부를 꼭 확인하세요.</li>
+    <li>백반기행은 공식 목록이 없어서 기사와 블로그로 확인한 곳만 담았어요.</li>
+    <li>위치 정보는 이 기기 안에서만 쓰이고 어디에도 저장되지 않아요.</li>
+  </ul>
+  <p>지도 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> 기여자 · 백년가게 자료: 공공데이터포털(소상공인시장진흥공단)</p>
+  <p id="aboutVersion"></p>
+  <form method="dialog"><button class="btn primary">닫기</button></form>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("nopo:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem("nopo:" + k, JSON.stringify(v)); } catch {} },
+  };
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const toast = (msg, ms = 2600) => { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, ms); };
+
+  if (!window.L) {
+    $("sheetSub").textContent = "지도를 불러오지 못했어요. 인터넷 연결을 확인한 뒤 다시 열어 주세요.";
+    return;
+  }
+
+  // ---------- map ----------
+  const start = store.get("view", { c: [37.5665, 126.978], z: 14 });   // 서울시청 by default
+  const map = L.map("map", { zoomControl: false, preferCanvas: true, attributionControl: true }).setView(start.c, start.z);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(map);
+  map.attributionControl.setPrefix(false);
+  const markers = L.layerGroup().addTo(map);
+  let meMarker = null, meAcc = null, selMarker = null;
+
+  // ---------- data ----------
+  let stores = [], unplaced = [], meta = {};
+  let filter = store.get("filter", "all");
+  let radius = store.get("radius", 3000);
+  let selected = null;
+  $("radius").value = String(radius);
+
+  const kindOf = s => s.t.length > 1 ? "both" : s.t[0];
+  const colorOf = s => css("--" + kindOf(s));
+  const passes = s => filter === "all" || (filter === "both" ? s.t.length > 1 : s.t.includes(filter));
+  const tagHtml = s => `<span class="tags">${s.t.includes("bn") ? '<span class="tag bn">백년가게</span>' : ""}${s.t.includes("bb") ? '<span class="tag bb">백반기행</span>' : ""}</span>`;
+  const fmtDist = m => m < 1000 ? `${Math.round(m / 10) * 10}m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)}km`;
+
+  function drawMarkers() {
+    markers.clearLayers();
+    for (const s of stores) {
+      if (!passes(s)) continue;
+      const m = L.circleMarker(s.ll, { radius: 7, weight: 2, color: css("--surface"), fillColor: colorOf(s), fillOpacity: s.x ? .55 : .95 });
+      m.on("click", () => openDetail(s, false));
+      m.bindTooltip(s.n, { direction: "top", offset: [0, -6] });
+      markers.addLayer(m);
+    }
+  }
+
+  // ---------- nearby list ----------
+  let centerLabel = "";
+  function refreshList() {
+    if (!$("detail").hidden) return;
+    const c = map.getCenter();
+    const near = [];
+    for (const s of stores) {
+      if (!passes(s)) continue;
+      const d = c.distanceTo(s.ll);
+      if (d <= radius) near.push([d, s]);
+    }
+    near.sort((a, b) => a[0] - b[0]);
+    $("sheetTitle").textContent = near.length ? `가까운 노포 ${near.length}곳` : "주변 노포";
+    $("sheetSub").textContent = (centerLabel ? centerLabel + " · " : "") + `지도 가운데에서 ${radius / 1000}km 안`;
+    const list = $("list");
+    if (!stores.length) { list.innerHTML = '<div class="note">아직 지도에 올라간 식당이 없어요.</div>'; return; }
+    if (!near.length) {
+      // point at the nearest one, wherever it is
+      let best = null;
+      for (const s of stores) if (passes(s)) { const d = c.distanceTo(s.ll); if (!best || d < best[0]) best = [d, s]; }
+      list.innerHTML = `<div class="note">${radius / 1000}km 안에는 없어요.` +
+        (best ? `<br>가장 가까운 곳은 ${esc(best[1].n)} (${fmtDist(best[0])})<br><button type="button" id="goNearest">그곳 보기</button>` : "") + "</div>";
+      if (best) $("goNearest").onclick = () => openDetail(best[1], true);
+      return;
+    }
+    list.innerHTML = near.slice(0, 80).map(([d, s]) =>
+      `<button class="item" type="button" data-id="${s.id}"><span class="name"><span>${esc(s.n)}</span>${tagHtml(s)}</span>` +
+      `<span class="dist">${fmtDist(d)}</span><span class="meta">${esc([s.m, s.a].filter(Boolean).join(" · "))}</span></button>`).join("") +
+      (near.length > 80 ? `<div class="note">가까운 80곳만 보여요. 지도를 확대하거나 반경을 줄여 보세요.</div>` : "");
+  }
+  $("list").addEventListener("click", e => {
+    const b = e.target.closest(".item");
+    if (b) openDetail(stores[+b.dataset.id], true);
+  });
+
+  // a coarse place name for the centre, without a network call: the most common 시/구 among nearby stores
+  function guessArea() {
+    const c = map.getCenter(), counts = {};
+    for (const s of stores) {
+      if (c.distanceTo(s.ll) > Math.max(radius, 3000)) continue;
+      const parts = s.a.split(/\s+/);
+      const k = parts.slice(0, 2).join(" ");
+      counts[k] = (counts[k] || 0) + 1;
+    }
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    return top ? top[0] + " 근처" : "";
+  }
+
+  let moveTimer = 0;
+  map.on("moveend", () => {
+    clearTimeout(moveTimer);
+    moveTimer = setTimeout(() => {
+      if (!labelLock) centerLabel = guessArea();
+      labelLock = false;
+      refreshList();
+      store.set("view", { c: [map.getCenter().lat, map.getCenter().lng], z: map.getZoom() });
+    }, 150);
+  });
+  let labelLock = false;
+  const flyTo = (ll, zoom, label) => {
+    centerLabel = label || "";
+    labelLock = !!label;
+    map.flyTo(ll, zoom ?? Math.max(map.getZoom(), 15), { duration: .6 });
+  };
+
+  // ---------- detail ----------
+  function openDetail(s, move) {
+    selected = s;
+    if (selMarker) map.removeLayer(selMarker);
+    selMarker = L.circleMarker(s.ll, { radius: 13, weight: 3, color: colorOf(s), fill: false, interactive: false }).addTo(map);
+    const d = meMarker ? meMarker.getLatLng().distanceTo(s.ll) : null;
+    const q = encodeURIComponent(`${s.n} ${s.a.split(/\s+/).slice(0, 2).join(" ")}`);
+    const name = encodeURIComponent(s.n);
+    const [lat, lng] = s.ll;
+    const facts = [
+      s.m && ["메뉴", esc(s.m)],
+      ["주소", esc(s.a)],
+      s.p && ["전화", `<a href="tel:${esc(s.p.replace(/[^\d+]/g, ""))}">${esc(s.p)}</a>`],
+      s.s && ["창업", `${s.s}년 (${new Date().getFullYear() - s.s}년째)`],
+      s.y && ["지정", `${s.y}년 백년가게`],
+      s.e && ["방송", esc(s.e)],
+      d != null && ["거리", `내 위치에서 ${fmtDist(d)}`],
+      s.u && ["출처", `<a href="${esc(s.u)}" target="_blank" rel="noopener">자료 보기</a>`],
+    ].filter(Boolean);
+    $("detail").innerHTML =
+      `<button class="back" type="button" id="back">‹ 목록으로</button>` +
+      `<h2>${esc(s.n)}</h2>${tagHtml(s)}` +
+      (s.x ? `<p class="warn">정확한 번지를 찾지 못해 길 위치로 표시했어요. 실제 위치는 지도 앱에서 확인하세요.</p>` : "") +
+      `<dl class="facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>` +
+      `<div class="actions">` +
+      `<a class="btn primary" href="https://map.kakao.com/link/to/${name},${lat},${lng}" target="_blank" rel="noopener">카카오맵 길찾기</a>` +
+      `<a class="btn" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버 지도</a>` +
+      `<a class="btn" href="https://map.kakao.com/link/search/${q}" target="_blank" rel="noopener">카카오맵에서 보기</a>` +
+      `</div>`;
+    $("list").hidden = true;
+    $("detail").hidden = false;
+    $("grab").querySelector(".sheet-head").hidden = true;
+    $("sheetSub").hidden = true;
+    $("back").onclick = closeDetail;
+    setSheet(Math.max(sheetH(), 330));
+    if (move) flyTo(s.ll, Math.max(map.getZoom(), 16));
+    else if (!map.getBounds().pad(-.2).contains(s.ll)) map.panTo(s.ll);
+  }
+  function closeDetail() {
+    selected = null;
+    if (selMarker) { map.removeLayer(selMarker); selMarker = null; }
+    $("detail").hidden = true;
+    $("list").hidden = false;
+    $("grab").querySelector(".sheet-head").hidden = false;
+    $("sheetSub").hidden = false;
+    refreshList();
+  }
+  addEventListener("keydown", e => { if (e.key === "Escape" && selected) closeDetail(); });
+
+  // ---------- filters ----------
+  const chips = document.querySelectorAll(".chip");
+  const syncChips = () => chips.forEach(c => c.setAttribute("aria-pressed", String(c.dataset.f === filter)));
+  chips.forEach(c => c.addEventListener("click", () => {
+    filter = c.dataset.f; store.set("filter", filter); syncChips();
+    if (selected && !passes(selected)) closeDetail();
+    drawMarkers(); refreshList();
+  }));
+  syncChips();
+  $("radius").addEventListener("change", e => { radius = +e.target.value; store.set("radius", radius); refreshList(); });
+
+  // ---------- my location ----------
+  function locate(quiet) {
+    if (!navigator.geolocation) { if (!quiet) toast("이 브라우저는 위치 찾기를 지원하지 않아요."); return; }
+    const btn = $("locate");
+    btn.classList.add("busy");
+    navigator.geolocation.getCurrentPosition(pos => {
+      btn.classList.remove("busy"); btn.classList.add("on");
+      const ll = [pos.coords.latitude, pos.coords.longitude];
+      if (!meMarker) {
+        meAcc = L.circle(ll, { radius: pos.coords.accuracy, weight: 0, fillColor: css("--me"), fillOpacity: .12, interactive: false }).addTo(map);
+        meMarker = L.circleMarker(ll, { radius: 8, weight: 3, color: "#fff", fillColor: css("--me"), fillOpacity: 1, interactive: false }).addTo(map);
+      } else { meMarker.setLatLng(ll); meAcc.setLatLng(ll).setRadius(pos.coords.accuracy); }
+      if (selected) closeDetail();
+      flyTo(ll, 15, "내 위치");
+    }, err => {
+      btn.classList.remove("busy");
+      if (quiet) return;
+      toast(err.code === 1 ? "위치 권한이 꺼져 있어요. 브라우저 설정에서 위치를 허용해 주세요." : "위치를 찾지 못했어요. 잠시 뒤 다시 눌러 주세요.", 4000);
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  }
+  $("locate").addEventListener("click", () => locate(false));
+
+  // ---------- search ----------
+  const norm = s => (s || "").toLowerCase().replace(/\s+/g, "");
+  const results = $("results");
+  let placeCtl = null;
+  function localMatches(q) {
+    const k = norm(q);
+    if (!k) return [];
+    const hits = [];
+    for (const s of stores) {
+      const n = norm(s.n), a = norm(s.a), m = norm(s.m);
+      const score = n === k ? 0 : n.startsWith(k) ? 1 : n.includes(k) ? 2 : m.includes(k) ? 3 : a.includes(k) ? 4 : -1;
+      if (score >= 0) hits.push([score, s]);
+    }
+    const c = map.getCenter();
+    return hits.sort((a, b) => a[0] - b[0] || c.distanceTo(a[1].ll) - c.distanceTo(b[1].ll)).slice(0, 8).map(h => h[1]);
+  }
+  function renderResults(q, local, places, placeState) {
+    let h = "";
+    if (local.length) {
+      h += "<h3>노포</h3>" + local.map(s => `<button type="button" data-s="${s.id}">${esc(s.n)} ${tagHtml(s)}<span class="sub">${esc(s.a)}</span></button>`).join("");
+    }
+    h += "<h3>장소</h3>";
+    if (placeState === "loading") h += '<div class="empty">장소 찾는 중…</div>';
+    else if (placeState === "error") h += '<div class="empty">장소 검색에 실패했어요. 잠시 뒤 다시 해 보세요.</div>';
+    else if (!places.length) h += `<div class="empty">'${esc(q)}' 장소를 찾지 못했어요. 동네·역 이름이나 도로명 주소로 해 보세요.</div>`;
+    else h += places.map((p, i) => `<button type="button" data-p="${i}">${esc(p.title)}<span class="sub">${esc(p.sub)}</span></button>`).join("");
+    results.innerHTML = h;
+    results.hidden = false;
+    results._places = places;
+  }
+  async function searchPlaces(q) {
+    if (placeCtl) placeCtl.abort();
+    placeCtl = new AbortController();
+    const url = "https://nominatim.openstreetmap.org/search?" + new URLSearchParams({ q, format: "jsonv2", countrycodes: "kr", limit: "6", "accept-language": "ko" });
+    const res = await fetch(url, { signal: placeCtl.signal });
+    if (!res.ok) throw new Error(res.status);
+    const rows = await res.json();
+    return rows.map(r => {
+      const parts = r.display_name.split(",").map(x => x.trim());
+      return { title: r.name || parts[0], sub: parts.slice(1).reverse().filter(x => !/^\d{5}$/.test(x) && x !== "대한민국").join(" "), ll: [+r.lat, +r.lon], type: r.addresstype || r.type };
+    });
+  }
+  $("searchForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const q = $("q").value.trim();
+    if (!q) { results.hidden = true; return; }
+    const local = localMatches(q);
+    renderResults(q, local, [], "loading");
+    try { renderResults(q, local, await searchPlaces(q)); }
+    catch (err) { if (err.name !== "AbortError") renderResults(q, local, [], "error"); }
+  });
+  $("q").addEventListener("input", () => {
+    const q = $("q").value.trim();
+    if (!q) { results.hidden = true; return; }
+    // as-you-type shows only matching restaurants; places are looked up on 검색 (Enter)
+    const local = localMatches(q);
+    results.innerHTML = (local.length ? "<h3>노포</h3>" + local.map(s => `<button type="button" data-s="${s.id}">${esc(s.n)} ${tagHtml(s)}<span class="sub">${esc(s.a)}</span></button>`).join("") : "") +
+      `<h3>장소</h3><div class="empty">검색을 누르면 '${esc(q)}' 장소도 찾아요.</div>`;
+    results.hidden = false;
+  });
+  results.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    results.hidden = true;
+    $("q").blur();
+    if (b.dataset.s != null) { openDetail(stores[+b.dataset.s], true); return; }
+    const p = results._places[+b.dataset.p];
+    if (selected) closeDetail();
+    const zoom = /^(city|state|province|county|region)$/.test(p.type) ? 12 : /^(town|suburb|borough|city_district|district)$/.test(p.type) ? 14 : 16;
+    flyTo(p.ll, zoom, p.title + " 근처");
+  });
+  document.addEventListener("pointerdown", e => { if (!e.target.closest(".top")) results.hidden = true; });
+
+  // ---------- bottom sheet drag ----------
+  const sheet = $("sheet");
+  const sheetH = () => sheet.getBoundingClientRect().height;
+  const maxH = () => Math.round(innerHeight * .82);
+  function setSheet(h) {
+    h = Math.max(120, Math.min(maxH(), h));
+    document.documentElement.style.setProperty("--sheet-h", h + "px");
+  }
+  {
+    let y0 = 0, h0 = 0, moved = false;
+    const grab = $("grab");
+    grab.addEventListener("pointerdown", e => {
+      if (e.target.closest("select, button")) return;
+      y0 = e.clientY; h0 = sheetH(); moved = false;
+      sheet.classList.add("dragging"); grab.setPointerCapture(e.pointerId);
+    });
+    grab.addEventListener("pointermove", e => {
+      if (!sheet.classList.contains("dragging")) return;
+      if (Math.abs(e.clientY - y0) > 4) moved = true;
+      setSheet(h0 + (y0 - e.clientY));
+    });
+    const end = () => {
+      if (!sheet.classList.contains("dragging")) return;
+      sheet.classList.remove("dragging");
+      const h = sheetH(), stops = [216, Math.round(innerHeight * .45), maxH()];
+      if (!moved) { setSheet(h < stops[1] - 10 ? stops[1] : stops[0]); return; }   // a tap toggles
+      setSheet(stops.reduce((a, b) => Math.abs(b - h) < Math.abs(a - h) ? b : a));
+    };
+    grab.addEventListener("pointerup", end);
+    grab.addEventListener("pointercancel", end);
+  }
+
+  // ---------- about ----------
+  $("aboutBtn").addEventListener("click", () => {
+    const c = meta.counts || {};
+    $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
+      (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
+    $("aboutVersion").textContent = "앱 버전 __VERSION__";
+    $("about").showModal();
+  });
+
+  // ---------- go ----------
+  fetch("stores.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+    meta = d; stores = d.stores || []; unplaced = d.unplaced || [];
+    drawMarkers();
+    centerLabel = guessArea();
+    refreshList();
+    // a first visit starts from where you are, if the browser already allows it
+    if (!store.get("view", null) && navigator.permissions) {
+      navigator.permissions.query({ name: "geolocation" }).then(p => { if (p.state === "granted") locate(true); }).catch(() => {});
+    }
+  }).catch(() => {
+    $("sheetSub").textContent = "식당 목록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.";
+  });
+
+  // ---------- app updates (installed copy) ----------
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    addEventListener("load", async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("sw.js");
+        const offer = w => {
+          toast("새 버전이 있어요. 탭하면 업데이트해요.", 8000);
+          $("toast").onclick = () => w.postMessage("skip-waiting");
+        };
+        if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+        reg.addEventListener("updatefound", () => {
+          const w = reg.installing;
+          if (w) w.addEventListener("statechange", () => { if (w.state === "installed" && navigator.serviceWorker.controller) offer(w); });
+        });
+        let reloading = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloading) { reloading = true; location.reload(); } });
+      } catch {}
+    });
+  }
+})();
+</script>
+</body>
+</html>
