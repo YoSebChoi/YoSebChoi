@@ -145,14 +145,13 @@ self.addEventListener("fetch", e => {
 
 
 def icon(size, maskable=False):
-    """A test strip resting on morning mist: white strip, rose handle, faint T, clear C."""
+    """A test strip on the launch-screen colour: white strip, rose handle, faint T, clear C."""
     S = 4 * size  # draw large, then downsample for smooth edges
     im = Image.new("RGB", (S, S))
-    top, bot = (238, 243, 238), (214, 228, 219)
+    # flat, and the same as the manifest background_color, so on Android's launch screen
+    # only the strip shows, exactly where the page's splash picks it up
     d = ImageDraw.Draw(im)
-    for y in range(S):
-        k = y / (S - 1)
-        d.line([(0, y), (S, y)], fill=tuple(round(a + (b - a) * k) for a, b in zip(top, bot)))
+    d.rectangle([0, 0, S, S], fill=(237, 241, 236))
     scale = 0.74 if maskable else 1.0  # keep content inside the maskable safe zone
     u = S / 512
     def box(x0, y0, x1, y1):
