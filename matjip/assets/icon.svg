@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- 노포 지도 app icon: a 뚝배기 of 김치찌개, steaming, on the signboard red.
+       Everything that matters sits inside the maskable safe circle (r = 205 around the centre). -->
+  <defs>
+    <radialGradient id="bg" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#d63a2b"/><stop offset=".65" stop-color="#b3221a"/><stop offset="1" stop-color="#7f120d"/></radialGradient>
+    <linearGradient id="clay" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1c110c"/><stop offset=".18" stop-color="#5a3626"/><stop offset=".32" stop-color="#3b2419"/>
+      <stop offset=".7" stop-color="#24150f"/><stop offset="1" stop-color="#120a07"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b4331"/><stop offset="1" stop-color="#2a1912"/></linearGradient>
+    <radialGradient id="stew" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#ef6a33"/><stop offset=".55" stop-color="#d6401f"/><stop offset="1" stop-color="#9f2415"/></radialGradient>
+    <linearGradient id="tofuTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#f1e6cf"/></linearGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
+    <filter id="softer" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+    <filter id="tiny" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4"/></filter>
+    <clipPath id="surface"><ellipse cx="256" cy="268" rx="136" ry="36"/></clipPath>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <!-- steam -->
+  <g fill="none" stroke="#fff" stroke-linecap="round">
+    <path d="M256 236c-30-34 34-58 0-96s24-50 6-74" stroke-width="30" opacity=".22" filter="url(#softer)"/>
+    <path d="M204 244c-26-24 18-44-6-72s20-34 4-62" stroke-width="15" opacity=".5" filter="url(#soft)"/>
+    <path d="M258 236c-30-28 34-48 2-84s26-40 2-72" stroke-width="19" opacity=".72" filter="url(#soft)"/>
+    <path d="M312 244c-18-30 26-40 0-70s12-44 6-58" stroke-width="14" opacity=".5" filter="url(#soft)"/>
+  </g>
+
+  <!-- table shadow -->
+  <ellipse cx="256" cy="408" rx="150" ry="20" fill="#000" opacity=".4" filter="url(#soft)"/>
+
+  <!-- 뚝배기 -->
+  <path d="M100 266c2 52 12 96 40 124 30 22 70 24 116 24s86-2 116-24c28-28 38-72 40-124z" fill="url(#clay)"/>
+  <path d="M150 396c28 16 64 20 106 20s78-4 106-20l-6 14c-26 12-60 16-100 16s-74-4-100-16z" fill="#140b07"/>
+  <g fill="none" stroke="#000" stroke-opacity=".45" stroke-width="3">
+    <path d="M104 304c40 26 96 34 152 34s112-8 152-34"/><path d="M108 322c40 26 94 34 148 34s108-8 148-34"/>
+  </g>
+  <g fill="none" stroke="#a0715a" stroke-opacity=".35" stroke-width="1.5">
+    <path d="M104 307c40 26 96 34 152 34s112-8 152-34"/><path d="M108 325c40 26 94 34 148 34s108-8 148-34"/>
+  </g>
+  <path d="M128 340c6 22 16 38 30 48" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="10" stroke-linecap="round" filter="url(#tiny)"/>
+  <g fill="#b48a6a" opacity=".22">
+    <circle cx="170" cy="330" r="1.6"/><circle cx="214" cy="364" r="1.4"/><circle cx="262" cy="340" r="1.8"/><circle cx="318" cy="372" r="1.4"/>
+    <circle cx="352" cy="320" r="1.6"/><circle cx="292" cy="388" r="1.3"/><circle cx="190" cy="384" r="1.3"/><circle cx="380" cy="300" r="1.2"/>
+  </g>
+  <ellipse cx="256" cy="266" rx="156" ry="46" fill="url(#rim)"/>
+  <ellipse cx="256" cy="262" rx="150" ry="40" fill="none" stroke="#9b6a50" stroke-opacity=".55" stroke-width="2"/>
+  <ellipse cx="256" cy="270" rx="140" ry="38" fill="#1a0e09"/>
+
+  <!-- 찌개 -->
+  <g clip-path="url(#surface)">
+    <ellipse cx="256" cy="268" rx="136" ry="36" fill="url(#stew)"/>
+    <!-- oil on top -->
+    <g fill="#f7a23e" opacity=".55">
+      <ellipse cx="190" cy="262" rx="12" ry="4"/><ellipse cx="300" cy="280" rx="9" ry="3"/><ellipse cx="236" cy="286" rx="7" ry="2.5"/>
+      <ellipse cx="330" cy="256" rx="8" ry="3"/><ellipse cx="160" cy="280" rx="6" ry="2"/>
+    </g>
+    <!-- kimchi -->
+    <path d="M168 258q22-10 40 2-14 12-40-2z" fill="#c8301a"/><path d="M286 248q20-8 36 4-16 10-36-4z" fill="#c22c18"/>
+    <path d="M318 278q16-8 30 2-12 10-30-2z" fill="#d9442a"/>
+    <!-- tofu -->
+    <g>
+      <path d="M210 256l26-8 22 8-26 9z" fill="url(#tofuTop)"/><path d="M210 256v9l22 9v-9z" fill="#e3d4b6"/><path d="M232 265v9l26-8v-9z" fill="#d6c4a3"/>
+      <path d="M262 266l24-7 20 7-24 8z" fill="url(#tofuTop)"/><path d="M262 266v8l20 8v-8z" fill="#e3d4b6"/><path d="M282 274v8l24-8v-8z" fill="#d6c4a3"/>
+      <path d="M180 278l20-6 18 6-20 7z" fill="url(#tofuTop)"/><path d="M180 278v7l18 7v-7z" fill="#e3d4b6"/>
+    </g>
+    <!-- 대파 and 고추 -->
+    <g fill="none" stroke-width="4">
+      <ellipse cx="248" cy="242" rx="8" ry="3.5" stroke="#5aa83c"/><ellipse cx="300" cy="294" rx="7" ry="3" stroke="#6bbb4a"/>
+      <ellipse cx="200" cy="292" rx="7" ry="3" stroke="#5aa83c"/><ellipse cx="350" cy="268" rx="6" ry="2.6" stroke="#6bbb4a"/>
+      <ellipse cx="170" cy="246" rx="6" ry="2.6" stroke="#4f9a33"/>
+      <ellipse cx="276" cy="240" rx="5" ry="2.2" stroke="#8a0d07"/><ellipse cx="228" cy="296" rx="5" ry="2.2" stroke="#8a0d07"/>
+    </g>
+    <g fill="#e8f3d8"><ellipse cx="248" cy="242" rx="3" ry="1.2"/><ellipse cx="300" cy="294" rx="2.6" ry="1"/><ellipse cx="200" cy="292" rx="2.6" ry="1"/></g>
+    <!-- 보글보글 -->
+    <g fill="#f27a45" stroke="#ffd2a8" stroke-width="1.5">
+      <circle cx="156" cy="266" r="5"/><circle cx="342" cy="286" r="6"/><circle cx="326" cy="244" r="4"/><circle cx="214" cy="240" r="3.5"/><circle cx="268" cy="298" r="4"/>
+    </g>
+    <g fill="#fff" opacity=".8"><circle cx="154.5" cy="264.5" r="1.6"/><circle cx="340" cy="284" r="2"/><circle cx="325" cy="242.8" r="1.3"/></g>
+  </g>
+  <!-- the rim's front lip catches the light -->
+  <path d="M110 276c30 30 90 42 146 42s116-12 146-42" fill="none" stroke="#8a5a44" stroke-opacity=".6" stroke-width="3"/>
+</svg>
