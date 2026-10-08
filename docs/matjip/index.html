@@ -307,6 +307,15 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
   *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
 }
 
+/* update prompt */
+.update-dialog { max-width: min(360px, calc(100% - 40px)); text-align: center; padding: 24px 22px 20px; }
+.update-sign { display: inline-block; margin: 0 auto 12px; padding: 6px 16px; border-radius: 6px; background: var(--sign); color: #fff6ec;
+  font-family: var(--font-sign); font-size: 17px; letter-spacing: .2em; box-shadow: inset 0 0 0 2px #f3e6cc, inset 0 0 0 4px var(--sign); }
+.update-dialog h2 { font-size: 21px; margin: 0 0 8px; text-wrap: balance; }
+.update-dialog p { margin: 0 0 18px; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); text-wrap: pretty; }
+.update-actions { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; }
+.update-actions .btn { height: 48px; border-radius: 999px; grid-column: auto; }
+
 /* about */
 dialog { border: 0; border-radius: 20px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); max-width: min(480px, calc(100% - 32px)); padding: 22px; }
 dialog::backdrop { background: rgba(0, 0, 0, .4); }
@@ -390,6 +399,16 @@ dialog .btn { width: 100%; }
 
 <div class="toast" id="toast" role="status" hidden></div>
 
+<dialog id="updateDialog" class="update-dialog" aria-labelledby="updateTitle">
+  <div class="update-sign" aria-hidden="true">새 소식</div>
+  <h2 id="updateTitle">새 버전이 나왔어요</h2>
+  <p>지금 업데이트하면 앱을 한 번 새로 열어요. 저장한 곳, 별점, 메모는 그대로 남아요.</p>
+  <div class="update-actions">
+    <button class="btn" type="button" id="updateLater">나중에</button>
+    <button class="btn primary" type="button" id="updateNow" autofocus>지금 업데이트</button>
+  </div>
+</dialog>
+
 <dialog id="about">
   <h2>노포 지도</h2>
   <p>지도 가운데(＋)를 기준으로 가까운 식당을 보여 줘요. 지도를 움직이거나 장소를 검색하면 목록도 그 위치 기준으로 바뀌어요.</p>
@@ -436,9 +455,19 @@ dialog .btn { width: 100%; }
     addEventListener("load", async () => {
       try {
         const reg = await navigator.serviceWorker.register("sw.js");
+        // a new version waits until the person agrees: ask in a dialog, once per opening of the app
+        let asked = null;
         const offer = w => {
-          toast("새 버전이 있어요. 탭하면 업데이트해요.", 8000);
-          $("toast").onclick = () => w.postMessage("skip-waiting");
+          if (asked === w) return;
+          asked = w;
+          const dlg = $("updateDialog");
+          $("updateNow").onclick = () => {
+            $("updateNow").disabled = true;
+            $("updateNow").textContent = "업데이트하는 중…";
+            w.postMessage("skip-waiting");
+          };
+          $("updateLater").onclick = () => dlg.close();
+          if (!dlg.open) dlg.showModal();
         };
         if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
         reg.addEventListener("updatefound", () => {
@@ -447,6 +476,10 @@ dialog .btn { width: 100%; }
         });
         let reloading = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloading) { reloading = true; location.reload(); } });
+        // look for a new version each time the app opens or comes back to the front
+        const check = () => reg.update().then(() => { if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting); }).catch(() => {});
+        check();
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
       } catch {}
     });
   }
@@ -990,7 +1023,7 @@ dialog .btn { width: 100%; }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 cdf122e6";
+    $("aboutVersion").textContent = "앱 버전 7537d7ca";
     $("about").showModal();
   });
 
@@ -1059,7 +1092,7 @@ dialog .btn { width: 100%; }
     if (want || been) { $("introMine").textContent = `가고 싶은 곳 ${want}곳 · 가 본 곳 ${been}곳을 저장해 두셨어요.`; $("introMine").hidden = false; }
     $("introSkip").checked = false;
     intro.hidden = false;
-    for (const el of document.body.children) if (el !== intro && el.tagName !== "SCRIPT") el.inert = true;
+    for (const el of document.body.children) if (el !== intro && el.tagName !== "SCRIPT" && el.tagName !== "DIALOG") el.inert = true;
     intro.scrollTop = 0;
     $("introNear").focus({ preventScroll: true });
   }
