@@ -22,7 +22,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- 공유 링크: nopomap://p/<key> from the web page's 「앱에서 열기」 -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="nopomap" />
+            </intent-filter>
+            <!-- and the https link itself (opens here once 「지원되는 링크」 is allowed in the app's settings) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="yosebchoi.github.io" android:pathPrefix="/YoSebChoi/matjip" />
+            </intent-filter>
+
         </activity>
+
+        <!-- names the web app, so Chrome can offer 「앱에서 열기」 on it -->
+        <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
