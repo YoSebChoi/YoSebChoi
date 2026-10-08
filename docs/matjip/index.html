@@ -1090,7 +1090,7 @@ dialog .btn { width: 100%; }
     results._regions = regions;
   }
   // Kakao's place search (much better for Korean places) when a JavaScript key is set; else OpenStreetMap
-  const KAKAO_JS_KEY = "4e97e3b7bde5b3f21a2a5e04a8e961de";
+  const KAKAO_JS_KEY = "";
   let kakaoPlaces = null, kakaoGeo = null;
   if (KAKAO_JS_KEY && !KAKAO_JS_KEY.startsWith("__")) {
     const sdk = document.createElement("script");
@@ -1241,7 +1241,9 @@ dialog .btn { width: 100%; }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 8c3fe268";
+    $("aboutVersion").textContent = "화면 버전 01f55793";
+    // in the Android app, its own version too (that is the one that changes the icon)
+    if (native) call("App", "getInfo").then(i => { if (i && i.version) $("aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 01f55793`; }).catch(() => {});
     $("about").showModal();
   });
 
@@ -1392,12 +1394,24 @@ dialog .btn { width: 100%; }
   async function checkAppUpdate() {
     if (!native) return;
     let info;
-    try { info = await call("Updater", "check"); } catch { return; }   // offline, or an older app without the updater
-    if (!info || !(info.latest > info.current)) return;
+    try { info = await call("Updater", "check"); }
+    catch (e) {
+      // an app from before the updater (build 6 and older) cannot update itself: send it to the new APK once
+      if (!/not implemented|UNIMPLEMENTED/i.test(String((e && (e.code || e.message)) || e))) return;   // just offline
+      info = { latest: "legacy", url: "https://github.com/YoSebChoi/YoSebChoi/releases/download/nopo-apk/nopo-map.apk", legacy: true };
+    }
+    if (!info || !(info.legacy || info.latest > info.current)) return;
     const skip = store.get("appUpdateSkip", null);
     if (skip && skip.v === info.latest && skip.until > Date.now()) return;
     const dlg = $("appUpdate"), now = $("appUpdateNow");
     $("appUpdateLater").onclick = () => { store.set("appUpdateSkip", { v: info.latest, until: Date.now() + 864e5 }); dlg.close(); };
+    if (info.legacy) {
+      $("appUpdateText").textContent = "지금 앱은 예전 버전이라 스스로 업데이트하지 못해요. 「새 버전 받기」를 누르고, 내려받은 파일을 눌러 설치해 주세요. 새 아이콘도 이때 바뀌고, 다음부터는 앱 안에서 바로 업데이트돼요.";
+      now.textContent = "새 버전 받기";
+      now.onclick = () => { dlg.close(); location.href = info.url; };
+      dlg.showModal();
+      return;
+    }
     let progress;
     now.onclick = async () => {
       now.disabled = true; now.textContent = "내려받는 중…";
