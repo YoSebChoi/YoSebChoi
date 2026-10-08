@@ -1,7 +1,7 @@
 // 노포 지도 service worker: the app shell is served from cache; the store list
 // is fetched fresh when online and falls back to the cached copy offline.
-const CACHE = "nopo-map-7537d7ca";
-const SHELL = ["./", "./index.html", "./stores.json", "./manifest.webmanifest", "./icon-192.png"];
+const CACHE = "nopo-map-48e22f26";
+const SHELL = ["./", "./index.html", "./stores.json"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))));
@@ -22,6 +22,12 @@ self.addEventListener("fetch", e => {
   if (url.origin === location.origin && url.pathname.endsWith("/stores.json")) {
     e.respondWith(caches.open(CACHE).then(c => fetch(req).then(res => { if (res.ok) c.put("./stores.json", res.clone()); return res; })
       .catch(() => c.match("./stores.json"))));
+    return;
+  }
+  // the app's identity (manifest, icons) always comes from the network: installing the app reads these,
+  // and a stale copy here would install the old icon and launch screen
+  if (url.origin === location.origin && /(\.webmanifest|\/icon-[^/]*\.png)$/.test(url.pathname)) {
+    e.respondWith(fetch(req, { cache: "no-store" }).catch(() => caches.match(req)));
     return;
   }
   // map tiles and place search always go to the network; the library and fonts are cached
