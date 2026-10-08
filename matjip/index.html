@@ -1397,7 +1397,8 @@ dialog .btn { width: 100%; }
     try { info = await call("Updater", "check"); }
     catch (e) {
       // an app from before the updater (build 6 and older) cannot update itself: send it to the new APK once
-      if (!/not implemented|UNIMPLEMENTED/i.test(String((e && (e.code || e.message)) || e))) return;   // just offline
+      // (Android's bridge answers "unable to find plugin : Updater"; other platforms say "not implemented")
+      if (!/unable to find plugin|not implemented|UNIMPLEMENTED/i.test(String((e && (e.message || e.code)) || e))) return;   // just offline
       info = { latest: "legacy", url: "https://github.com/YoSebChoi/YoSebChoi/releases/download/nopo-apk/nopo-map.apk", legacy: true };
     }
     if (!info || !(info.legacy || info.latest > info.current)) return;

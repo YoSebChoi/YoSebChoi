@@ -1090,7 +1090,7 @@ dialog .btn { width: 100%; }
     results._regions = regions;
   }
   // Kakao's place search (much better for Korean places) when a JavaScript key is set; else OpenStreetMap
-  const KAKAO_JS_KEY = "4e97e3b7bde5b3f21a2a5e04a8e961de";
+  const KAKAO_JS_KEY = "";
   let kakaoPlaces = null, kakaoGeo = null;
   if (KAKAO_JS_KEY && !KAKAO_JS_KEY.startsWith("__")) {
     const sdk = document.createElement("script");
@@ -1241,9 +1241,9 @@ dialog .btn { width: 100%; }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "화면 버전 01f55793";
+    $("aboutVersion").textContent = "화면 버전 164d0a1e";
     // in the Android app, its own version too (that is the one that changes the icon)
-    if (native) call("App", "getInfo").then(i => { if (i && i.version) $("aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 01f55793`; }).catch(() => {});
+    if (native) call("App", "getInfo").then(i => { if (i && i.version) $("aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 164d0a1e`; }).catch(() => {});
     $("about").showModal();
   });
 
@@ -1397,7 +1397,8 @@ dialog .btn { width: 100%; }
     try { info = await call("Updater", "check"); }
     catch (e) {
       // an app from before the updater (build 6 and older) cannot update itself: send it to the new APK once
-      if (!/not implemented|UNIMPLEMENTED/i.test(String((e && (e.code || e.message)) || e))) return;   // just offline
+      // (Android's bridge answers "unable to find plugin : Updater"; other platforms say "not implemented")
+      if (!/unable to find plugin|not implemented|UNIMPLEMENTED/i.test(String((e && (e.message || e.code)) || e))) return;   // just offline
       info = { latest: "legacy", url: "https://github.com/YoSebChoi/YoSebChoi/releases/download/nopo-apk/nopo-map.apk", legacy: true };
     }
     if (!info || !(info.legacy || info.latest > info.current)) return;
