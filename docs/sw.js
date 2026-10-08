@@ -1,6 +1,6 @@
 // 시약선 노트 service worker: the app runs from its cached copy; a new
 // version installs in the background and waits until the person taps update.
-const CACHE = "hcg-notes-8ec633ae";
+const CACHE = "hcg-notes-aa9c1a44";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
