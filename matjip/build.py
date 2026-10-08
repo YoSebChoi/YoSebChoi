@@ -627,7 +627,10 @@ def main():
     data = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
     (OUT / "stores.json").write_text(data, encoding="utf-8")
     page = (SRC / "index.html").read_text(encoding="utf-8")
-    version = hashlib.sha256((page + SW + data + json.dumps(MANIFEST)).encode()).hexdigest()[:8]
+    # the version covers the icons too, so a new launch screen also counts as an update
+    icons = b"".join((SRC / "assets" / n).read_bytes() for n in ("icon-192.png", "icon-512.png", "icon-maskable-512.png")
+                     if (SRC / "assets" / n).exists())
+    version = hashlib.sha256((page + SW + data + json.dumps(MANIFEST)).encode() + icons).hexdigest()[:8]
     # the JavaScript key is public by design (it only works on the domains registered for it)
     js_key = os.environ.get("KAKAO_JS_KEY", "").strip()
     if not js_key and (SRC / "kakao_js_key.txt").exists():
