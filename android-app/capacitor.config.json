@@ -1,0 +1,14 @@
+{
+  "appId": "io.github.yosebchoi.nopo",
+  "appName": "노포 지도",
+  "webDir": "www",
+  "backgroundColor": "#c4231b",
+  "appendUserAgent": "NopoMapApp",
+  "server": {
+    "url": "https://yosebchoi.github.io/YoSebChoi/matjip/",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

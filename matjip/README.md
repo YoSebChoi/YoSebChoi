@@ -21,6 +21,16 @@
 | 종류 | 「종류」 칩에서 한식 · 국밥·탕 · 면 · 고기 · 해산물 · 중식 · 일식·양식 · 빵·카페 |
 | 제보 | 목록 맨 아래 「빠진 식당 제보하기」 → GitHub 이슈로 접수 |
 
+## Android 앱 (APK)
+
+`android-app/`은 이 웹앱을 그대로 띄우는 Android 앱(Capacitor)이에요. 웹을 고치면 앱에도 바로 반영되니, APK는 `android-app/`을 바꿀 때만 새로 만들어요.
+
+- 받기: https://github.com/YoSebChoi/YoSebChoi/releases/download/nopo-apk/nopo-map.apk (폰에서 받고 "출처를 알 수 없는 앱" 설치 허용)
+- 앱에서만 되는 것: 빨간 간판 전체 화면 시작, 뒤로가기(검색 → 창 → 식당 → 지역 → 종료), 공유 시트, 저장·별점 진동, 길찾기·네이버 지도 버튼이 지도 앱을 바로 열기
+- 빌드: GitHub Actions **노포 지도 APK** (`main`에 올라가면 릴리스 `nopo-apk`에 올려요)
+- 서명: 저장소 Secret `ANDROID_SIGNING` = `<비밀번호> <PKCS12 키 파일 base64>` (별칭 `nopo`). 이 키를 잃어버리면 다음 APK를 덮어 설치할 수 없으니 따로 보관하세요. 저장소가 공개라 키 파일은 절대 커밋하지 않아요.
+- 아이콘: `matjip/assets/draw_icons.py`로 웹 아이콘을 그린 뒤 `python3 android-app/make_icons.py` (빌드 때도 자동으로 다시 그려요)
+
 ## 데이터
 
 `matjip/data/`
