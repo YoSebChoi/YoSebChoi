@@ -19,20 +19,23 @@
   --warn: #84672c;
   --warn-soft: #f0e9d8;
   --shadow: 0 1px 2px rgba(47, 57, 52, .05), 0 10px 30px rgba(47, 57, 52, .07);
+  --edge: rgba(47, 57, 52, 0);   /* hairline around cards; only visible in dark, where shadows vanish */
   --font-display: "Gowun Batang", "Noto Serif KR", "AppleMyungjo", serif;
   --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --tabbar-h: 64px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #161b19; --mist: #1c2421; --surface: #1f2623; --surface-2: #28302c; --ink: #e3eae4; --muted: #99a79e; --rule: #313b36;
+    --bg: #0f1412; --mist: #18211d; --surface: #232c28; --surface-2: #303a35; --ink: #e3eae4; --muted: #9fada4; --rule: #3a4640;
+    --edge: rgba(220, 236, 226, .09);
     --accent: #d797af; --accent-soft: #392630; --c-mark: #8dbfb0; --warn: #dcbd78; --warn-soft: #332b1b;
     --shadow: 0 1px 2px rgba(0, 0, 0, .25), 0 10px 30px rgba(0, 0, 0, .25);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #161b19; --mist: #1c2421; --surface: #1f2623; --surface-2: #28302c; --ink: #e3eae4; --muted: #99a79e; --rule: #313b36;
+  --bg: #0f1412; --mist: #18211d; --surface: #232c28; --surface-2: #303a35; --ink: #e3eae4; --muted: #9fada4; --rule: #3a4640;
+    --edge: rgba(220, 236, 226, .09);
   --accent: #d797af; --accent-soft: #392630; --c-mark: #8dbfb0; --warn: #dcbd78; --warn-soft: #332b1b;
   --shadow: 0 1px 2px rgba(0, 0, 0, .25), 0 10px 30px rgba(0, 0, 0, .25);
   color-scheme: dark;
@@ -107,7 +110,7 @@ p { margin: 0; }
   background: var(--accent); color: var(--surface); font-size: 11px; line-height: 18px; text-align: center; }
 
 /* cards */
-.card { background: var(--surface); border-radius: 24px; padding: 22px; box-shadow: var(--shadow);
+.card { background: var(--surface); border-radius: 24px; padding: 22px; box-shadow: var(--shadow), inset 0 0 0 1px var(--edge);
   display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; }
 .card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
 
@@ -224,7 +227,7 @@ input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--i
 /* product filter */
 .filters { display: flex; flex-wrap: wrap; gap: 8px; }
 .fchip { appearance: none; border: 0; font: inherit; font-size: 13.5px; padding: 6px 14px; border-radius: 999px; cursor: pointer;
-  background: var(--surface); color: var(--muted); box-shadow: var(--shadow); }
+  background: var(--surface); color: var(--muted); box-shadow: var(--shadow), inset 0 0 0 1px var(--edge); }
 .fchip[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
 .fchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .file-btn.plain { padding: 10px 18px; font-size: inherit; }

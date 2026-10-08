@@ -24,7 +24,7 @@ HEAD = """<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#e6ede7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#161b19" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0f1412" media="(prefers-color-scheme: dark)">
 <meta name="description" content="임신테스트기 사진에서 대조선 대비 시약선 진하기를 재고 날짜별로 기록해요.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
