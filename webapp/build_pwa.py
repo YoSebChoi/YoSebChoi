@@ -12,7 +12,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "webapp" / "index.html"
@@ -23,11 +23,12 @@ HEAD = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#a3245c">
+<meta name="theme-color" content="#e6ede7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#161b19" media="(prefers-color-scheme: dark)">
 <meta name="description" content="임신테스트기 사진에서 대조선 대비 시약선 진하기를 재고 날짜별로 기록해요.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 </head>
 <body>
@@ -56,14 +57,17 @@ window.APP_VERSION = "__VERSION__";
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if (!("serviceWorker" in navigator)) return;
   const bar = document.getElementById("updateBar");
-  let waiting = null, reloading = false;
+  let waiting = null, wantReload = false;
   const offer = w => { waiting = w; bar.hidden = false; };
   document.getElementById("updateNow").addEventListener("click", () => {
+    wantReload = true;
     if (waiting) waiting.postMessage("skip-waiting"); else location.reload();
   });
   document.getElementById("updateLater").addEventListener("click", () => { bar.hidden = true; });
+  // reload only for an update the person asked for; the first install also changes the
+  // controller, and reloading then would throw away whatever they had on screen
   navigator.serviceWorker.addEventListener("controllerchange", () => {
-    if (reloading) return; reloading = true; location.reload();
+    if (!wantReload) return; wantReload = false; location.reload();
   });
   addEventListener("load", async () => {
     try {
@@ -93,8 +97,8 @@ MANIFEST = {
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
-    "background_color": "#f8f5f6",
-    "theme_color": "#a3245c",
+    "background_color": "#edf1ec",
+    "theme_color": "#e6ede7",
     "icons": [
         {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
         {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
@@ -105,7 +109,7 @@ MANIFEST = {
 SW = """// 시약선 노트 service worker: the app runs from its cached copy; a new
 // version installs in the background and waits until the person taps update.
 const CACHE = "hcg-notes-__VERSION__";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
+const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: "reload" })))));
@@ -134,34 +138,49 @@ self.addEventListener("fetch", e => {
 
 
 def icon(size, maskable=False):
-    s = size / 512
-    im = Image.new("RGB", (size, size), "#a3245c")
+    """A test strip resting on morning mist: white strip, rose handle, faint T, clear C."""
+    S = 4 * size  # draw large, then downsample for smooth edges
+    im = Image.new("RGB", (S, S))
+    top, bot = (238, 243, 238), (214, 228, 219)
     d = ImageDraw.Draw(im)
-    # a test strip seen from above: white strip, faint T line, strong C line
-    scale = 0.78 if maskable else 1.0  # keep content inside the maskable safe zone
+    for y in range(S):
+        k = y / (S - 1)
+        d.line([(0, y), (S, y)], fill=tuple(round(a + (b - a) * k) for a, b in zip(top, bot)))
+    scale = 0.74 if maskable else 1.0  # keep content inside the maskable safe zone
+    u = S / 512
     def box(x0, y0, x1, y1):
-        cx = cy = size / 2
-        f = lambda v, c: c + (v * s - c) * scale
-        return [f(x0, cx), f(y0, cy), f(x1, cx), f(y1, cy)]
-    d.rounded_rectangle(box(70, 196, 442, 316), radius=28 * s * scale, fill="#fbf7f8")
-    d.rounded_rectangle(box(318, 196, 442, 316), radius=28 * s * scale, fill="#f4b5ca")
-    d.rectangle(box(318, 196, 340, 316), fill="#f4b5ca")
-    d.rectangle(box(196, 206, 214, 306), fill="#e9b9cb")   # T
-    d.rectangle(box(262, 206, 280, 306), fill="#8e1a4c")   # C
-    return im
+        c = S / 2
+        f = lambda v: c + (v * u - c) * scale
+        return [f(x0), f(y0), f(x1), f(y1)]
+    r = lambda v: v * u * scale
+    shadow = Image.new("L", (S, S), 0)
+    ImageDraw.Draw(shadow).rounded_rectangle(box(70, 226, 442, 336), radius=r(54), fill=60)
+    shadow = shadow.filter(ImageFilter.GaussianBlur(r(18)))
+    im.paste((150, 168, 158), (0, 0), shadow)
+    d = ImageDraw.Draw(im)
+    d.rounded_rectangle(box(52, 196, 460, 316), radius=r(60), fill=(252, 253, 251))
+    d.rounded_rectangle(box(340, 196, 460, 316), radius=r(60), fill=(236, 196, 211))
+    d.rectangle(box(340, 196, 380, 316), fill=(236, 196, 211))
+    d.rounded_rectangle(box(160, 218, 322, 294), radius=r(12), fill=(234, 238, 233))
+    d.rectangle(box(212, 218, 230, 294), fill=(222, 190, 203))   # T, faint
+    d.rectangle(box(268, 218, 286, 294), fill=(152, 84, 112))    # C
+    return im.resize((size, size), Image.LANCZOS)
 
 
 def main():
     OUT.mkdir(exist_ok=True)
     body = SRC.read_text(encoding="utf-8")
-    # the version follows the content, so every real change offers an update
-    version = hashlib.sha256((HEAD + body + TAIL + SW + json.dumps(MANIFEST)).encode()).hexdigest()[:8]
+    icons = {"icon-180.png": icon(180), "icon-192.png": icon(192), "icon-512.png": icon(512),
+             "icon-maskable-512.png": icon(512, maskable=True)}
+    h = hashlib.sha256((HEAD + body + TAIL + SW + json.dumps(MANIFEST)).encode())
+    for name, im in icons.items():
+        im.save(OUT / name)
+        h.update((OUT / name).read_bytes())
+    # the version follows the content (icons included), so every real change offers an update
+    version = h.hexdigest()[:8]
     (OUT / "index.html").write_text((HEAD + body + TAIL).replace("__VERSION__", version), encoding="utf-8")
     (OUT / "manifest.webmanifest").write_text(json.dumps(MANIFEST, ensure_ascii=False, indent=2), encoding="utf-8")
     (OUT / "sw.js").write_text(SW.replace("__VERSION__", version), encoding="utf-8")
-    icon(192).save(OUT / "icon-192.png")
-    icon(512).save(OUT / "icon-512.png")
-    icon(512, maskable=True).save(OUT / "icon-maskable-512.png")
     (OUT / ".nojekyll").write_text("")
     print("built version", version, "->", *sorted(p.name for p in OUT.iterdir()))
 
