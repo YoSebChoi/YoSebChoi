@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1d1612">
+<meta name="theme-color" content="#12161c">
 <meta name="description" content="내 주변 또는 지도에서 고른 곳 근처의 백년가게와 허영만의 백반기행 맛집을 찾아요.">
 <title>노포 지도</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Batang:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap">
 <style>
 /* Layout: the map fills the screen; a search bar floats on top, and a sheet at the
    bottom lists what is near the map's centre, nearest first. Dragging the map
@@ -215,49 +215,90 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .backup { display: flex; gap: 8px; margin: 8px 0 14px; }
 .backup .btn { flex: 1; height: 40px; font-size: 14px; }
 
-/* ── opening screen: a night-time eatery — red signboard, a handwritten 차림표, today's pick ── */
-.intro { position: fixed; inset: 0; z-index: 3000; overflow-y: auto; color: #f3e6cc;
-  background: radial-gradient(120% 70% at 50% -5%, #4a2a1a 0%, #24170f 45%, #160f0a 100%);
-  padding: calc(26px + env(safe-area-inset-top, 0px)) 20px calc(26px + env(safe-area-inset-bottom, 0px));
-  font-family: "Gowun Batang", var(--font); transition: opacity .35s ease, transform .35s ease; }
+/* ── opening screen ──────────────────────────────────────────────
+   A Korean alley after dark: cool night air, one warm lamp, the red 간판 hanging
+   under it, a wooden 차림표 with painted letters and a mint 식권 for today's pick.
+   Shapes: things you can touch in a real 노포 (간판, board, ticket) get small 8px
+   corners; everything you tap is a pill. One accent: the signboard red. */
+.intro {
+  --night: #12161c; --night-2: #1c222b; --lamp: #ffc46e; --paint: #f4ede1; --paint-dim: #b9b2a6;
+  --wood: #4b3322; --wood-2: #3a2719; --ticket: #d3eadb; --ticket-ink: #1b3528; --stamp: #c8241b;
+  position: fixed; inset: 0; z-index: 3000; overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: 170px; color: var(--paint); color-scheme: dark;
+  background:
+    radial-gradient(70% 38% at 50% 0%, rgba(255, 196, 110, .26), transparent 70%),
+    linear-gradient(180deg, var(--night-2) 0%, var(--night) 55%);
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 18px calc(150px + env(safe-area-inset-bottom, 0px));
+  font-family: var(--font); transition: opacity .35s ease, transform .35s ease; }
 .intro.out { opacity: 0; transform: scale(1.03); pointer-events: none; }
-.intro-in { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
-.lamp { width: 2px; height: 26px; background: #6b5a48; margin: 0 auto -18px; position: relative; }
-.lamp::after { content: ""; position: absolute; left: 50%; bottom: -14px; width: 26px; height: 14px; margin-left: -13px; border-radius: 13px 13px 0 0; background: #ffcf7a;
-  box-shadow: 0 6px 40px 18px rgba(255, 190, 90, .35); }
-.signboard { position: relative; margin: 14px auto 0; padding: 18px 24px 16px; background: linear-gradient(#c22d22, #a3201a); border-radius: 10px; text-align: center;
-  box-shadow: inset 0 0 0 3px #f3e6cc, inset 0 0 0 7px #a3201a, inset 0 0 0 8.5px #f3e6cc, 0 18px 40px rgba(0, 0, 0, .55); }
-.signboard h1 { margin: 0; font-family: "Black Han Sans", var(--font); font-weight: 400; font-size: 56px; line-height: 1.05; letter-spacing: .06em; color: #fff;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, .25); }
-.signboard p { margin: 6px 0 0; font-size: 13.5px; letter-spacing: .25em; color: #ffe6c4; }
-.intro-lead { text-align: center; font-size: 15px; line-height: 1.7; color: #e9d9bb; margin: 0; }
-.intro-lead b { color: #ffcf7a; font-weight: 700; }
-.menuboard { background: #f4e8cf; color: #3a2516; border-radius: 6px; padding: 16px 18px 14px; position: relative;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, .45), inset 0 0 0 1px #d9c49c; background-image: repeating-linear-gradient(0deg, transparent 0 27px, rgba(120, 80, 40, .07) 27px 28px); }
-.menuboard h2 { margin: 0 0 8px; text-align: center; font-family: "Black Han Sans", var(--font); font-weight: 400; font-size: 20px; letter-spacing: .6em; color: #9c2219; }
+.intro-in { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.lamp { width: 2px; height: 30px; background: #59606b; margin: 0 auto -16px; position: relative; }
+.lamp::after { content: ""; position: absolute; left: 50%; bottom: -13px; width: 28px; height: 14px; margin-left: -14px; border-radius: 14px 14px 0 0; background: var(--lamp);
+  box-shadow: 0 8px 46px 20px rgba(255, 196, 110, .32); }
+.signboard { position: relative; margin: 16px auto 0; padding: 16px 26px 14px; border-radius: 8px; text-align: center;
+  background: linear-gradient(180deg, #d42d22 0%, var(--sign) 55%, #a81d16 100%);
+  box-shadow: inset 0 0 0 3px var(--paint), inset 0 0 0 7px var(--sign), inset 0 0 0 8.5px var(--paint), 0 22px 44px rgba(0, 0, 0, .55); }
+.signboard::before, .signboard::after { content: ""; position: absolute; top: -26px; width: 2px; height: 28px; background: #6d7480; }
+.signboard::before { left: 22%; transform: rotate(14deg); } .signboard::after { right: 22%; transform: rotate(-14deg); }
+.signboard h1 { margin: 0; font-family: var(--font-sign); font-weight: 400; font-size: clamp(44px, 14vw, 58px); line-height: 1.05; letter-spacing: .08em; color: #fff6ec;
+  text-shadow: 0 2px 0 rgba(90, 10, 6, .45); }
+.signboard p { margin: 6px 0 0; font-size: 13px; font-weight: 600; letter-spacing: .3em; color: #ffe1cc; }
+.intro-lead { text-align: center; font-size: 15px; line-height: 1.65; color: var(--paint-dim); margin: 0; text-wrap: balance; }
+.intro-lead b { color: var(--paint); font-weight: 700; }
+/* the 차림표: a wooden board, letters painted on */
+.menuboard { border-radius: 8px; padding: 16px 18px 12px; position: relative;
+  background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .07) 0 2px, transparent 2px 9px), linear-gradient(180deg, var(--wood), var(--wood-2));
+  box-shadow: inset 0 0 0 2px rgba(255, 220, 170, .08), 0 14px 30px rgba(0, 0, 0, .5); }
+.menuboard h2 { margin: 0 0 6px; font-family: var(--font-sign); font-weight: 400; font-size: 21px; letter-spacing: .5em; color: var(--paint); }
 .menuboard ul { list-style: none; margin: 0; padding: 0; }
-.menuboard li { display: flex; align-items: baseline; gap: 6px; font-size: 16px; padding: 3px 0; font-weight: 700; }
-.menuboard li .dots { flex: 1; border-bottom: 2px dotted #b49a72; transform: translateY(-4px); }
-.menuboard li .v { font-family: "Black Han Sans", var(--font); font-weight: 400; color: #9c2219; font-size: 18px; }
-.menuboard .tack { position: absolute; top: -7px; left: 50%; margin-left: -7px; width: 14px; height: 14px; border-radius: 50%; background: #8f8172; box-shadow: inset 0 -2px 0 rgba(0,0,0,.3); filter: none; }
-.ticket { background: #fff8ea; color: #3a2516; border-radius: 10px; padding: 14px 16px; position: relative; cursor: pointer; border: 0; text-align: left; width: 100%; font: inherit;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, .45); -webkit-mask: radial-gradient(circle 9px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 9px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat; }
-.ticket .t-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #9c2219; font-weight: 700; letter-spacing: .1em; border-bottom: 1.5px dashed #d8c3a0; padding-bottom: 7px; margin-bottom: 8px; }
-.ticket .t-name { font-family: "Black Han Sans", var(--font); font-weight: 400; font-size: 26px; line-height: 1.2; color: #2b1a10; }
-.ticket .t-meta { font-size: 13.5px; color: #6b5440; margin-top: 3px; }
-.ticket .t-go { margin-top: 9px; font-size: 13px; font-weight: 700; color: #9c2219; }
-.ticket .tags { margin-left: 6px; vertical-align: 3px; }
-.intro h3 { margin: 4px 0 -6px; font-size: 14px; color: #cdb48d; font-weight: 700; letter-spacing: .08em; }
+.menuboard li { display: flex; align-items: baseline; gap: 8px; font-size: 15.5px; padding: 4px 0; font-weight: 600; color: var(--paint); }
+.menuboard li .dots { flex: 1; border-bottom: 2px dotted rgba(244, 237, 225, .3); transform: translateY(-4px); }
+.menuboard li .v { font-family: var(--font-sign); font-weight: 400; color: var(--lamp); font-size: 19px; font-variant-numeric: tabular-nums; }
+.menuboard .tack { position: absolute; top: 9px; right: 12px; width: 9px; height: 9px; border-radius: 50%; background: #8d8478; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .35); }
+/* today's pick: a mint 식권 with a red stamp */
+.ticket { background: var(--ticket); color: var(--ticket-ink); border-radius: 8px; padding: 14px 16px 14px; position: relative; cursor: pointer; border: 0; text-align: left; width: 100%; font: inherit;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .5);
+  -webkit-mask: radial-gradient(circle 8px at 0 56%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 8px at 100% 56%, #0000 98%, #000) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle 8px at 0 56%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 8px at 100% 56%, #0000 98%, #000) right / 51% 100% no-repeat; }
+.ticket:active { transform: translateY(1px); }
+.ticket .t-top { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; font-weight: 700; color: #3e5f4e; border-bottom: 1.5px dashed rgba(27, 53, 40, .3); padding-bottom: 7px; margin-bottom: 9px; }
+.ticket .t-name { font-family: var(--font-sign); font-weight: 400; font-size: 27px; line-height: 1.2; padding-right: 64px; }
+.ticket .t-meta { font-size: 14px; color: #3e5f4e; margin-top: 3px; }
+.ticket .t-go { margin-top: 10px; font-size: 13.5px; font-weight: 700; color: var(--stamp); }
+.ticket .tags { margin-left: 6px; vertical-align: 4px; }
+.ticket .stamp { position: absolute; right: 14px; top: 44px; width: 56px; height: 56px; border-radius: 50%; border: 2.5px solid var(--stamp); color: var(--stamp);
+  display: grid; place-items: center; font-family: var(--font-sign); font-size: 15px; line-height: 1.05; text-align: center; transform: rotate(-12deg); opacity: .85; }
+.intro h3 { margin: 4px 0 -8px; font-size: 15px; color: var(--paint); font-weight: 700; }
 .regions { display: flex; flex-wrap: wrap; gap: 8px; }
-.regions button { border: 1.5px solid #6b4b33; background: rgba(255, 220, 170, .06); color: #f3e6cc; border-radius: 999px; padding: 7px 13px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
-.regions button span { color: #ffcf7a; font-size: 12px; margin-left: 4px; font-family: var(--font); }
-.intro-cta { display: grid; gap: 10px; margin-top: 2px; }
-.intro-cta .btn { height: 52px; font-size: 16px; font-family: var(--font); }
-.intro-cta .btn.primary { background: #d6402c; color: #fff; }
-.intro-cta .btn.ghost { background: transparent; color: #e9d9bb; box-shadow: inset 0 0 0 1.5px #6b4b33; }
-.intro-mine { text-align: center; font-size: 13.5px; color: #cdb48d; margin: -4px 0 0; }
-.intro-skip { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #a8916f; font-family: var(--font); }
-.intro-skip input { accent-color: #d6402c; }
+.regions button { border: 1.5px solid rgba(244, 237, 225, .22); background: rgba(244, 237, 225, .05); color: var(--paint); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; }
+.regions button:active { transform: translateY(1px); }
+.intro button { touch-action: manipulation; }
+@media (hover: hover) {
+  .regions button:hover { border-color: rgba(255, 196, 110, .6); background: rgba(255, 196, 110, .08); }
+  .intro-cta .btn.primary:hover { background: #d92c21; }
+  .intro-cta .btn.ghost:hover { background: rgba(244, 237, 225, .14); }
+  .ticket:hover .t-go { text-decoration: underline; }
+}
+.ticket .t-top, .ticket .t-name, .ticket .t-meta, .ticket .t-go { display: block; }
+.ticket .t-top { display: flex; }
+.regions button span { color: var(--lamp); font-size: 12.5px; margin-left: 5px; font-variant-numeric: tabular-nums; }
+.intro-mine { font-size: 14px; color: var(--paint-dim); margin: -6px 0 0; }
+/* the two actions stay in reach at the bottom of the screen */
+.intro-cta { position: fixed; z-index: 3001; left: 0; right: 0; bottom: 0; padding: 28px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, transparent, var(--night) 34%); }
+.intro-cta > div { max-width: 440px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
+.intro-cta .btn { height: 52px; border-radius: 999px; font-size: 15.5px; font-weight: 700; }
+.intro-cta .btn.primary { background: var(--sign); color: #fff6ec; grid-column: auto; }
+.intro-cta .btn.ghost { background: rgba(244, 237, 225, .08); color: var(--paint); box-shadow: inset 0 0 0 1.5px rgba(244, 237, 225, .25); }
+.intro-cta .btn:active { transform: translateY(1px); }
+.intro-skip { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 13px; color: var(--paint-dim); margin-top: 10px; }
+.intro-skip input { accent-color: var(--sign); width: 16px; height: 16px; }
+.intro:not([hidden]) .lamp::after { animation: lamp-on 1.1s ease-out both; }
+.intro:not([hidden]) .signboard { transform-origin: 50% -30px; animation: sign-swing 1.6s cubic-bezier(.3, 1.5, .5, 1) both; }
+.intro:not([hidden]) .intro-lead, .intro:not([hidden]) .menuboard, .intro:not([hidden]) .ticket { animation: rise .6s ease-out both; }
+.intro:not([hidden]) .menuboard { animation-delay: .15s; } .intro:not([hidden]) .ticket { animation-delay: .3s; }
+@keyframes lamp-on { 0% { opacity: .15; box-shadow: none; } 18% { opacity: 1; } 26% { opacity: .35; } 40%, 100% { opacity: 1; } }
+@keyframes sign-swing { 0% { transform: rotate(-5deg); } 45% { transform: rotate(2.2deg); } 75% { transform: rotate(-.8deg); } 100% { transform: rotate(0); } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
 /* keyboard focus and reduced motion */
 :where(button, a, select, textarea, input, label.chip):focus-visible { outline: 2.5px solid var(--me); outline-offset: 2px; border-radius: 10px; }
@@ -281,20 +322,22 @@ dialog .btn { width: 100%; }
 <body>
 <div id="map" aria-label="지도"></div>
 
-<section class="intro" id="intro" aria-label="노포 지도 소개" hidden>
+<section class="intro" id="intro" role="dialog" aria-modal="true" aria-label="노포 지도 첫 화면" hidden>
   <div class="intro-in">
     <div class="lamp" aria-hidden="true"></div>
     <div class="signboard"><h1>노포 지도</h1><p>오래된 맛집 찾아가는 길</p></div>
     <p class="intro-lead">한자리를 <b>30년 넘게</b> 지킨 <b>백년가게</b>와<br>허영만 화백이 다녀간 <b>백반기행</b> 밥집을 한 지도에.</p>
-    <div class="menuboard" aria-label="차림표"><span class="tack"></span>
+    <div class="menuboard" aria-label="차림표"><span class="tack" aria-hidden="true"></span>
       <h2>차림표</h2>
       <ul id="introBoard"></ul>
     </div>
     <button class="ticket" type="button" id="introPick" hidden></button>
-    <h3>어디로 가 볼까요?</h3>
+    <h3>어느 동네로 갈까요?</h3>
     <div class="regions" id="introRegions"></div>
     <p class="intro-mine" id="introMine" hidden></p>
-    <div class="intro-cta">
+  </div>
+  <div class="intro-cta">
+    <div>
       <button class="btn primary" type="button" id="introNear">내 주변 노포 찾기</button>
       <button class="btn ghost" type="button" id="introMap">지도 둘러보기</button>
     </div>
@@ -306,7 +349,7 @@ dialog .btn { width: 100%; }
 <div class="top">
   <form class="searchbar" id="searchForm" role="search" autocomplete="off">
     <button class="logo" type="button" id="logoBtn" aria-label="첫 화면 보기">노포</button>
-    <input id="q" type="search" placeholder="노포 이름, 동네, 역 검색" aria-label="식당 이름이나 장소 검색" enterkeyhint="search">
+    <input id="q" type="search" placeholder="노포 이름, 동네, 역 검색…" aria-label="식당 이름이나 장소 검색" enterkeyhint="search">
     <button class="icon-btn" type="submit" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
     <button class="icon-btn" type="button" id="aboutBtn" aria-label="앱 정보"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
   </form>
@@ -333,7 +376,7 @@ dialog .btn { width: 100%; }
 <section class="sheet" id="sheet" aria-label="주변 식당">
   <div class="grab" id="grab">
     <div class="sheet-head">
-      <h1 class="sheet-title" id="sheetTitle">주변 노포</h1>
+      <h2 class="sheet-title" id="sheetTitle">주변 노포</h2>
       <button class="region-clear" type="button" id="regionClear" hidden>지역 해제 ✕</button>
       <div class="radius" id="radius" role="group" aria-label="검색 반경">
         <button type="button" data-r="1000">1km</button><button type="button" data-r="3000">3km</button><button type="button" data-r="10000">10km</button><button type="button" data-r="30000">30km</button>
@@ -637,7 +680,7 @@ dialog .btn { width: 100%; }
       `</div>` +
       `<div class="rate"><div class="rate-top"><span>내 평가 · 이 폰에만 저장</span><span class="stars" role="group" aria-label="내 별점">` +
       [1, 2, 3, 4, 5].map(n => `<button type="button" data-r="${n}" aria-label="${n}점" class="${(notes[s.k]?.r || 0) >= n ? "on" : ""}">★</button>`).join("") +
-      `</span></div><textarea id="memo" rows="2" maxlength="300" placeholder="한 줄 메모 — 무엇이 맛있었는지, 언제 갔는지">${esc(notes[s.k]?.m || "")}</textarea></div>` +
+      `</span></div><textarea id="memo" rows="2" maxlength="300" placeholder="한 줄 메모 (무엇이 맛있었는지, 언제 갔는지)">${esc(notes[s.k]?.m || "")}</textarea></div>` +
       (s.q ? `<p class="warn">카카오맵에서 이 주소의 가게를 찾지 못했어요. 문을 닫았거나 옮겼을 수 있으니 가기 전에 꼭 확인하세요.</p>` : "") +
       (s.x ? `<p class="warn">정확한 번지를 찾지 못해 길 위치로 표시했어요. 실제 위치는 지도 앱에서 확인하세요.</p>` : "") +
       `<div class="facts">${facts.join("")}</div>` +
@@ -685,7 +728,7 @@ dialog .btn { width: 100%; }
     $("share").onclick = async () => {
       const url = new URL(location.pathname, location.origin);
       url.searchParams.set("p", s.k);
-      const data = { title: s.n, text: `${s.n} — ${s.a}`, url: url.href };
+      const data = { title: s.n, text: `${s.n}, ${s.a}`, url: url.href };
       try {
         if (navigator.share) await navigator.share(data);
         else { await navigator.clipboard.writeText(url.href); toast("링크를 복사했어요."); }
@@ -796,7 +839,7 @@ dialog .btn { width: 100%; }
     results._regions = regions;
   }
   // Kakao's place search (much better for Korean places) when a JavaScript key is set; else OpenStreetMap
-  const KAKAO_JS_KEY = "4e97e3b7bde5b3f21a2a5e04a8e961de";
+  const KAKAO_JS_KEY = "";
   let kakaoPlaces = null, kakaoGeo = null;
   if (KAKAO_JS_KEY && !KAKAO_JS_KEY.startsWith("__")) {
     const sdk = document.createElement("script");
@@ -947,7 +990,7 @@ dialog .btn { width: 100%; }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 5220c93f";
+    $("aboutVersion").textContent = "앱 버전 8374eb0c";
     $("about").showModal();
   });
 
@@ -995,9 +1038,10 @@ dialog .btn { width: 100%; }
     if (pool.length) {
       const day = new Date(); const seed = day.getFullYear() * 400 + day.getMonth() * 32 + day.getDate();
       const pick = pool[(seed * 2654435761 >>> 0) % pool.length];
-      $("introPick").innerHTML = `<div class="t-top"><span>오늘의 노포</span><span>${day.getMonth() + 1}월 ${day.getDate()}일</span></div>` +
-        `<div class="t-name">${esc(pick.n)}${tagHtml(pick)}</div><div class="t-meta">${esc([pick.m, pick.a.split(/\s+/).slice(0, 2).join(" ")].join(" · "))}</div>` +
-        `<div class="t-go">보러 가기 →</div>`;
+      const today = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric" }).format(day);
+      $("introPick").innerHTML = `<span class="t-top"><span>오늘의 노포 식권</span><span>${today}</span></span>` +
+        `<span class="stamp" aria-hidden="true">오늘의<br>추천</span><span class="t-name">${esc(pick.n)}${tagHtml(pick)}</span><span class="t-meta">${esc([pick.m, pick.a.split(/\s+/).slice(0, 2).join(" ")].join(" · "))}</span>` +
+        `<span class="t-go">보러 가기 →</span>`;
       $("introPick").hidden = false;
       $("introPick").onclick = () => { closeIntro(); openDetail(pick, true); };
     }
@@ -1015,10 +1059,14 @@ dialog .btn { width: 100%; }
     if (want || been) { $("introMine").textContent = `가고 싶은 곳 ${want}곳 · 가 본 곳 ${been}곳을 저장해 두셨어요.`; $("introMine").hidden = false; }
     $("introSkip").checked = false;
     intro.hidden = false;
+    for (const el of document.body.children) if (el !== intro && el.tagName !== "SCRIPT") el.inert = true;
+    intro.scrollTop = 0;
+    $("introNear").focus({ preventScroll: true });
   }
   function closeIntro() {
     const intro = $("intro");
     if ($("introSkip").checked) store.set("skipIntro", true);
+    for (const el of document.body.children) el.inert = false;
     intro.classList.add("out");
     setTimeout(() => { intro.hidden = true; intro.classList.remove("out"); }, 350);
   }
