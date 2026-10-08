@@ -503,15 +503,15 @@ class Geocoder:
 
 
 MANIFEST = {
-    "name": "노포 지도 — 백년가게 · 백반기행",
+    "name": "노포 지도",   # shown under the icon on older launch screens: keep it short
     "short_name": "노포 지도",
     "description": "내 주변 또는 지도에서 고른 곳 근처의 백년가게와 허영만의 백반기행 맛집을 찾아요.",
     "lang": "ko",
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
-    "background_color": "#1d1612",
-    "theme_color": "#1d1612",
+    "background_color": "#12161c",
+    "theme_color": "#12161c",
     "icons": [
         {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
         {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
@@ -635,7 +635,7 @@ def main():
     (OUT / "index.html").write_text(page.replace("__VERSION__", version).replace("__KAKAO_JS_KEY__", js_key), encoding="utf-8")
     (OUT / "sw.js").write_text(SW.replace("__VERSION__", version), encoding="utf-8")
     (OUT / "manifest.webmanifest").write_text(json.dumps(MANIFEST, ensure_ascii=False, indent=2), encoding="utf-8")
-    # the signboard icons in matjip/assets (drawn once with Black Han Sans); the plain drawing is a fallback
+    # the signboard icons in matjip/assets (drawn by assets/draw_icons.py); the plain drawing is a fallback
     for name, size, mask in (("icon-192.png", 192, False), ("icon-512.png", 512, False), ("icon-maskable-512.png", 512, True)):
         drawn = SRC / "assets" / name
         if drawn.exists():
