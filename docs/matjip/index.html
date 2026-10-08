@@ -38,6 +38,8 @@
   --me: #1a73e8;
   --shadow-sm: 0 1px 2px rgba(29, 27, 25, .06), 0 2px 8px rgba(29, 27, 25, .06);
   --shadow: 0 2px 6px rgba(29, 27, 25, .08), 0 10px 30px rgba(29, 27, 25, .12);
+  --font-sign: "Black Han Sans", "Pretendard Variable", "Apple SD Gothic Neo", sans-serif;   /* signboard lettering, used sparingly */
+  --sign: #b3261e;   /* the signboard red of the icon and the opening screen */
   --font: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
   --sheet-peek: 236px;
   color-scheme: light;
@@ -91,8 +93,8 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
   pointer-events: none; max-width: 560px; margin: 0 auto; }
 .top > * { pointer-events: auto; }
 .searchbar { display: flex; align-items: center; gap: 2px; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 4px 4px 4px 8px; height: 52px; }
-.logo { flex: none; width: 34px; height: 34px; border-radius: 10px; background: var(--accent); display: grid; place-items: center; }
-.logo svg { width: 22px; height: 22px; }
+.logo { flex: none; height: 34px; padding: 0 9px; border-radius: 7px; background: var(--sign); color: #fff; display: grid; place-items: center;
+  font-family: var(--font-sign); font-size: 17px; letter-spacing: .08em; line-height: 1; box-shadow: inset 0 0 0 1.5px #f3e6cc, inset 0 0 0 3px var(--sign); }
 .searchbar input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 8px; outline: none; font-size: 16px; }
 .searchbar input::placeholder { color: var(--muted); }
 .searchbar input::-webkit-search-cancel-button { display: none; }
@@ -143,7 +145,7 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .grab::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--surface-3); margin: 0 auto 10px; }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .sheet-title { font-weight: 700; font-size: 19px; margin: 0; letter-spacing: -0.02em; white-space: nowrap; }
-.sheet-title b { color: var(--accent); }
+.sheet-title b { color: var(--accent); font-family: var(--font-sign); font-weight: 400; font-size: 21px; margin: 0 1px; }
 .sheet-head > div:first-child { min-width: 0; }
 .sheet-title.region { overflow: hidden; text-overflow: ellipsis; }
 .region-clear { flex: none; border: 0; background: var(--surface-2); color: var(--ink-2); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
@@ -178,7 +180,7 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .detail { padding: 0 18px 18px; overflow-y: auto; }
 .detail-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
 .back { border: 0; background: var(--surface-2); color: var(--ink-2); border-radius: 999px; padding: 5px 12px 5px 9px; cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
-.detail h2 { font-size: 23px; font-weight: 800; margin: 8px 0 6px; line-height: 1.3; letter-spacing: -0.03em; }
+.detail h2 { font-family: var(--font-sign); font-weight: 400; font-size: 27px; margin: 8px 0 8px; line-height: 1.25; letter-spacing: .01em; text-wrap: balance; }
 .detail .tag { font-size: 12px; padding: 3px 8px; }
 .facts { margin: 14px 0 16px; display: grid; gap: 10px; font-size: 14px; }
 .fact { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; color: var(--ink-2); }
@@ -204,7 +206,7 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .rate { margin: 0 0 12px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
 .rate-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
 .stars { display: inline-flex; gap: 2px; }
-.stars button { border: 0; background: transparent; padding: 0 2px; font-size: 26px; line-height: 1; cursor: pointer; color: var(--surface-3); }
+.stars button { border: 0; background: transparent; padding: 0 2px; font-size: 26px; line-height: 1; cursor: pointer; color: color-mix(in srgb, var(--muted) 45%, transparent); }
 .stars button.on { color: var(--both); }
 .rate textarea { width: 100%; border: 0; border-radius: 10px; background: var(--surface); color: var(--ink); padding: 9px 11px; font: inherit; font-size: 14px; resize: none; min-height: 42px; outline: none; }
 .rate textarea::placeholder { color: var(--muted); }
@@ -257,6 +259,13 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .intro-skip { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #a8916f; font-family: var(--font); }
 .intro-skip input { accent-color: #d6402c; }
 
+/* keyboard focus and reduced motion */
+:where(button, a, select, textarea, input, label.chip):focus-visible { outline: 2.5px solid var(--me); outline-offset: 2px; border-radius: 10px; }
+.signboard h1, dialog h2 { text-wrap: balance; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+}
+
 /* about */
 dialog { border: 0; border-radius: 20px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); max-width: min(480px, calc(100% - 32px)); padding: 22px; }
 dialog::backdrop { background: rgba(0, 0, 0, .4); }
@@ -296,7 +305,7 @@ dialog .btn { width: 100%; }
 
 <div class="top">
   <form class="searchbar" id="searchForm" role="search" autocomplete="off">
-    <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2.5a6.5 6.5 0 0 0-6.5 6.5c0 4.6 6.5 11.5 6.5 11.5s6.5-6.9 6.5-11.5A6.5 6.5 0 0 0 12 2.5Z" fill="#fff"/><path d="M8.6 8.4h6.8a3.4 3.4 0 0 1-6.8 0Z" fill="var(--accent)"/><path d="M10.4 6.6c.3-.6.3-1 0-1.6M12.6 6.6c.3-.6.3-1 0-1.6" stroke="var(--accent)" stroke-width="1.1" stroke-linecap="round"/></svg></span>
+    <button class="logo" type="button" id="logoBtn" aria-label="첫 화면 보기">노포</button>
     <input id="q" type="search" placeholder="노포 이름, 동네, 역 검색" aria-label="식당 이름이나 장소 검색" enterkeyhint="search">
     <button class="icon-btn" type="submit" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
     <button class="icon-btn" type="button" id="aboutBtn" aria-label="앱 정보"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
@@ -584,7 +593,8 @@ dialog .btn { width: 100%; }
   const flyTo = (ll, zoom, label) => {
     centerLabel = label || "";
     labelLock = !!label;
-    map.flyTo(ll, zoom ?? Math.max(map.getZoom(), 15), { duration: .6 });
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) map.setView(ll, zoom ?? Math.max(map.getZoom(), 15));
+    else map.flyTo(ll, zoom ?? Math.max(map.getZoom(), 15), { duration: .6 });
   };
 
   // ---------- detail ----------
@@ -786,7 +796,7 @@ dialog .btn { width: 100%; }
     results._regions = regions;
   }
   // Kakao's place search (much better for Korean places) when a JavaScript key is set; else OpenStreetMap
-  const KAKAO_JS_KEY = "4e97e3b7bde5b3f21a2a5e04a8e961de";
+  const KAKAO_JS_KEY = "";
   let kakaoPlaces = null, kakaoGeo = null;
   if (KAKAO_JS_KEY && !KAKAO_JS_KEY.startsWith("__")) {
     const sdk = document.createElement("script");
@@ -937,7 +947,7 @@ dialog .btn { width: 100%; }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 68d49441";
+    $("aboutVersion").textContent = "앱 버전 5220c93f";
     $("about").showModal();
   });
 
@@ -1014,6 +1024,7 @@ dialog .btn { width: 100%; }
   }
   $("introNear").addEventListener("click", () => { closeIntro(); locate(false); });
   $("introMap").addEventListener("click", closeIntro);
+  $("logoBtn").addEventListener("click", () => { if (meta.stores) showIntro(meta); });
   $("showIntro").checked = !store.get("skipIntro", false);
   $("showIntro").addEventListener("change", e => store.set("skipIntro", !e.target.checked));
 
