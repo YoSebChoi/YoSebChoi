@@ -1025,7 +1025,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
           <button class="btn ghost small" type="button" data-edit="${esc(r.id)}">수정</button>
           <button class="btn ghost danger small" type="button" data-del="${esc(r.id)}">삭제</button>
         </span>
-        ${r.thumb ? `<button class="thumb-btn" type="button" data-open="${esc(r.id)}" aria-expanded="${String(openIds.has(r.id))}"><img src="${esc(r.thumb)}" alt="${fmt(r.ts)} 스트립">${openIds.has(r.id) ? "" : "<span>눌러서 그래프 보기</span>"}</button>` : ""}
+        ${r.thumb ? `<button class="thumb-btn" type="button" data-open="${esc(r.id)}" aria-expanded="${String(openIds.has(r.id))}"><img src="${esc(r.thumb)}" alt="${fmt(r.ts)} 스트립"><span>${openIds.has(r.id) ? "사진을 다시 누르면 그래프가 닫혀요" : "눌러서 그래프 보기"}</span></button>` : ""}
         ${openIds.has(r.id) ? detailHtml(r) : ""}
         ${editing && editing.id === r.id
           ? `<form class="memo-edit" data-edit-form="${esc(r.id)}">
@@ -1066,7 +1066,8 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
         <div class="metric"><span class="k">녹색 채널 비</span><span class="v">${pct(r.ratioGreen || 0)}</span></div>
         <div class="metric"><span class="k">신호/노이즈</span><span class="v">${r.snr ? Number(r.snr).toFixed(1) : "—"}</span></div>
       </div>
-      ${uncertain(r) ? `<p class="note warn">측정값끼리 차이가 컸던 기록이에요.</p>` : ""}</div>`;
+      ${uncertain(r) ? `<p class="note warn">측정값끼리 차이가 컸던 기록이에요.</p>` : ""}
+      <button class="btn ghost small" type="button" data-open="${esc(r.id)}" style="justify-self:center">그래프 닫기</button></div>`;
   }
   function renderLineup(items) {
     const withThumb = items.filter(r => r.thumb);
@@ -1128,26 +1129,23 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     if (items.length < 2) { box.innerHTML = `<p class="small muted">기록이 두 개 이상이면 변화 그래프가 보여요.</p>`; return; }
     // drawn at the box's real width so labels stay at true pixel size
     const W = Math.max(280, box.clientWidth || 360), H = 190, padL = 38, padR = 12, padT = 12, padB = 26;
-    const t0 = items[0].ts, t1 = items[items.length - 1].ts, span = Math.max(1, t1 - t0);
+    // the x axis runs from midnight of the first day to midnight after the last, so every day is
+    // one equal column with its date centred under it, and each point sits inside its own day
+    const startOfDay = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+    const nextDay = t => { const d = new Date(t); d.setDate(d.getDate() + 1); return d.getTime(); };
+    const t0 = startOfDay(items[0].ts), t1 = nextDay(startOfDay(items[items.length - 1].ts)), span = t1 - t0;
     const yMax = Math.max(100, Math.ceil(Math.max(...items.map(r => shown(r) * 100)) / 25) * 25);
     const X = t => padL + (W - padL - padR) * (t - t0) / span, Y = v => padT + (H - padT - padB) * (1 - v / yMax);
     const txt = (x, y, s, anchor = "middle") => `<text x="${x.toFixed(1)}" y="${y}" text-anchor="${anchor}" font-size="12" style="fill:var(--muted);font-family:var(--font-body)">${s}</text>`;
     let grid = "";
     for (let v = 0; v <= yMax; v += 25) grid += `<line x1="${padL}" x2="${W - padR}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--rule)" stroke-dasharray="2 5"/>${txt(padL - 6, Y(v) + 4, v + "%", "end")}`;
-    // day ticks at local midnight; fall back to the first and last time inside one day
-    const days = [], d = new Date(t0); d.setHours(0, 0, 0, 0);
-    while (d.getTime() <= t1) { if (d.getTime() >= t0) days.push(d.getTime()); d.setDate(d.getDate() + 1); }
+    const days = []; for (let t = t0; t < t1; t = nextDay(t)) days.push(t);
+    const step = Math.ceil(days.length / Math.max(1, Math.floor((W - padL - padR) / 52)));
     let xlab = "";
-    if (days.length >= 2) {
-      const step = Math.ceil(days.length / Math.max(2, Math.floor((W - padL - padR) / 64)));
-      days.forEach((t, i) => {
-        const x = X(t);
-        xlab += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${Y(0)}" y2="${Y(0) + 4}" style="stroke:var(--muted)"/>`;
-        if (i % step === 0) { const dd = new Date(t); xlab += txt(Math.min(Math.max(x, padL + 14), W - padR - 14), H - 6, `${dd.getMonth() + 1}/${dd.getDate()}`); }
-      });
-    } else {
-      xlab = txt(padL, H - 6, fmt(t0), "start") + txt(W - padR, H - 6, fmt(t1), "end");
-    }
+    days.forEach((t, i) => {
+      if (i > 0) { const x = X(t).toFixed(1); xlab += `<line x1="${x}" x2="${x}" y1="${padT}" y2="${Y(0) + 4}" style="stroke:var(--rule)"/>`; }
+      if (i % step === 0) { const dd = new Date(t); xlab += txt((X(t) + X(nextDay(t))) / 2, H - 6, `${dd.getMonth() + 1}/${dd.getDate()}`); }
+    });
     const pts = items.map(r => [X(r.ts), Y(shown(r) * 100)]);
     const path = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("");
     const last = pts[pts.length - 1];
