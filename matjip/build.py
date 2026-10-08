@@ -22,6 +22,7 @@ import io
 import json
 import os
 import re
+import shutil
 import sys
 import time
 import urllib.error
@@ -509,8 +510,8 @@ MANIFEST = {
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
-    "background_color": "#f6f1e7",
-    "theme_color": "#7a3b2e",
+    "background_color": "#1d1612",
+    "theme_color": "#1d1612",
     "icons": [
         {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
         {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
@@ -634,9 +635,13 @@ def main():
     (OUT / "index.html").write_text(page.replace("__VERSION__", version).replace("__KAKAO_JS_KEY__", js_key), encoding="utf-8")
     (OUT / "sw.js").write_text(SW.replace("__VERSION__", version), encoding="utf-8")
     (OUT / "manifest.webmanifest").write_text(json.dumps(MANIFEST, ensure_ascii=False, indent=2), encoding="utf-8")
-    icon(192).save(OUT / "icon-192.png")
-    icon(512).save(OUT / "icon-512.png")
-    icon(512, maskable=True).save(OUT / "icon-maskable-512.png")
+    # the signboard icons in matjip/assets (drawn once with Black Han Sans); the plain drawing is a fallback
+    for name, size, mask in (("icon-192.png", 192, False), ("icon-512.png", 512, False), ("icon-maskable-512.png", 512, True)):
+        drawn = SRC / "assets" / name
+        if drawn.exists():
+            shutil.copyfile(drawn, OUT / name)
+        else:
+            icon(size, maskable=mask).save(OUT / name)
     print(f"built {version}: {len(placed)} on the map ({approx} approximate), {len(missing)} without a location")
 
 
