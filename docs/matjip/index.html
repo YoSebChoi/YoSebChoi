@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Batang:wght@700&display=swap">
 <style>
 /* Layout: the map fills the screen; a search bar floats on top, and a sheet at the
    bottom lists what is near the map's centre, nearest first. Dragging the map
@@ -344,43 +344,24 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .stamps-regions em { font-style: normal; font-size: 12px; color: #6b5a48; font-variant-numeric: tabular-nums; }
 .stamps .btn.primary { background: #2a1e16; color: #f4ead4; }
 
-/* boot: the launch screen continues as one scene. The red 간판 fills the screen, the camera pulls back to the
-   shop front, the one aluminium door slides aside along its rail (드르륵) and it steps inside: a round stainless table, red stools,
-   the yellow kettle, and the owner waving hello. A tap skips it. */
-.boot { position: fixed; inset: 0; z-index: 4000; background: #1c1612; overflow: hidden; transition: opacity .45s ease; }
+/* boot: the launch screen continued. The steaming 뚝배기 of the icon on the signboard red, the name, and one
+   warm line from the house. A tap skips it. */
+.boot { position: fixed; inset: 0; z-index: 4000; display: grid; place-items: center; transition: opacity .45s ease;
+  background: radial-gradient(120% 80% at 50% 42%, #d63a2b, #b3221a 60%, #7f120d); }
 .boot.out { opacity: 0; pointer-events: none; }
-.boot-red { position: absolute; inset: 0; background: #c4231b; display: grid; place-items: center; }
-.boot-sign { display: flex; flex-direction: column; align-items: center; gap: .02em; font-family: var(--font-sign); color: #f7eede; line-height: 1;
-  font-size: min(34vw, 30vh); letter-spacing: .04em; text-shadow: .03em .045em 0 #7a100c; opacity: 0; }
-.boot-scene { position: absolute; inset: 0; width: 100%; height: 100%; transform-origin: 50% 22.5%; transform: translateY(27.5%) scale(5); font-family: var(--font); }
-.boot-scene .bs-sign { font-family: var(--font-sign); }
-.boot-scene .bs-arm { transform-origin: 286px 486px; }
-.boot-sfx { position: absolute; left: 50%; top: 55%; translate: -50% -50%; font-family: var(--font-sign); font-size: min(17vw, 9vh); color: #fff6e3; opacity: 0;
-  -webkit-text-stroke: .05em #2a1e16; paint-order: stroke fill; letter-spacing: .04em; rotate: -7deg; pointer-events: none; }
-/* the lettering waits for the signboard face, so a fallback font never flashes; then the timeline runs */
-.boot.ready .boot-sign { animation: boot-in .7s cubic-bezier(.2, .9, .3, 1.2) both; }
-.boot.ready .boot-red { animation: fade-out .35s ease 1s forwards; }
-.boot.ready .boot-scene { animation: pull-back .9s cubic-bezier(.25, .7, .2, 1) 1s forwards, step-in 1s cubic-bezier(.55, 0, .3, 1) 2.9s forwards; }
-.boot.ready .bs-door { animation: slide 1.05s cubic-bezier(.45, .05, .35, 1) 1.95s forwards; }
-.boot.ready .boot-sfx { animation: sfx .95s ease-out 1.9s; }
-.boot.ready .bs-arm { animation: wave .32s ease-in-out 3.1s 4 alternate; }
-.bs-steam path { animation: steam 1.6s ease-out infinite; }
-.bs-steam path:nth-child(2) { animation-delay: .5s; } .bs-steam path:nth-child(3) { animation-delay: 1s; }
-@keyframes fade-out { to { opacity: 0; visibility: hidden; } }
-@keyframes pull-back { from { transform: translateY(27.5%) scale(5); } to { transform: none; } }
-@keyframes step-in { from { transform: scale(1); transform-origin: 60% 62%; } to { transform: scale(1.9); transform-origin: 60% 62%; } }
-/* a sliding door never runs smoothly: it catches once on the rail */
-@keyframes slide { 0% { transform: none; } 14% { transform: translateX(-14px); } 22% { transform: translateX(-10px); } 30% { transform: translateX(-13px); } 100% { transform: translateX(-296px); } }
-@keyframes sfx { 0% { opacity: 0; transform: scale(.6); } 15% { opacity: 1; transform: scale(1.08); } 25% { transform: translateX(-4px); } 35% { transform: translateX(4px); }
-  45% { transform: translateX(-3px); } 55% { transform: none; } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-12px); } }
-@keyframes wave { from { transform: rotate(-10deg); } to { transform: rotate(12deg); } }
-@keyframes steam { 0% { opacity: 0; transform: translateY(6px); } 30% { opacity: .75; } 100% { opacity: 0; transform: translateY(-16px); } }
-/* without motion: straight to the table inside */
-@media (prefers-reduced-motion: reduce) {
-  .boot .boot-red { display: none; }
-  .boot .boot-scene { transform: scale(1.9); transform-origin: 60% 62%; animation: none !important; }
-  .boot .bs-door { transform: translateX(-296px); }
-}
+.boot-inner { display: grid; justify-items: center; translate: 0 -3vh; padding: 0 24px; text-align: center; }
+.boot-bowl { width: min(66vw, 40vh); height: auto; opacity: 0; }
+.boot-name { margin: 2px 0 0; font-family: var(--font-sign); color: #f7eede; font-size: min(10.5vw, 6vh); letter-spacing: .14em; line-height: 1.1;
+  text-shadow: 0 .06em 0 #7a100c; opacity: 0; }
+.boot-line { margin: 14px 0 0; font-family: "Gowun Batang", serif; font-weight: 700; color: #fde8cc; font-size: min(5.4vw, 3.1vh); line-height: 1.45;
+  word-break: keep-all; text-wrap: balance; opacity: 0; }
+.boot.ready .boot-bowl { animation: boot-in .55s cubic-bezier(.2, .9, .3, 1.15) both; }
+.boot.ready .boot-name { animation: rise .5s ease .2s both; }
+.boot.ready .boot-line { animation: rise .6s ease .6s both; }
+.boot-steam > g { animation: waft 2.6s ease-in-out infinite both; }
+.boot-steam > g:nth-child(1) { animation-delay: .1s; } .boot-steam > g:nth-child(2) { animation-delay: .5s; }
+.boot-steam > g:nth-child(3) { animation-delay: 0s; } .boot-steam > g:nth-child(4) { animation-delay: .9s; }
+@keyframes waft { 0% { opacity: 0; transform: translateY(16px); } 35% { opacity: 1; } 75% { opacity: .8; } 100% { opacity: 0; transform: translateY(-30px); } }
 @keyframes boot-in { from { transform: scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* update prompt */
@@ -406,145 +387,96 @@ dialog .btn { width: 100%; }
 </head>
 <body>
 <div class="boot" id="boot" aria-hidden="true">
-<svg class="boot-scene" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice">
+  <div class="boot-inner">
+    <svg class="boot-bowl" viewBox="86 40 340 400">
   <defs>
-    <linearGradient id="bsSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f3f4"/><stop offset=".55" stop-color="#c5cbcf"/><stop offset="1" stop-color="#9ca3a8"/></linearGradient>
-    <linearGradient id="bsGlass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9e9ee" stop-opacity=".86"/><stop offset="1" stop-color="#a9c3cc" stop-opacity=".8"/></linearGradient>
-    <radialGradient id="bsGlow"><stop offset="0" stop-color="#ffe9ad" stop-opacity=".95"/><stop offset="1" stop-color="#ffe9ad" stop-opacity="0"/></radialGradient>
-    <radialGradient id="bsStreet" cx=".5" cy=".3" r=".8"><stop offset="0" stop-color="#3a2c23"/><stop offset="1" stop-color="#1c1612"/></radialGradient>
-    <pattern id="bsTile" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="#ddd0b7"/><path d="M0 .5H22M.5 0V22" stroke="#c3b498" stroke-width="1.2"/></pattern>
-    <clipPath id="bsDoorway"><rect x="50" y="280" width="300" height="460"/></clipPath>
+    <radialGradient id="bt-bg" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#d63a2b"/><stop offset=".65" stop-color="#b3221a"/><stop offset="1" stop-color="#7f120d"/></radialGradient>
+    <linearGradient id="bt-clay" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#1c110c"/><stop offset=".18" stop-color="#5a3626"/><stop offset=".32" stop-color="#3b2419"/>
+      <stop offset=".7" stop-color="#24150f"/><stop offset="1" stop-color="#120a07"/>
+    </linearGradient>
+    <linearGradient id="bt-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b4331"/><stop offset="1" stop-color="#2a1912"/></linearGradient>
+    <radialGradient id="bt-stew" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#ef6a33"/><stop offset=".55" stop-color="#d6401f"/><stop offset="1" stop-color="#9f2415"/></radialGradient>
+    <linearGradient id="bt-tofuTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#f1e6cf"/></linearGradient>
+    <filter id="bt-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
+    <filter id="bt-softer" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+    <filter id="bt-tiny" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4"/></filter>
+    <clipPath id="bt-surface"><ellipse cx="256" cy="268" rx="136" ry="36"/></clipPath>
   </defs>
 
-  <!-- the street at night and the shop front -->
-  <rect width="400" height="800" fill="url(#bsStreet)"/>
-  <rect x="0" y="92" width="400" height="660" fill="url(#bsTile)"/>
-  <rect x="0" y="744" width="400" height="56" fill="#3b322b"/>
-  <rect x="38" y="738" width="324" height="9" rx="2" fill="#8d8174"/>
-
-  <!-- 간판 with its two lamps -->
-  <rect x="12" y="110" width="376" height="136" rx="6" fill="#c4231b"/>
-  <rect x="21" y="119" width="358" height="118" rx="3" fill="none" stroke="#f3e3c3" stroke-width="3"/>
-  <text class="bs-sign" x="203" y="205" text-anchor="middle" font-size="78" fill="#7a100c">노포 지도</text>
-  <text class="bs-sign" x="200" y="201" text-anchor="middle" font-size="78" fill="#f7eede">노포 지도</text>
-  <g fill="#2a2420"><path d="M78 92v8h-12v6h28v-6H84v-8z"/><path d="M322 92v8h-12v6h28v-6h-10v-8z"/></g>
-  <ellipse cx="80" cy="112" rx="34" ry="10" fill="url(#bsGlow)"/><ellipse cx="324" cy="112" rx="34" ry="10" fill="url(#bsGlow)"/>
-
-  <!-- inside: what the doors open onto -->
-  <g clip-path="url(#bsDoorway)">
-    <rect x="50" y="280" width="300" height="330" fill="#efd39b"/>
-    <rect x="50" y="516" width="300" height="94" fill="#a5663b"/>
-    <rect x="50" y="512" width="300" height="7" fill="#7b4527"/>
-    <path d="M90 516v94M140 516v94M190 516v94M240 516v94M290 516v94M340 516v94" stroke="#8e5532" stroke-width="2"/>
-    <rect x="50" y="610" width="300" height="130" fill="#8f8172"/>
-    <path d="M50 640H350M50 676H350M50 714H350M110 610l-24 130M200 610v130M290 610l24 130" stroke="#7d7062" stroke-width="2"/>
-
-    <!-- 차림표 on the wall -->
-    <rect x="68" y="296" width="264" height="50" rx="3" fill="#6b3f22"/>
-    <g font-weight="800" text-anchor="middle">
-      <rect x="74" y="302" width="60" height="38" rx="2" fill="#f6ecd6"/><text x="104" y="318" font-size="11.5" fill="#2a1e16">김치찌개</text><text x="104" y="334" font-size="10.5" fill="#b3261e">8,000</text>
-      <rect x="138" y="302" width="60" height="38" rx="2" fill="#f6ecd6"/><text x="168" y="318" font-size="11.5" fill="#2a1e16">된장찌개</text><text x="168" y="334" font-size="10.5" fill="#b3261e">8,000</text>
-      <rect x="202" y="302" width="60" height="38" rx="2" fill="#f6ecd6"/><text x="232" y="318" font-size="11.5" fill="#2a1e16">제육볶음</text><text x="232" y="334" font-size="10.5" fill="#b3261e">10,000</text>
-      <rect x="266" y="302" width="60" height="38" rx="2" fill="#f6ecd6"/><text x="296" y="318" font-size="11.5" fill="#2a1e16">백반</text><text x="296" y="334" font-size="10.5" fill="#b3261e">9,000</text>
-    </g>
-    <!-- 달력 -->
-    <rect x="300" y="362" width="36" height="46" rx="2" fill="#fbf8f1"/><rect x="300" y="362" width="36" height="11" rx="2" fill="#c4231b"/>
-    <text x="318" y="399" text-anchor="middle" font-size="20" font-weight="800" fill="#2a1e16">10</text>
-
-    <!-- the lamp over the table -->
-    <circle cx="200" cy="430" r="170" fill="url(#bsGlow)" opacity=".5"/>
-    <path d="M200 280v70" stroke="#2a2420" stroke-width="2"/>
-    <path d="M186 350h28l12 24h-52z" fill="#2f6b4f"/><ellipse cx="200" cy="375" rx="11" ry="4" fill="#fff4c8"/>
-
-    <!-- 사장님: 뽀글머리, 꽃무늬 앞치마, waving -->
-    <g class="bs-owner">
-      <g class="bs-arm"><path d="M286 486 Q300 464 306 446" fill="none" stroke="#6e4f78" stroke-width="16" stroke-linecap="round"/><circle cx="307" cy="439" r="10" fill="#efc39b"/></g>
-      <rect x="242" y="450" width="16" height="22" rx="6" fill="#e4b48b"/>
-      <path d="M200 574V504q0-34 34-38l8-2q8 10 16 0l8 2q34 4 34 38v70z" fill="#7c5a86"/>
-      <path d="M238 466l12 18 12-18" fill="none" stroke="#f3ece0" stroke-width="5" stroke-linejoin="round"/>
-      <path d="M213 490q-6 38-2 78" fill="none" stroke="#6e4f78" stroke-width="15" stroke-linecap="round"/>
-      <path d="M222 486h56l6 88h-68z" fill="#e98ea3"/>
-      <g fill="#fff" opacity=".85"><circle cx="234" cy="508" r="3"/><circle cx="262" cy="503" r="3"/><circle cx="249" cy="524" r="3"/><circle cx="232" cy="542" r="3"/><circle cx="270" cy="534" r="3"/><circle cx="256" cy="556" r="3"/></g>
-      <path d="M224 486l8-18M276 486l-8-18" stroke="#e98ea3" stroke-width="4" stroke-linecap="round"/>
-      <g fill="#d8d3ca" stroke="#aea79c" stroke-width="1.3">
-        <circle cx="227" cy="430" r="12"/><circle cx="273" cy="430" r="12"/><circle cx="231" cy="415" r="12"/><circle cx="269" cy="415" r="12"/>
-        <circle cx="241" cy="404" r="12"/><circle cx="259" cy="404" r="12"/><circle cx="250" cy="400" r="11"/><circle cx="226" cy="444" r="8"/><circle cx="274" cy="444" r="8"/>
-      </g>
-      <circle cx="250" cy="438" r="22" fill="#f1c7a0"/>
-      <g fill="#d8d3ca" stroke="#aea79c" stroke-width="1.3"><circle cx="238" cy="419" r="7.5"/><circle cx="250" cy="416" r="8"/><circle cx="262" cy="419" r="7.5"/></g>
-      <g fill="none" stroke="#4a3426" stroke-width="2.2" stroke-linecap="round">
-        <path d="M236 437q5-5 10 0M254 437q5-5 10 0"/>
-        <path d="M244 449q6 6 12 0"/>
-      </g>
-      <path d="M231 434l-3-2M269 434l3-2M233 440l-3 1M267 440l3 1" stroke="#c99b78" stroke-width="1.2" stroke-linecap="round"/>
-      <circle cx="238" cy="446" r="4.5" fill="#ee8a86" opacity=".55"/><circle cx="262" cy="446" r="4.5" fill="#ee8a86" opacity=".55"/>
-    </g>
-
-    <!-- 빨간 플라스틱 의자 -->
-    <g class="bs-stool"><path d="M80 690h60l8 52H72z" fill="#c7372b"/><ellipse cx="110" cy="690" rx="31" ry="9" fill="#e4493b"/><ellipse cx="110" cy="712" rx="9" ry="4" fill="#8e2219"/></g>
-    <g class="bs-stool"><path d="M260 690h60l8 52h-76z" fill="#c7372b"/><ellipse cx="290" cy="690" rx="31" ry="9" fill="#e4493b"/><ellipse cx="290" cy="712" rx="9" ry="4" fill="#8e2219"/></g>
-
-    <!-- the round stainless table, a little sticky -->
-    <ellipse cx="200" cy="730" rx="104" ry="11" fill="#000" opacity=".2"/>
-    <rect x="192" y="590" width="16" height="136" fill="#878e93"/><ellipse cx="200" cy="726" rx="46" ry="8" fill="#757c81"/>
-    <ellipse cx="200" cy="578" rx="130" ry="35" fill="#878e93"/>
-    <ellipse cx="200" cy="571" rx="130" ry="35" fill="url(#bsSteel)"/>
-    <ellipse cx="200" cy="571" rx="122" ry="31" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.5"/>
-    <ellipse cx="150" cy="560" rx="44" ry="6" fill="#fff" opacity=".5" transform="rotate(-5 150 560)"/>
-    <path d="M232 586c6-3 15-2 18 2-2 4-12 5-18 2z M120 584c4-2 9-1 11 1-2 3-8 3-11 1z M286 568c3-2 8-1 9 1-2 2-7 2-9 0z" fill="#fff" opacity=".35"/>
-    <ellipse cx="258" cy="575" rx="13" ry="4.5" fill="none" stroke="#9b7444" stroke-opacity=".35" stroke-width="2"/>
-
-    <!-- 노란 양은주전자, 뚝배기, 소주 -->
-    <g class="bs-kettle">
-      <path d="M96 562c-3-22 6-36 26-36s29 14 26 36z" fill="#e3b03e"/>
-      <path d="M104 534c6-10 30-10 36 0" fill="#d29f2f"/><circle cx="122" cy="526" r="4" fill="#c38f22"/>
-      <path d="M146 548l18-14 4 4-16 16z" fill="#d29f2f"/>
-      <path d="M100 538c-16-2-18 22-2 22" fill="none" stroke="#c38f22" stroke-width="4"/>
-      <path d="M108 540v16" stroke="#fff" stroke-opacity=".45" stroke-width="4" stroke-linecap="round"/>
-    </g>
-    <g>
-      <path d="M176 556c0 18 12 24 28 24s28-6 28-24z" fill="#2a2523"/>
-      <ellipse cx="204" cy="556" rx="28" ry="7" fill="#c8432f"/><ellipse cx="196" cy="555" rx="8" ry="2.5" fill="#e9785f"/>
-      <g class="bs-steam" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7">
-        <path d="M194 544c-6-8 6-12 0-22"/><path d="M206 542c-6-8 6-12 0-22"/><path d="M218 544c-6-8 6-12 0-22"/>
-      </g>
-    </g>
-    <g>
-      <rect x="262" y="510" width="20" height="52" rx="5" fill="#3f8f57" opacity=".92"/><rect x="267" y="494" width="10" height="20" rx="2" fill="#3f8f57" opacity=".92"/>
-      <rect x="262" y="528" width="20" height="16" fill="#f3efe2"/><rect x="268" y="514" width="3" height="40" rx="1.5" fill="#fff" opacity=".35"/>
-      <path d="M292 556h13l-2 12h-9z" fill="#fff" opacity=".7"/><path d="M240 566h13l-2 12h-9z" fill="#fff" opacity=".7"/>
-    </g>
-
+  
+    <g class="boot-steam" fill="none" stroke="#fff" stroke-linecap="round">
+    <g><path d="M256 236c-30-34 34-58 0-96s24-50 6-74" stroke-width="30" opacity=".22" filter="url(#bt-softer)"/></g>
+    <g><path d="M204 244c-26-24 18-44-6-72s20-34 4-62" stroke-width="15" opacity=".5" filter="url(#bt-soft)"/></g>
+    <g><path d="M258 236c-30-28 34-48 2-84s26-40 2-72" stroke-width="19" opacity=".72" filter="url(#bt-soft)"/></g>
+    <g><path d="M312 244c-18-30 26-40 0-70s12-44 6-58" stroke-width="14" opacity=".5" filter="url(#bt-soft)"/></g>
   </g>
 
-  <!-- 알루미늄 미닫이문 (slide apart: 드르륵) -->
-  <rect x="46" y="276" width="308" height="468" fill="none" stroke="#6f767b" stroke-width="8"/>
-  <g class="bs-door">
-    <rect x="50" y="280" width="300" height="460" fill="url(#bsGlass)" stroke="#aeb4b8" stroke-width="7"/>
-    <rect x="50" y="508" width="300" height="9" fill="#aeb4b8"/>
-    <path d="M78 300h40l-64 84v-40zM300 300l30 0-70 92v-30zM64 566l56-44v20l-56 44z" fill="#fff" opacity=".35"/>
-    <circle cx="122" cy="400" r="34" fill="#c4231b"/><circle cx="122" cy="400" r="29" fill="none" stroke="#f3e3c3" stroke-width="2"/>
-    <text class="bs-sign" x="122" y="408" text-anchor="middle" font-size="21" fill="#f7eede">영업중</text>
-    <g class="bs-sign" text-anchor="middle" font-size="30" fill="#c4231b">
-      <text x="262" y="360">백반</text><text x="262" y="400">찌개</text><text x="262" y="440">국밥</text>
-    </g>
-    <rect x="330" y="470" width="7" height="74" rx="3.5" fill="#6f767b"/>
+    <ellipse cx="256" cy="408" rx="150" ry="20" fill="#000" opacity=".4" filter="url(#bt-soft)"/>
+
+    <path d="M100 266c2 52 12 96 40 124 30 22 70 24 116 24s86-2 116-24c28-28 38-72 40-124z" fill="url(#bt-clay)"/>
+  <path d="M150 396c28 16 64 20 106 20s78-4 106-20l-6 14c-26 12-60 16-100 16s-74-4-100-16z" fill="#140b07"/>
+  <g fill="none" stroke="#000" stroke-opacity=".45" stroke-width="3">
+    <path d="M104 304c40 26 96 34 152 34s112-8 152-34"/><path d="M108 322c40 26 94 34 148 34s108-8 148-34"/>
   </g>
-  <!-- 고무대야 화분 -->
-  <g><path d="M356 716h40l-5 26h-30z" fill="#b8352b"/><path d="M362 716c-6-24 4-34 14-40-2 14 2 26 0 40zM378 716c2-20 14-30 24-30-6 10-10 22-14 30z" fill="#4f8a3c"/></g>
-</svg>
-<div class="boot-sfx">드르륵</div>
-<div class="boot-red"><div class="boot-sign"><span>노포</span><span>지도</span></div></div>
+  <g fill="none" stroke="#a0715a" stroke-opacity=".35" stroke-width="1.5">
+    <path d="M104 307c40 26 96 34 152 34s112-8 152-34"/><path d="M108 325c40 26 94 34 148 34s108-8 148-34"/>
+  </g>
+  <path d="M128 340c6 22 16 38 30 48" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="10" stroke-linecap="round" filter="url(#bt-tiny)"/>
+  <g fill="#b48a6a" opacity=".22">
+    <circle cx="170" cy="330" r="1.6"/><circle cx="214" cy="364" r="1.4"/><circle cx="262" cy="340" r="1.8"/><circle cx="318" cy="372" r="1.4"/>
+    <circle cx="352" cy="320" r="1.6"/><circle cx="292" cy="388" r="1.3"/><circle cx="190" cy="384" r="1.3"/><circle cx="380" cy="300" r="1.2"/>
+  </g>
+  <ellipse cx="256" cy="266" rx="156" ry="46" fill="url(#bt-rim)"/>
+  <ellipse cx="256" cy="262" rx="150" ry="40" fill="none" stroke="#9b6a50" stroke-opacity=".55" stroke-width="2"/>
+  <ellipse cx="256" cy="270" rx="140" ry="38" fill="#1a0e09"/>
+
+    <g clip-path="url(#bt-surface)">
+    <ellipse cx="256" cy="268" rx="136" ry="36" fill="url(#bt-stew)"/>
+        <g fill="#f7a23e" opacity=".55">
+      <ellipse cx="190" cy="262" rx="12" ry="4"/><ellipse cx="300" cy="280" rx="9" ry="3"/><ellipse cx="236" cy="286" rx="7" ry="2.5"/>
+      <ellipse cx="330" cy="256" rx="8" ry="3"/><ellipse cx="160" cy="280" rx="6" ry="2"/>
+    </g>
+        <path d="M168 258q22-10 40 2-14 12-40-2z" fill="#c8301a"/><path d="M286 248q20-8 36 4-16 10-36-4z" fill="#c22c18"/>
+    <path d="M318 278q16-8 30 2-12 10-30-2z" fill="#d9442a"/>
+        <g>
+      <path d="M210 256l26-8 22 8-26 9z" fill="url(#bt-tofuTop)"/><path d="M210 256v9l22 9v-9z" fill="#e3d4b6"/><path d="M232 265v9l26-8v-9z" fill="#d6c4a3"/>
+      <path d="M262 266l24-7 20 7-24 8z" fill="url(#bt-tofuTop)"/><path d="M262 266v8l20 8v-8z" fill="#e3d4b6"/><path d="M282 274v8l24-8v-8z" fill="#d6c4a3"/>
+      <path d="M180 278l20-6 18 6-20 7z" fill="url(#bt-tofuTop)"/><path d="M180 278v7l18 7v-7z" fill="#e3d4b6"/>
+    </g>
+        <g fill="none" stroke-width="4">
+      <ellipse cx="248" cy="242" rx="8" ry="3.5" stroke="#5aa83c"/><ellipse cx="300" cy="294" rx="7" ry="3" stroke="#6bbb4a"/>
+      <ellipse cx="200" cy="292" rx="7" ry="3" stroke="#5aa83c"/><ellipse cx="350" cy="268" rx="6" ry="2.6" stroke="#6bbb4a"/>
+      <ellipse cx="170" cy="246" rx="6" ry="2.6" stroke="#4f9a33"/>
+      <ellipse cx="276" cy="240" rx="5" ry="2.2" stroke="#8a0d07"/><ellipse cx="228" cy="296" rx="5" ry="2.2" stroke="#8a0d07"/>
+    </g>
+    <g fill="#e8f3d8"><ellipse cx="248" cy="242" rx="3" ry="1.2"/><ellipse cx="300" cy="294" rx="2.6" ry="1"/><ellipse cx="200" cy="292" rx="2.6" ry="1"/></g>
+        <g fill="#f27a45" stroke="#ffd2a8" stroke-width="1.5">
+      <circle cx="156" cy="266" r="5"/><circle cx="342" cy="286" r="6"/><circle cx="326" cy="244" r="4"/><circle cx="214" cy="240" r="3.5"/><circle cx="268" cy="298" r="4"/>
+    </g>
+    <g fill="#fff" opacity=".8"><circle cx="154.5" cy="264.5" r="1.6"/><circle cx="340" cy="284" r="2"/><circle cx="325" cy="242.8" r="1.3"/></g>
+  </g>
+    <path d="M110 276c30 30 90 42 146 42s116-12 146-42" fill="none" stroke="#8a5a44" stroke-opacity=".6" stroke-width="3"/>
+    </svg>
+    <p class="boot-name">노포 지도</p>
+    <p class="boot-line" id="bootLine"></p>
+  </div>
 </div>
 <script>
-  // the installed app (home-screen PWA or the Android APK) opens on the full-screen signboard; a browser tab does not
+  // the installed app (home-screen PWA or the Android APK) opens on the launch screen; a browser tab does not
   (() => {
     const app = matchMedia("(display-mode: standalone)").matches || !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
     const boot = document.getElementById("boot");
     if (!app) { boot.remove(); return; }
+    // a word from the house, a different one each time
+    const LINES = ["오늘도 뜨끈하게 한 그릇 하고 가요", "밥은 잘 챙겨 먹고 다니지요?", "오래된 집엔 다 이유가 있지요",
+      "국물 식기 전에 어서 와요", "단골집 하나쯤은 있어야지요", "천천히 드시고 가요, 밥은 더 있어요"];
+    const line = LINES[Math.floor(Math.random() * LINES.length)];
+    document.getElementById("bootLine").textContent = line;
     const ready = () => { boot.dataset.t = performance.now(); boot.classList.add("ready"); };
     if (document.fonts && document.fonts.load) {
-      Promise.race([document.fonts.load('1em "Black Han Sans"', "노포지도"), new Promise(r => setTimeout(r, 1200))]).then(ready, ready);
+      Promise.race([Promise.all([document.fonts.load('1em "Black Han Sans"', "노포지도"), document.fonts.load('700 1em "Gowun Batang"', line)]),
+        new Promise(r => setTimeout(r, 1200))]).then(ready, ready);
     } else ready();
   })();
 </script>
@@ -1158,7 +1090,7 @@ dialog .btn { width: 100%; }
     results._regions = regions;
   }
   // Kakao's place search (much better for Korean places) when a JavaScript key is set; else OpenStreetMap
-  const KAKAO_JS_KEY = "4e97e3b7bde5b3f21a2a5e04a8e961de";
+  const KAKAO_JS_KEY = "";
   let kakaoPlaces = null, kakaoGeo = null;
   if (KAKAO_JS_KEY && !KAKAO_JS_KEY.startsWith("__")) {
     const sdk = document.createElement("script");
@@ -1309,7 +1241,7 @@ dialog .btn { width: 100%; }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 3299f4bc";
+    $("aboutVersion").textContent = "앱 버전 8c3fe268";
     $("about").showModal();
   });
 
@@ -1435,7 +1367,7 @@ dialog .btn { width: 100%; }
     if (!boot || boot.classList.contains("out")) return;
     // let the lettering show for a moment once it is painted
     if (!boot.classList.contains("ready")) { setTimeout(leaveBoot, 100); return; }
-    const play = matchMedia("(prefers-reduced-motion: reduce)").matches ? 1400 : 4300;
+    const play = matchMedia("(prefers-reduced-motion: reduce)").matches ? 1200 : 2300;
     setTimeout(() => { boot.classList.add("out"); setTimeout(() => boot.remove(), 500); }, Math.max(0, play - (performance.now() - +boot.dataset.t)));
   };
   setTimeout(leaveBoot, 8000);   // never hold the app hostage to a slow network
