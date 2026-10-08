@@ -1,6 +1,6 @@
 // 노포 지도 service worker: the app shell is served from cache; the store list
 // is fetched fresh when online and falls back to the cached copy offline.
-const CACHE = "nopo-map-135506b0";
+const CACHE = "nopo-map-88aa491a";
 const SHELL = ["./", "./index.html", "./stores.json", "./manifest.webmanifest", "./icon-192.png"];
 
 self.addEventListener("install", e => {
@@ -25,7 +25,7 @@ self.addEventListener("fetch", e => {
     return;
   }
   // map tiles and place search always go to the network; the library and fonts are cached
-  if (/tile\.openstreetmap|nominatim/.test(url.hostname)) return;
+  if (/tile\.openstreetmap|cartocdn|nominatim/.test(url.hostname)) return;
   e.respondWith(caches.open(CACHE).then(c => c.match(req).then(hit => hit || fetch(req).then(res => {
     if (res.ok || res.type === "opaque") c.put(req, res.clone());
     return res;

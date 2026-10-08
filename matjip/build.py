@@ -449,7 +449,7 @@ self.addEventListener("fetch", e => {
     return;
   }
   // map tiles and place search always go to the network; the library and fonts are cached
-  if (/tile\\.openstreetmap|nominatim/.test(url.hostname)) return;
+  if (/tile\\.openstreetmap|cartocdn|nominatim/.test(url.hostname)) return;
   e.respondWith(caches.open(CACHE).then(c => c.match(req).then(hit => hit || fetch(req).then(res => {
     if (res.ok || res.type === "opaque") c.put(req, res.clone());
     return res;
