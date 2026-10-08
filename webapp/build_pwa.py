@@ -90,8 +90,13 @@ MANIFEST = {
     "short_name": "시약선 노트",
     "description": "임신테스트기 사진에서 대조선 대비 시약선 진하기를 재고 기록해요.",
     "lang": "ko",
-    "start_url": "./",
-    "scope": "./",
+    # the app owns only its own page, so other apps in sub-folders of this site
+    # (matjip/ …) can be installed separately; "id" keeps the identity of the
+    # copy installed back when start_url was "./" (an id resolves against the
+    # site's origin, not this folder, hence the repository path)
+    "id": "/YoSebChoi/",
+    "start_url": "./index.html",
+    "scope": "./index.html",
     "display": "standalone",
     "background_color": "#f8f5f6",
     "theme_color": "#a3245c",
