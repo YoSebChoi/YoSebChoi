@@ -62,6 +62,10 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 
 #map { position: fixed; inset: 0; background: var(--bg); }
 .leaflet-container { font-family: var(--font); background: var(--bg); }
+/* soften the busy OSM style a little in light mode; dark mode turns it into a calm night map */
+.base-tiles { filter: saturate(.75) contrast(.96); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .base-tiles { filter: invert(1) hue-rotate(185deg) saturate(.35) brightness(.9) contrast(.88); } }
+:root[data-theme="dark"] .base-tiles { filter: invert(1) hue-rotate(185deg) saturate(.35) brightness(.9) contrast(.88); }
 .leaflet-control-attribution { font-size: 10px; background: color-mix(in srgb, var(--surface) 75%, transparent) !important; color: var(--muted); border-radius: 6px 0 0 0; }
 .leaflet-control-attribution a { color: var(--muted); }
 .leaflet-bottom { bottom: var(--sheet-h, var(--sheet-peek)); transition: bottom .25s ease; }
@@ -239,7 +243,7 @@ dialog .btn { width: 100%; }
     <li>백반기행은 공식 목록이 없어서 카카오맵에 방송 정보가 등록된 곳과 기사로 확인한 곳을 담았어요.</li>
     <li>위치 정보는 이 기기 안에서만 쓰이고 어디에도 저장되지 않아요.</li>
   </ul>
-  <p>지도 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> 기여자 © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> · 백년가게: 공공데이터포털(소상공인시장진흥공단) · 백반기행: 카카오맵 방송 정보와 기사</p>
+  <p>지도 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> 기여자 · 백년가게: 공공데이터포털(소상공인시장진흥공단) · 백반기행: 카카오맵 방송 정보와 기사</p>
   <p id="aboutVersion"></p>
   <form method="dialog"><button class="btn primary">닫기</button></form>
 </dialog>
@@ -286,19 +290,13 @@ dialog .btn { width: 100%; }
   // ---------- map ----------
   const start = store.get("view", { c: [37.5665, 126.978], z: 14 });   // 서울시청 by default
   const map = L.map("map", { zoomControl: false, attributionControl: true }).setView(start.c, start.z);
-  // CARTO's light and dark basemaps (OpenStreetMap data, Korean labels), following the phone's theme
-  const dark = matchMedia("(prefers-color-scheme: dark)");
-  let tiles = null;
-  const setTiles = () => {
-    const style = (document.documentElement.dataset.theme || (dark.matches ? "dark" : "light")) === "dark" ? "dark_all" : "voyager";
-    if (tiles) map.removeLayer(tiles);
-    tiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}{r}.png`, {
-      maxZoom: 20, subdomains: "abcd",
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
-    }).addTo(map);
-  };
-  setTiles();
-  dark.addEventListener?.("change", () => { setTiles(); drawMarkers(); });
+  // OpenStreetMap tiles (Korean labels, no key). In dark mode they are toned down with a
+  // CSS filter on the tile layer rather than swapped for another (keyed) basemap.
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19, className: "base-tiles",
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(map);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => drawMarkers());
   map.attributionControl.setPrefix(false);
   const clusterKind = ms => {
     const ks = new Set(ms.map(m => m.options.kind));
@@ -641,7 +639,7 @@ dialog .btn { width: 100%; }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 88aa491a";
+    $("aboutVersion").textContent = "앱 버전 b2c29fa1";
     $("about").showModal();
   });
 
