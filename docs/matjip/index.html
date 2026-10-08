@@ -3,153 +3,185 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#7a3b2e">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1e1e1f" media="(prefers-color-scheme: dark)">
 <meta name="description" content="내 주변 또는 지도에서 고른 곳 근처의 백년가게와 허영만의 백반기행 맛집을 찾아요.">
 <title>노포 지도</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 /* Layout: the map fills the screen; a search bar floats on top, and a sheet at the
    bottom lists what is near the map's centre, nearest first. Dragging the map
-   re-centres the list. Mood: rice paper, soy and hanji — an old eatery's signboard. */
+   re-centres the list.
+   Look: a clean, bright map app — white cards on a soft map, one warm accent,
+   and a colour per list: indigo 백년가게, gochujang red 백반기행, amber for both. */
 :root {
-  --bg: #f6f1e7;
-  --surface: #fffcf6;
-  --surface-2: #efe7d8;
-  --ink: #2e2620;
-  --muted: #776b60;
-  --rule: #e4d9c6;
-  --accent: #7a3b2e;          /* soy brown */
-  --accent-ink: #fffcf6;
-  --bn: #2f5d8a;              /* 백년가게: indigo, like an old signboard */
-  --bb: #c7472f;              /* 백반기행: gochujang red */
-  --both: #a0761b;            /* both: brass */
-  --me: #1f7a6d;
-  --shadow: 0 1px 2px rgba(46, 38, 32, .08), 0 8px 28px rgba(46, 38, 32, .14);
-  --font-display: "Gowun Batang", "Noto Serif KR", "AppleMyungjo", serif;
-  --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --sheet-peek: 216px;
+  --bg: #f3f1ee;
+  --surface: #ffffff;
+  --surface-2: #f4f2ef;
+  --surface-3: #ebe7e2;
+  --ink: #1d1b19;
+  --ink-2: #4a4540;
+  --muted: #8a827a;
+  --rule: #ece8e3;
+  --accent: #d2462c;
+  --accent-ink: #ffffff;
+  --bn: #3457a6;
+  --bb: #d2462c;
+  --both: #c98410;
+  --me: #1a73e8;
+  --shadow-sm: 0 1px 2px rgba(29, 27, 25, .06), 0 2px 8px rgba(29, 27, 25, .06);
+  --shadow: 0 2px 6px rgba(29, 27, 25, .08), 0 10px 30px rgba(29, 27, 25, .12);
+  --font: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --sheet-peek: 236px;
+  color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #1a1714; --surface: #24201c; --surface-2: #2e2924; --ink: #efe7dc; --muted: #ab9f92; --rule: #3a342d;
-    --accent: #e0a08c; --accent-ink: #1a1714; --bn: #8db4dd; --bb: #ef8a72; --both: #dcb563; --me: #6cc7b8;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .4);
+    --bg: #121212; --surface: #1e1e1f; --surface-2: #262628; --surface-3: #303033; --ink: #f2f0ed; --ink-2: #cfcac4; --muted: #8f8a85; --rule: #2c2c2e;
+    --accent: #ff7a5c; --accent-ink: #1a0f0b; --bn: #8eaaf0; --bb: #ff7a5c; --both: #f2b443; --me: #6aa8ff;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow: 0 2px 6px rgba(0, 0, 0, .35), 0 10px 30px rgba(0, 0, 0, .45);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #1a1714; --surface: #24201c; --surface-2: #2e2924; --ink: #efe7dc; --muted: #ab9f92; --rule: #3a342d;
-  --accent: #e0a08c; --accent-ink: #1a1714; --bn: #8db4dd; --bb: #ef8a72; --both: #dcb563; --me: #6cc7b8;
-  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 28px rgba(0, 0, 0, .4);
+  --bg: #121212; --surface: #1e1e1f; --surface-2: #262628; --surface-3: #303033; --ink: #f2f0ed; --ink-2: #cfcac4; --muted: #8f8a85; --rule: #2c2c2e;
+  --accent: #ff7a5c; --accent-ink: #1a0f0b; --bn: #8eaaf0; --bb: #ff7a5c; --both: #f2b443; --me: #6aa8ff;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow: 0 2px 6px rgba(0, 0, 0, .35), 0 10px 30px rgba(0, 0, 0, .45);
   color-scheme: dark;
 }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; margin: 0; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; overflow: hidden; }
-button, input { font: inherit; color: inherit; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; overflow: hidden; letter-spacing: -0.01em; }
+button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
 [hidden] { display: none !important; }
 
-#map { position: fixed; inset: 0; background: var(--surface-2); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .leaflet-tile-pane { filter: brightness(.72) contrast(1.1) saturate(.6) invert(1) hue-rotate(180deg); } }
-:root[data-theme="dark"] .leaflet-tile-pane { filter: brightness(.72) contrast(1.1) saturate(.6) invert(1) hue-rotate(180deg); }
-.leaflet-container { font-family: var(--font-body); }
-.leaflet-control-attribution { font-size: 10px; background: color-mix(in srgb, var(--surface) 80%, transparent) !important; color: var(--muted); }
+#map { position: fixed; inset: 0; background: var(--bg); }
+.leaflet-container { font-family: var(--font); background: var(--bg); }
+.leaflet-control-attribution { font-size: 10px; background: color-mix(in srgb, var(--surface) 75%, transparent) !important; color: var(--muted); border-radius: 6px 0 0 0; }
 .leaflet-control-attribution a { color: var(--muted); }
+.leaflet-bottom { bottom: var(--sheet-h, var(--sheet-peek)); transition: bottom .25s ease; }
+.leaflet-tooltip { font-family: var(--font); font-weight: 600; border: 0; border-radius: 8px; box-shadow: var(--shadow-sm); background: var(--surface); color: var(--ink); padding: 3px 8px; }
+.leaflet-tooltip-top::before { border-top-color: var(--surface); }
+
+/* pins */
+.pin { width: 30px; height: 38px; position: relative; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+.pin svg { width: 30px; height: 38px; display: block; }
+.pin .body { fill: var(--k); stroke: #fff; stroke-width: 2; }
+.pin .glyph { fill: #fff; }
+.pin.approx { opacity: .6; }
+.pin.sel { transform: scale(1.25); transform-origin: 50% 100%; z-index: 1000 !important; }
+.cluster { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; color: #fff;
+  background: var(--k, #48413b); box-shadow: 0 0 0 4px color-mix(in srgb, var(--k, #48413b) 28%, transparent), var(--shadow-sm); }
+.cluster.lg { width: 48px; height: 48px; font-size: 14px; }
+.me-dot { width: 18px; height: 18px; border-radius: 50%; background: var(--me); border: 3px solid #fff; box-shadow: 0 0 0 6px color-mix(in srgb, var(--me) 25%, transparent), var(--shadow-sm); }
 
 /* top: search + filters */
 .top { position: fixed; z-index: 1000; left: 0; right: 0; top: 0; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0;
   pointer-events: none; max-width: 560px; margin: 0 auto; }
 .top > * { pointer-events: auto; }
-.searchbar { display: flex; align-items: center; gap: 4px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); padding: 4px 4px 4px 14px; }
-.brand { font-family: var(--font-display); font-weight: 700; color: var(--accent); white-space: nowrap; font-size: 16px; }
-.searchbar input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 6px; outline: none; font-size: 16px; }
+.searchbar { display: flex; align-items: center; gap: 2px; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 4px 4px 4px 8px; height: 52px; }
+.logo { flex: none; width: 34px; height: 34px; border-radius: 10px; background: var(--accent); display: grid; place-items: center; }
+.logo svg { width: 22px; height: 22px; }
+.searchbar input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 8px; outline: none; font-size: 16px; }
 .searchbar input::placeholder { color: var(--muted); }
-.icon-btn { flex: none; width: 40px; height: 40px; border: 0; border-radius: 12px; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--muted); }
-.icon-btn:hover { background: var(--surface-2); }
-.icon-btn svg { width: 20px; height: 20px; }
-.chips { display: flex; gap: 6px; margin: 4px -12px 0; overflow-x: auto; scrollbar-width: none; padding: 4px 12px 12px; }
+.searchbar input::-webkit-search-cancel-button { display: none; }
+.icon-btn { flex: none; width: 42px; height: 42px; border: 0; border-radius: 12px; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--ink-2); }
+.icon-btn:active { background: var(--surface-2); }
+.icon-btn svg { width: 21px; height: 21px; }
+.chips { display: flex; gap: 6px; margin: 2px -12px 0; overflow-x: auto; scrollbar-width: none; padding: 8px 12px 12px; }
 .chips::-webkit-scrollbar { display: none; }
-.chip { flex: none; border: 0; border-radius: 999px; padding: 6px 12px; background: var(--surface); box-shadow: var(--shadow); cursor: pointer; font-size: 14px; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
-.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; border: 2px solid var(--surface); box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.chip { flex: none; border: 0; border-radius: 999px; height: 34px; padding: 0 14px; background: var(--surface); box-shadow: var(--shadow-sm); cursor: pointer;
+  font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.chip .n { font-weight: 500; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--surface) 65%, transparent); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
 .dot.bn { background: var(--bn); } .dot.bb { background: var(--bb); } .dot.both { background: var(--both); }
 
 /* search results */
-.results { margin-top: 8px; background: var(--surface); border-radius: 16px; box-shadow: var(--shadow); max-height: min(55vh, 420px); overflow-y: auto; padding: 6px; }
-.results h3 { font-size: 12px; color: var(--muted); font-weight: 400; margin: 8px 10px 4px; }
-.results button { display: block; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 10px; padding: 9px 10px; cursor: pointer; }
-.results button:hover, .results button:focus-visible { background: var(--surface-2); outline: none; }
-.results .sub { display: block; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.results { margin-top: 8px; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); max-height: min(55vh, 440px); overflow-y: auto; padding: 6px; }
+.results h3 { font-size: 12px; color: var(--muted); font-weight: 600; margin: 10px 10px 4px; }
+.results button { display: block; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 10px; padding: 9px 10px; cursor: pointer; font-weight: 600; }
+.results button:active, .results button:focus-visible { background: var(--surface-2); outline: none; }
+.results .sub { display: block; font-size: 13px; color: var(--muted); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .results .empty { padding: 10px; color: var(--muted); font-size: 14px; }
 
 /* floating actions */
-.fab { position: fixed; z-index: 900; right: 12px; width: 48px; height: 48px; border-radius: 16px; border: 0; background: var(--surface); box-shadow: var(--shadow);
-  display: grid; place-items: center; cursor: pointer; color: var(--ink); transition: bottom .25s ease; }
+.fab { position: fixed; z-index: 900; right: 12px; width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--surface); box-shadow: var(--shadow);
+  display: grid; place-items: center; cursor: pointer; color: var(--ink-2); transition: bottom .25s ease; }
 .fab svg { width: 22px; height: 22px; }
 .fab.locate { bottom: calc(var(--sheet-h, var(--sheet-peek)) + 14px); }
 .fab.locate.busy svg { animation: spin 1s linear infinite; }
 .fab.locate.on { color: var(--me); }
 @keyframes spin { to { transform: rotate(360deg); } }
-.crosshair { position: fixed; z-index: 500; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; pointer-events: none; opacity: .55; color: var(--ink); }
+.crosshair { position: fixed; z-index: 500; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; pointer-events: none; color: var(--ink); opacity: .45; }
 
 /* bottom sheet */
-.sheet { position: fixed; z-index: 950; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: var(--surface); border-radius: 22px 22px 0 0;
-  box-shadow: 0 -4px 30px rgba(46, 38, 32, .18); height: var(--sheet-h, var(--sheet-peek)); display: flex; flex-direction: column;
+.sheet { position: fixed; z-index: 950; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: var(--surface); border-radius: 20px 20px 0 0;
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, .12); height: var(--sheet-h, var(--sheet-peek)); display: flex; flex-direction: column;
   transition: height .25s ease; padding-bottom: env(safe-area-inset-bottom, 0px); }
 .sheet.dragging { transition: none; }
-.grab { flex: none; padding: 8px 18px 6px; cursor: grab; touch-action: none; user-select: none; }
-.grab::before { content: ""; display: block; width: 40px; height: 5px; border-radius: 3px; background: var(--rule); margin: 0 auto 8px; }
-.sheet-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.sheet-title { font-family: var(--font-display); font-weight: 700; font-size: 18px; margin: 0; }
-.sheet-sub { font-size: 13px; color: var(--muted); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.radius { flex: none; font-size: 13px; color: var(--muted); }
-.radius select { border: 0; background: var(--surface-2); border-radius: 8px; padding: 3px 6px; font: inherit; color: var(--ink); }
-.list { flex: 1; overflow-y: auto; padding: 0 10px 12px; overscroll-behavior: contain; }
-.item { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 11px 10px; border-radius: 14px; cursor: pointer; border: 0; background: transparent; width: 100%; text-align: left; }
-.item:hover, .item.sel { background: var(--surface-2); }
-.item .name { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 6px; min-width: 0; }
-.item .name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.item .dist { font-size: 13px; color: var(--muted); align-self: center; font-variant-numeric: tabular-nums; }
-.item .meta { grid-column: 1 / -1; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tags { display: inline-flex; gap: 4px; flex: none; }
-.tag { font-size: 11px; font-weight: 400; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+.grab { flex: none; padding: 8px 18px 8px; cursor: grab; touch-action: none; user-select: none; }
+.grab::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--surface-3); margin: 0 auto 10px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sheet-title { font-weight: 700; font-size: 19px; margin: 0; letter-spacing: -0.02em; white-space: nowrap; }
+.sheet-title b { color: var(--accent); }
+.sheet-sub { font-size: 13px; color: var(--muted); margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radius { flex: none; display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 2px; }
+.radius button { border: 0; background: transparent; border-radius: 8px; padding: 4px 7px; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.radius button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.list { flex: 1; overflow-y: auto; padding: 2px 12px 16px; overscroll-behavior: contain; }
+.item { display: grid; grid-template-columns: 40px 1fr auto; gap: 0 12px; align-items: center; padding: 12px 6px; cursor: pointer; border: 0; border-bottom: 1px solid var(--rule);
+  background: transparent; width: 100%; text-align: left; }
+.item:last-child { border-bottom: 0; }
+.item:active { background: var(--surface-2); }
+.badge { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--k) 14%, transparent); color: var(--k); }
+.badge svg { width: 22px; height: 22px; }
+.item .txt { min-width: 0; }
+.item .name { font-weight: 700; font-size: 16px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .meta { display: block; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.item .dist { font-size: 13px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tags { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.tag { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
 .tag.bn { color: var(--bn); background: color-mix(in srgb, var(--bn) 13%, transparent); }
 .tag.bb { color: var(--bb); background: color-mix(in srgb, var(--bb) 13%, transparent); }
-.note { font-size: 13px; color: var(--muted); padding: 14px 10px; }
-.note button { border: 0; background: var(--surface-2); border-radius: 8px; padding: 4px 10px; cursor: pointer; margin-top: 6px; }
+.item .tags { margin-right: 4px; vertical-align: 1px; }
+.note { font-size: 14px; color: var(--muted); padding: 18px 8px; text-align: center; line-height: 1.6; }
+.note button { border: 0; background: var(--surface-2); color: var(--ink); font-weight: 600; border-radius: 10px; padding: 8px 14px; cursor: pointer; margin-top: 10px; }
 
 /* detail card */
-.detail { padding: 2px 18px 16px; overflow-y: auto; }
-.detail h2 { font-family: var(--font-display); font-size: 22px; margin: 2px 0 6px; line-height: 1.3; }
-.detail .tags { margin-bottom: 8px; }
-.detail .tag { font-size: 12px; padding: 2px 8px; }
-.facts { margin: 0 0 12px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 14px; }
-.facts dt { color: var(--muted); }
-.facts dd { margin: 0; }
-.facts a { color: var(--accent); }
-.actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.btn { border: 0; border-radius: 12px; padding: 9px 14px; background: var(--surface-2); color: var(--ink); text-decoration: none; font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-.btn.primary { background: var(--accent); color: var(--accent-ink); }
-.back { border: 0; background: transparent; color: var(--muted); padding: 0; cursor: pointer; font-size: 14px; }
-.warn { font-size: 13px; color: var(--muted); background: var(--surface-2); border-radius: 10px; padding: 8px 10px; margin: 0 0 12px; }
+.detail { padding: 0 18px 18px; overflow-y: auto; }
+.detail-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.back { border: 0; background: var(--surface-2); color: var(--ink-2); border-radius: 999px; padding: 5px 12px 5px 9px; cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
+.detail h2 { font-size: 23px; font-weight: 800; margin: 8px 0 6px; line-height: 1.3; letter-spacing: -0.03em; }
+.detail .tag { font-size: 12px; padding: 3px 8px; }
+.facts { margin: 14px 0 16px; display: grid; gap: 10px; font-size: 14px; }
+.fact { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; color: var(--ink-2); }
+.fact svg { width: 18px; height: 18px; color: var(--muted); margin-top: 2px; }
+.fact a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btn { border: 0; border-radius: 12px; height: 46px; padding: 0 14px; background: var(--surface-2); color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); grid-column: 1 / -1; }
+.warn { font-size: 13px; color: var(--ink-2); background: color-mix(in srgb, var(--both) 14%, transparent); border-radius: 10px; padding: 9px 12px; margin: 10px 0 0; }
 
-.toast { position: fixed; z-index: 1100; left: 50%; transform: translateX(-50%); top: calc(120px + env(safe-area-inset-top, 0px)); background: var(--ink); color: var(--bg);
-  border-radius: 12px; padding: 9px 14px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
+.toast { position: fixed; z-index: 1100; left: 50%; transform: translateX(-50%); top: calc(118px + env(safe-area-inset-top, 0px)); background: var(--ink); color: var(--surface);
+  border-radius: 12px; padding: 10px 16px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
 
 /* about */
-dialog { border: 0; border-radius: 20px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); max-width: min(480px, calc(100% - 32px)); padding: 20px 22px; }
-dialog::backdrop { background: rgba(0, 0, 0, .35); }
-dialog h2 { font-family: var(--font-display); margin: 0 0 8px; font-size: 20px; }
-dialog p, dialog li { font-size: 14px; color: var(--muted); }
-dialog ul { padding-left: 18px; }
+dialog { border: 0; border-radius: 20px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); max-width: min(480px, calc(100% - 32px)); padding: 22px; }
+dialog::backdrop { background: rgba(0, 0, 0, .4); }
+dialog h2 { margin: 0 0 8px; font-size: 20px; font-weight: 800; }
+dialog p, dialog li { font-size: 14px; color: var(--ink-2); }
+dialog ul { padding-left: 18px; color: var(--muted); }
 dialog a { color: var(--accent); }
-.legend { display: flex; flex-direction: column; gap: 6px; font-size: 14px; margin: 10px 0; }
+dialog .btn { width: 100%; }
+.legend { display: flex; flex-direction: column; gap: 8px; font-size: 14px; margin: 12px 0; }
 .legend span { display: inline-flex; align-items: center; gap: 8px; }
 </style>
 </head>
@@ -159,17 +191,17 @@ dialog a { color: var(--accent); }
 
 <div class="top">
   <form class="searchbar" id="searchForm" role="search" autocomplete="off">
-    <span class="brand">노포 지도</span>
-    <input id="q" type="search" placeholder="식당 이름, 동네, 역 이름" aria-label="식당 이름이나 장소 검색" enterkeyhint="search">
+    <span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M12 2.5a6.5 6.5 0 0 0-6.5 6.5c0 4.6 6.5 11.5 6.5 11.5s6.5-6.9 6.5-11.5A6.5 6.5 0 0 0 12 2.5Z" fill="#fff"/><path d="M8.6 8.4h6.8a3.4 3.4 0 0 1-6.8 0Z" fill="var(--accent)"/><path d="M10.4 6.6c.3-.6.3-1 0-1.6M12.6 6.6c.3-.6.3-1 0-1.6" stroke="var(--accent)" stroke-width="1.1" stroke-linecap="round"/></svg></span>
+    <input id="q" type="search" placeholder="노포 이름, 동네, 역 검색" aria-label="식당 이름이나 장소 검색" enterkeyhint="search">
     <button class="icon-btn" type="submit" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
     <button class="icon-btn" type="button" id="aboutBtn" aria-label="앱 정보"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
   </form>
   <div class="results" id="results" hidden></div>
   <div class="chips" role="group" aria-label="보기 필터">
-    <button class="chip" type="button" data-f="all" aria-pressed="true">전체</button>
-    <button class="chip" type="button" data-f="bn" aria-pressed="false"><i class="dot bn"></i>백년가게</button>
-    <button class="chip" type="button" data-f="bb" aria-pressed="false"><i class="dot bb"></i>백반기행</button>
-    <button class="chip" type="button" data-f="both" aria-pressed="false"><i class="dot both"></i>둘 다</button>
+    <button class="chip" type="button" data-f="all" aria-pressed="true">전체 <span class="n"></span></button>
+    <button class="chip" type="button" data-f="bn" aria-pressed="false"><i class="dot bn"></i>백년가게 <span class="n"></span></button>
+    <button class="chip" type="button" data-f="bb" aria-pressed="false"><i class="dot bb"></i>백반기행 <span class="n"></span></button>
+    <button class="chip" type="button" data-f="both" aria-pressed="false"><i class="dot both"></i>둘 다 <span class="n"></span></button>
   </div>
 </div>
 
@@ -181,14 +213,9 @@ dialog a { color: var(--accent); }
   <div class="grab" id="grab">
     <div class="sheet-head">
       <h1 class="sheet-title" id="sheetTitle">주변 노포</h1>
-      <label class="radius">반경
-        <select id="radius" aria-label="검색 반경">
-          <option value="1000">1km</option>
-          <option value="3000" selected>3km</option>
-          <option value="10000">10km</option>
-          <option value="30000">30km</option>
-        </select>
-      </label>
+      <div class="radius" id="radius" role="group" aria-label="검색 반경">
+        <button type="button" data-r="1000">1km</button><button type="button" data-r="3000">3km</button><button type="button" data-r="10000">10km</button><button type="button" data-r="30000">30km</button>
+      </div>
     </div>
     <p class="sheet-sub" id="sheetSub">불러오는 중…</p>
   </div>
@@ -209,15 +236,16 @@ dialog a { color: var(--accent); }
   <p id="aboutData"></p>
   <ul>
     <li>방송 뒤에 옮기거나 문을 닫은 곳이 있을 수 있어요. 가기 전에 지도 앱에서 영업 여부를 꼭 확인하세요.</li>
-    <li>백반기행은 공식 목록이 없어서 기사와 블로그로 확인한 곳만 담았어요.</li>
+    <li>백반기행은 공식 목록이 없어서 카카오맵에 방송 정보가 등록된 곳과 기사로 확인한 곳을 담았어요.</li>
     <li>위치 정보는 이 기기 안에서만 쓰이고 어디에도 저장되지 않아요.</li>
   </ul>
-  <p>지도 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> 기여자 · 백년가게 자료: 공공데이터포털(소상공인시장진흥공단)</p>
+  <p>지도 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> 기여자 © <a href="https://carto.com/attributions" target="_blank" rel="noopener">CARTO</a> · 백년가게: 공공데이터포털(소상공인시장진흥공단) · 백반기행: 카카오맵 방송 정보와 기사</p>
   <p id="aboutVersion"></p>
   <form method="dialog"><button class="btn primary">닫기</button></form>
 </dialog>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
 <script>
 (() => {
   "use strict";
@@ -257,36 +285,83 @@ dialog a { color: var(--accent); }
 
   // ---------- map ----------
   const start = store.get("view", { c: [37.5665, 126.978], z: 14 });   // 서울시청 by default
-  const map = L.map("map", { zoomControl: false, preferCanvas: true, attributionControl: true }).setView(start.c, start.z);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-  }).addTo(map);
+  const map = L.map("map", { zoomControl: false, attributionControl: true }).setView(start.c, start.z);
+  // CARTO's light and dark basemaps (OpenStreetMap data, Korean labels), following the phone's theme
+  const dark = matchMedia("(prefers-color-scheme: dark)");
+  let tiles = null;
+  const setTiles = () => {
+    const style = (document.documentElement.dataset.theme || (dark.matches ? "dark" : "light")) === "dark" ? "dark_all" : "voyager";
+    if (tiles) map.removeLayer(tiles);
+    tiles = L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/${style}/{z}/{x}/{y}{r}.png`, {
+      maxZoom: 20, subdomains: "abcd",
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/attributions">CARTO</a>',
+    }).addTo(map);
+  };
+  setTiles();
+  dark.addEventListener?.("change", () => { setTiles(); drawMarkers(); });
   map.attributionControl.setPrefix(false);
-  const markers = L.layerGroup().addTo(map);
-  let meMarker = null, meAcc = null, selMarker = null;
+  const clusterKind = ms => {
+    const ks = new Set(ms.map(m => m.options.kind));
+    return ks.size === 1 ? [...ks][0] : null;
+  };
+  const markers = (L.markerClusterGroup ? L.markerClusterGroup({
+    showCoverageOnHover: false, spiderfyOnMaxZoom: true, maxClusterRadius: 48, disableClusteringAtZoom: 15,
+    iconCreateFunction: c => {
+      const n = c.getChildCount(), k = clusterKind(c.getAllChildMarkers());
+      return L.divIcon({ html: `<div class="cluster${n >= 100 ? " lg" : ""}" style="${k ? `--k:var(--${k})` : ""}">${n}</div>`, className: "", iconSize: [48, 48] });
+    },
+  }) : L.layerGroup()).addTo(map);
+  let meMarker = null, meAcc = null, selId = null;
+  const markerById = new Map();
 
   // ---------- data ----------
   let stores = [], unplaced = [], meta = {};
   let filter = store.get("filter", "all");
   let radius = store.get("radius", 3000);
   let selected = null;
-  $("radius").value = String(radius);
 
   const kindOf = s => s.t.length > 1 ? "both" : s.t[0];
-  const colorOf = s => css("--" + kindOf(s));
   const passes = s => filter === "all" || (filter === "both" ? s.t.length > 1 : s.t.includes(filter));
   const tagHtml = s => `<span class="tags">${s.t.includes("bn") ? '<span class="tag bn">백년가게</span>' : ""}${s.t.includes("bb") ? '<span class="tag bb">백반기행</span>' : ""}</span>`;
+  const shortAddr = a => a.split(/\s+/).slice(1, 4).join(" ");
   const fmtDist = m => m < 1000 ? `${Math.round(m / 10) * 10}m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)}km`;
+
+  // a signboard for 백년가게, a rice bowl for 백반기행, a star for both
+  const GLYPH = {
+    bn: '<path class="glyph" d="M9 10.5h12v7H9z M11 17.5v3M19 17.5v3" stroke="#fff" stroke-width="1.6" fill="none"/><path class="glyph" d="M12 13h6v1.6h-6z"/>',
+    bb: '<path class="glyph" d="M8.5 13h13a6.5 6.5 0 0 1-13 0Z"/><path d="M12.5 11c.5-.9.5-1.6 0-2.4M16.5 11c.5-.9.5-1.6 0-2.4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none"/>',
+    both: '<path class="glyph" d="m15 8.2 1.9 3.9 4.3.6-3.1 3 .7 4.3-3.8-2-3.8 2 .7-4.3-3.1-3 4.3-.6Z"/>',
+  };
+  const BADGE = {
+    bn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 6h16v9H4z"/><path d="M7 15v4M17 15v4M8 10.5h8"/></svg>',
+    bb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3.5 11h17a8.5 8.5 0 0 1-17 0Z"/><path d="M9 8c.6-1 .6-2 0-3M13 8c.6-1 .6-2 0-3"/></svg>',
+    both: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3.5 2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z"/></svg>',
+  };
+  const pinIcon = (s, sel) => L.divIcon({
+    className: "", iconSize: [30, 38], iconAnchor: [15, 37], tooltipAnchor: [0, -34],
+    html: `<div class="pin${s.x ? " approx" : ""}${sel ? " sel" : ""}" style="--k:var(--${kindOf(s)})"><svg viewBox="0 0 30 38"><path class="body" d="M15 1.5C7.5 1.5 1.5 7.4 1.5 14.8 1.5 24.4 15 36.5 15 36.5S28.5 24.4 28.5 14.8C28.5 7.4 22.5 1.5 15 1.5Z"/>${GLYPH[kindOf(s)]}</svg></div>`,
+  });
 
   function drawMarkers() {
     markers.clearLayers();
+    markerById.clear();
+    const list = [];
     for (const s of stores) {
       if (!passes(s)) continue;
-      const m = L.circleMarker(s.ll, { radius: 7, weight: 2, color: css("--surface"), fillColor: colorOf(s), fillOpacity: s.x ? .55 : .95 });
+      const m = L.marker(s.ll, { icon: pinIcon(s, s.id === selId), kind: kindOf(s), riseOnHover: true });
       m.on("click", () => openDetail(s, false));
-      m.bindTooltip(s.n, { direction: "top", offset: [0, -6] });
-      markers.addLayer(m);
+      m.bindTooltip(s.n, { direction: "top" });
+      markerById.set(s.id, m);
+      list.push(m);
     }
+    markers.addLayers ? markers.addLayers(list) : list.forEach(m => markers.addLayer(m));
+  }
+  function markSelected(id) {
+    const prev = markerById.get(selId);
+    if (prev) prev.setIcon(pinIcon(stores[selId], false));
+    selId = id;
+    const m = markerById.get(id);
+    if (m) { m.setIcon(pinIcon(stores[id], true)); m.setZIndexOffset(1000); }
   }
 
   // ---------- nearby list ----------
@@ -301,22 +376,23 @@ dialog a { color: var(--accent); }
       if (d <= radius) near.push([d, s]);
     }
     near.sort((a, b) => a[0] - b[0]);
-    $("sheetTitle").textContent = near.length ? `가까운 노포 ${near.length}곳` : "주변 노포";
-    $("sheetSub").textContent = (centerLabel ? centerLabel + " · " : "") + `지도 가운데에서 ${radius / 1000}km 안`;
+    $("sheetTitle").innerHTML = near.length ? `가까운 노포 <b>${near.length}</b>곳` : "주변 노포";
+    $("sheetSub").textContent = (centerLabel ? centerLabel + " · " : "") + `지도 가운데 ＋ 기준 ${radius / 1000}km`;
     const list = $("list");
     if (!stores.length) { list.innerHTML = '<div class="note">아직 지도에 올라간 식당이 없어요.</div>'; return; }
     if (!near.length) {
       // point at the nearest one, wherever it is
       let best = null;
       for (const s of stores) if (passes(s)) { const d = c.distanceTo(s.ll); if (!best || d < best[0]) best = [d, s]; }
-      list.innerHTML = `<div class="note">${radius / 1000}km 안에는 없어요.` +
-        (best ? `<br>가장 가까운 곳은 ${esc(best[1].n)} (${fmtDist(best[0])})<br><button type="button" id="goNearest">그곳 보기</button>` : "") + "</div>";
+      list.innerHTML = `<div class="note">${radius / 1000}km 안에는 아직 없어요.` +
+        (best ? `<br>가장 가까운 곳은 <b>${esc(best[1].n)}</b> · ${fmtDist(best[0])}<br><button type="button" id="goNearest">그곳으로 이동</button>` : "") + "</div>";
       if (best) $("goNearest").onclick = () => openDetail(best[1], true);
       return;
     }
     list.innerHTML = near.slice(0, 80).map(([d, s]) =>
-      `<button class="item" type="button" data-id="${s.id}"><span class="name"><span>${esc(s.n)}</span>${tagHtml(s)}</span>` +
-      `<span class="dist">${fmtDist(d)}</span><span class="meta">${esc([s.m, s.a].filter(Boolean).join(" · "))}</span></button>`).join("") +
+      `<button class="item" type="button" data-id="${s.id}"><span class="badge" style="--k:var(--${kindOf(s)})">${BADGE[kindOf(s)]}</span>` +
+      `<span class="txt"><span class="name">${esc(s.n)}</span><span class="meta">${tagHtml(s)}${esc([s.m, shortAddr(s.a)].filter(Boolean).join(" · "))}</span></span>` +
+      `<span class="dist">${fmtDist(d)}</span></button>`).join("") +
       (near.length > 80 ? `<div class="note">가까운 80곳만 보여요. 지도를 확대하거나 반경을 줄여 보세요.</div>` : "");
   }
   $("list").addEventListener("click", e => {
@@ -355,46 +431,57 @@ dialog a { color: var(--accent); }
   };
 
   // ---------- detail ----------
+  const ICON = {
+    menu: '<path d="M7 3v8a2 2 0 0 0 4 0V3M9 11v10M17 3c-1.7 1.3-2.5 3.5-2.5 6.5V13H17v8"/>',
+    addr: '<path d="M12 21s7-6.2 7-11.5a7 7 0 0 0-14 0C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    phone: '<path d="M5 3.5h3.5l1.5 4.5-2.2 1.4a11 11 0 0 0 4.8 4.8L14 12l4.5 1.5V17a2 2 0 0 1-2 2A13.5 13.5 0 0 1 3 5.5a2 2 0 0 1 2-2Z"/>',
+    since: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    award: '<circle cx="12" cy="9" r="5.5"/><path d="m9 13.8-1.5 7 4.5-2.3 4.5 2.3-1.5-7"/>',
+    tv: '<rect x="3" y="6" width="18" height="12.5" rx="2"/><path d="m9 2.5 3 3.5 3-3.5"/>',
+    dist: '<path d="M4 12h16M14 6l6 6-6 6"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  };
+  const fact = (icon, html) => `<div class="fact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[icon]}</svg><div>${html}</div></div>`;
   function openDetail(s, move) {
     selected = s;
-    if (selMarker) map.removeLayer(selMarker);
-    selMarker = L.circleMarker(s.ll, { radius: 13, weight: 3, color: colorOf(s), fill: false, interactive: false }).addTo(map);
+    markSelected(s.id);
     const d = meMarker ? meMarker.getLatLng().distanceTo(s.ll) : null;
     const q = encodeURIComponent(`${s.n} ${s.a.split(/\s+/).slice(0, 2).join(" ")}`);
     const name = encodeURIComponent(s.n);
     const [lat, lng] = s.ll;
+    const kakaoPlace = s.u && s.u.includes("place.map.kakao.com");
     const facts = [
-      s.m && ["메뉴", esc(s.m)],
-      ["주소", esc(s.a)],
-      s.p && ["전화", `<a href="tel:${esc(s.p.replace(/[^\d+]/g, ""))}">${esc(s.p)}</a>`],
-      s.s && ["창업", `${s.s}년 (${new Date().getFullYear() - s.s}년째)`],
-      s.y && ["지정", `${s.y}년 백년가게`],
-      s.e && ["방송", esc(s.e)],
-      d != null && ["거리", `내 위치에서 ${fmtDist(d)}`],
-      s.u && ["출처", `<a href="${esc(s.u)}" target="_blank" rel="noopener">자료 보기</a>`],
+      s.m && fact("menu", esc(s.m)),
+      fact("addr", esc(s.a)),
+      s.p && fact("phone", `<a href="tel:${esc(s.p.replace(/[^\d+]/g, ""))}">${esc(s.p)}</a>`),
+      s.s && fact("since", `${s.s}년 창업 · ${new Date().getFullYear() - s.s}년째`),
+      s.y && fact("award", `${s.y}년 백년가게 지정`),
+      s.e && fact("tv", esc(s.e)),
+      d != null && fact("dist", `내 위치에서 ${fmtDist(d)}`),
+      s.u && !kakaoPlace && fact("link", `<a href="${esc(s.u)}" target="_blank" rel="noopener">소개 기사 보기</a>`),
     ].filter(Boolean);
     $("detail").innerHTML =
-      `<button class="back" type="button" id="back">‹ 목록으로</button>` +
-      `<h2>${esc(s.n)}</h2>${tagHtml(s)}` +
+      `<div class="detail-top"><button class="back" type="button" id="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m15 5-7 7 7 7"/></svg>목록</button>${tagHtml(s)}</div>` +
+      `<h2>${esc(s.n)}</h2>` +
       (s.x ? `<p class="warn">정확한 번지를 찾지 못해 길 위치로 표시했어요. 실제 위치는 지도 앱에서 확인하세요.</p>` : "") +
-      `<dl class="facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>` +
+      `<div class="facts">${facts.join("")}</div>` +
       `<div class="actions">` +
-      `<a class="btn primary" href="https://map.kakao.com/link/to/${name},${lat},${lng}" target="_blank" rel="noopener">카카오맵 길찾기</a>` +
+      `<a class="btn primary" href="https://map.kakao.com/link/to/${name},${lat},${lng}" target="_blank" rel="noopener">길찾기</a>` +
+      `<a class="btn" href="${kakaoPlace ? esc(s.u) : `https://map.kakao.com/link/search/${q}`}" target="_blank" rel="noopener">카카오맵</a>` +
       `<a class="btn" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버 지도</a>` +
-      `<a class="btn" href="https://map.kakao.com/link/search/${q}" target="_blank" rel="noopener">카카오맵에서 보기</a>` +
       `</div>`;
     $("list").hidden = true;
     $("detail").hidden = false;
     $("grab").querySelector(".sheet-head").hidden = true;
     $("sheetSub").hidden = true;
     $("back").onclick = closeDetail;
-    setSheet(Math.max(sheetH(), 330));
+    setSheet(Math.max(sheetH(), 360));
     if (move) flyTo(s.ll, Math.max(map.getZoom(), 16));
     else if (!map.getBounds().pad(-.2).contains(s.ll)) map.panTo(s.ll);
   }
   function closeDetail() {
     selected = null;
-    if (selMarker) { map.removeLayer(selMarker); selMarker = null; }
+    markSelected(null);
     $("detail").hidden = true;
     $("list").hidden = false;
     $("grab").querySelector(".sheet-head").hidden = false;
@@ -406,13 +493,21 @@ dialog a { color: var(--accent); }
   // ---------- filters ----------
   const chips = document.querySelectorAll(".chip");
   const syncChips = () => chips.forEach(c => c.setAttribute("aria-pressed", String(c.dataset.f === filter)));
+  const countChips = () => {
+    const n = { all: stores.length, bn: 0, bb: 0, both: 0 };
+    for (const s of stores) { if (s.t.includes("bn")) n.bn++; if (s.t.includes("bb")) n.bb++; if (s.t.length > 1) n.both++; }
+    chips.forEach(c => { c.querySelector(".n").textContent = n[c.dataset.f].toLocaleString(); });
+  };
   chips.forEach(c => c.addEventListener("click", () => {
     filter = c.dataset.f; store.set("filter", filter); syncChips();
     if (selected && !passes(selected)) closeDetail();
     drawMarkers(); refreshList();
   }));
   syncChips();
-  $("radius").addEventListener("change", e => { radius = +e.target.value; store.set("radius", radius); refreshList(); });
+  const radiusBtns = $("radius").querySelectorAll("button");
+  const syncRadius = () => radiusBtns.forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.r === radius)));
+  radiusBtns.forEach(b => b.addEventListener("click", () => { radius = +b.dataset.r; store.set("radius", radius); syncRadius(); refreshList(); }));
+  syncRadius();
 
   // ---------- my location ----------
   function locate(quiet) {
@@ -423,8 +518,8 @@ dialog a { color: var(--accent); }
       btn.classList.remove("busy"); btn.classList.add("on");
       const ll = [pos.coords.latitude, pos.coords.longitude];
       if (!meMarker) {
-        meAcc = L.circle(ll, { radius: pos.coords.accuracy, weight: 0, fillColor: css("--me"), fillOpacity: .12, interactive: false }).addTo(map);
-        meMarker = L.circleMarker(ll, { radius: 8, weight: 3, color: "#fff", fillColor: css("--me"), fillOpacity: 1, interactive: false }).addTo(map);
+        meAcc = L.circle(ll, { radius: pos.coords.accuracy, weight: 0, fillColor: css("--me"), fillOpacity: .1, interactive: false }).addTo(map);
+        meMarker = L.marker(ll, { icon: L.divIcon({ className: "", html: '<div class="me-dot"></div>', iconSize: [18, 18] }), interactive: false, zIndexOffset: 2000 }).addTo(map);
       } else { meMarker.setLatLng(ll); meAcc.setLatLng(ll).setRadius(pos.coords.accuracy); }
       if (selected) closeDetail();
       flyTo(ll, 15, "내 위치");
@@ -533,7 +628,7 @@ dialog a { color: var(--accent); }
     const end = () => {
       if (!sheet.classList.contains("dragging")) return;
       sheet.classList.remove("dragging");
-      const h = sheetH(), stops = [216, Math.round(innerHeight * .45), maxH()];
+      const h = sheetH(), stops = [236, Math.round(innerHeight * .45), maxH()];
       if (!moved) { setSheet(h < stops[1] - 10 ? stops[1] : stops[0]); return; }   // a tap toggles
       setSheet(stops.reduce((a, b) => Math.abs(b - h) < Math.abs(a - h) ? b : a));
     };
@@ -546,13 +641,14 @@ dialog a { color: var(--accent); }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 4c611537";
+    $("aboutVersion").textContent = "앱 버전 135506b0";
     $("about").showModal();
   });
 
   // ---------- go ----------
   fetch("stores.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
     meta = d; stores = d.stores || []; unplaced = d.unplaced || [];
+    countChips();
     drawMarkers();
     centerLabel = guessArea();
     refreshList();
