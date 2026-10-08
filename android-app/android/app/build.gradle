@@ -8,8 +8,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // CI passes the run number, so every published APK installs over the last one
-        versionCode (System.getenv("NOPO_VERSION_CODE") ?: "1").toInteger()
-        versionName "1." + (System.getenv("NOPO_VERSION_CODE") ?: "0")
+        versionCode Integer.parseInt(System.getenv("NOPO_VERSION_CODE") ?: "1")
+        versionName("1." + (System.getenv("NOPO_VERSION_CODE") ?: "0"))
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -31,7 +31,7 @@ android {
     }
     buildTypes {
         release {
-            signingConfig System.getenv("NOPO_KEYSTORE") ? signingConfigs.release : signingConfigs.debug
+            signingConfig(System.getenv("NOPO_KEYSTORE") ? signingConfigs.release : signingConfigs.debug)
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
