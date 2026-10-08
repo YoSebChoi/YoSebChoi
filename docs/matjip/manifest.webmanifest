@@ -27,5 +27,12 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "io.github.yosebchoi.nopo"
+    }
+  ],
+  "prefer_related_applications": false
 }

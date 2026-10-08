@@ -307,13 +307,80 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
   *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
 }
 
-/* boot: the launch screen continued edge to edge, the whole screen a red 간판 with the name painted on */
-.boot { position: fixed; inset: 0; z-index: 4000; background: #c4231b; display: grid; place-items: center; transition: opacity .45s ease; }
+/* 앱에서 열기 */
+.app-banner { position: fixed; z-index: 1500; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 118px); display: flex; align-items: center; gap: 10px;
+  background: var(--surface); color: var(--ink); border-radius: 16px; box-shadow: var(--shadow); padding: 8px 6px 8px 10px; font-size: 14px; font-weight: 700; }
+.app-banner > span:nth-child(2) { flex: 1; min-width: 0; }
+.app-banner .btn { height: 38px; flex: none; }
+.app-banner .icon-btn { width: 36px; height: 36px; }
+.app-banner[hidden] { display: none; }
+
+/* 도장판: a kraft-paper card with red ink stamps, the same in light and dark */
+.stamp-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--sign); box-sizing: border-box; }
+.stamps { background: #f4ead4; color: #2a1e16; padding: 20px 18px 18px; width: min(440px, calc(100% - 24px)); max-height: calc(100dvh - 40px); overflow: auto;
+  background-image: radial-gradient(#e6d8ba 1px, transparent 1.2px); background-size: 14px 14px; }
+.stamps h2 { font-family: var(--font-sign); font-weight: 400; font-size: 28px; letter-spacing: .04em; color: var(--sign); margin: 0; }
+.stamps-rank { margin: 6px 0 0; font-size: 15px; font-weight: 800; color: #2a1e16; }
+.stamps-rank b { display: inline-block; background: var(--sign); color: #fff6e3; border-radius: 6px; padding: 1px 8px; margin-right: 6px; font-weight: 800; }
+.stamps-sum { margin: 4px 0 0; font-size: 13.5px; color: #6b5a48; }
+.stamps-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 10px 6px; margin: 16px 0 6px; padding: 14px 8px;
+  border: 2px dashed #c9b48e; border-radius: 14px; }
+.stamp { aspect-ratio: 1; border: 0; background: none; padding: 0; cursor: pointer; display: grid; place-items: center; color: #b3261e; font: inherit; }
+.stamp span { width: 84px; height: 84px; border-radius: 50%; border: 3px solid currentColor; box-shadow: inset 0 0 0 2px #f4ead4, inset 0 0 0 4px currentColor;
+  display: grid; place-content: center; text-align: center; gap: 2px; padding: 8px; rotate: var(--r, -6deg); opacity: .88; mix-blend-mode: multiply; }
+.stamp strong { font-family: var(--font-sign); font-weight: 400; font-size: 14px; line-height: 1.1; word-break: keep-all; overflow-wrap: anywhere; }
+.stamp.long strong { font-size: 12px; }
+.stamp small { font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stamp.empty span { color: #cdbb98; border-style: dashed; box-shadow: none; opacity: 1; }
+.stamp.empty { cursor: default; }
+.stamp.new span { animation: stamp-in .45s cubic-bezier(.3, 1.6, .5, 1) both; }
+@keyframes stamp-in { from { transform: scale(1.8); opacity: 0; } to { transform: none; opacity: .88; } }
+.stamps-empty { grid-column: 1 / -1; margin: 4px 0 0; font-size: 13.5px; color: #6b5a48; text-align: center; }
+.stamps-sub { font-size: 14px; font-weight: 800; margin: 14px 0 6px; }
+.stamps-regions { list-style: none; padding: 0; margin: 0 0 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+.stamps-regions li { display: grid; grid-template-columns: 2.6em 1fr auto; align-items: center; gap: 8px; font-size: 13px; color: #2a1e16; }
+.stamps-regions .bar { height: 7px; border-radius: 99px; background: #e2d3b4; overflow: hidden; }
+.stamps-regions .bar i { display: block; height: 100%; background: var(--sign); border-radius: inherit; }
+.stamps-regions em { font-style: normal; font-size: 12px; color: #6b5a48; font-variant-numeric: tabular-nums; }
+.stamps .btn.primary { background: #2a1e16; color: #f4ead4; }
+
+/* boot: the launch screen continues as one scene. The red 간판 fills the screen, the camera pulls back to the
+   shop front, the one aluminium door slides aside along its rail (드르륵) and it steps inside: a round stainless table, red stools,
+   the yellow kettle, and the owner waving hello. A tap skips it. */
+.boot { position: fixed; inset: 0; z-index: 4000; background: #1c1612; overflow: hidden; transition: opacity .45s ease; }
 .boot.out { opacity: 0; pointer-events: none; }
+.boot-red { position: absolute; inset: 0; background: #c4231b; display: grid; place-items: center; }
 .boot-sign { display: flex; flex-direction: column; align-items: center; gap: .02em; font-family: var(--font-sign); color: #f7eede; line-height: 1;
   font-size: min(34vw, 30vh); letter-spacing: .04em; text-shadow: .03em .045em 0 #7a100c; opacity: 0; }
-/* the lettering waits for the signboard face, so a fallback font never flashes */
+.boot-scene { position: absolute; inset: 0; width: 100%; height: 100%; transform-origin: 50% 22.5%; transform: translateY(27.5%) scale(5); font-family: var(--font); }
+.boot-scene .bs-sign { font-family: var(--font-sign); }
+.boot-scene .bs-arm { transform-origin: 286px 486px; }
+.boot-sfx { position: absolute; left: 50%; top: 55%; translate: -50% -50%; font-family: var(--font-sign); font-size: min(17vw, 9vh); color: #fff6e3; opacity: 0;
+  -webkit-text-stroke: .05em #2a1e16; paint-order: stroke fill; letter-spacing: .04em; rotate: -7deg; pointer-events: none; }
+/* the lettering waits for the signboard face, so a fallback font never flashes; then the timeline runs */
 .boot.ready .boot-sign { animation: boot-in .7s cubic-bezier(.2, .9, .3, 1.2) both; }
+.boot.ready .boot-red { animation: fade-out .35s ease 1s forwards; }
+.boot.ready .boot-scene { animation: pull-back .9s cubic-bezier(.25, .7, .2, 1) 1s forwards, step-in 1s cubic-bezier(.55, 0, .3, 1) 2.9s forwards; }
+.boot.ready .bs-door { animation: slide 1.05s cubic-bezier(.45, .05, .35, 1) 1.95s forwards; }
+.boot.ready .boot-sfx { animation: sfx .95s ease-out 1.9s; }
+.boot.ready .bs-arm { animation: wave .32s ease-in-out 3.1s 4 alternate; }
+.bs-steam path { animation: steam 1.6s ease-out infinite; }
+.bs-steam path:nth-child(2) { animation-delay: .5s; } .bs-steam path:nth-child(3) { animation-delay: 1s; }
+@keyframes fade-out { to { opacity: 0; visibility: hidden; } }
+@keyframes pull-back { from { transform: translateY(27.5%) scale(5); } to { transform: none; } }
+@keyframes step-in { from { transform: scale(1); transform-origin: 60% 62%; } to { transform: scale(1.9); transform-origin: 60% 62%; } }
+/* a sliding door never runs smoothly: it catches once on the rail */
+@keyframes slide { 0% { transform: none; } 14% { transform: translateX(-14px); } 22% { transform: translateX(-10px); } 30% { transform: translateX(-13px); } 100% { transform: translateX(-296px); } }
+@keyframes sfx { 0% { opacity: 0; transform: scale(.6); } 15% { opacity: 1; transform: scale(1.08); } 25% { transform: translateX(-4px); } 35% { transform: translateX(4px); }
+  45% { transform: translateX(-3px); } 55% { transform: none; } 75% { opacity: 1; } 100% { opacity: 0; transform: translateY(-12px); } }
+@keyframes wave { from { transform: rotate(-10deg); } to { transform: rotate(12deg); } }
+@keyframes steam { 0% { opacity: 0; transform: translateY(6px); } 30% { opacity: .75; } 100% { opacity: 0; transform: translateY(-16px); } }
+/* without motion: straight to the table inside */
+@media (prefers-reduced-motion: reduce) {
+  .boot .boot-red { display: none; }
+  .boot .boot-scene { transform: scale(1.9); transform-origin: 60% 62%; animation: none !important; }
+  .boot .bs-door { transform: translateX(-296px); }
+}
 @keyframes boot-in { from { transform: scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* update prompt */
@@ -338,7 +405,137 @@ dialog .btn { width: 100%; }
 </style>
 </head>
 <body>
-<div class="boot" id="boot" aria-hidden="true"><div class="boot-sign"><span>노포</span><span>지도</span></div></div>
+<div class="boot" id="boot" aria-hidden="true">
+<svg class="boot-scene" viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bsSteel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f3f4"/><stop offset=".55" stop-color="#c5cbcf"/><stop offset="1" stop-color="#9ca3a8"/></linearGradient>
+    <linearGradient id="bsGlass" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9e9ee" stop-opacity=".86"/><stop offset="1" stop-color="#a9c3cc" stop-opacity=".8"/></linearGradient>
+    <radialGradient id="bsGlow"><stop offset="0" stop-color="#ffe9ad" stop-opacity=".95"/><stop offset="1" stop-color="#ffe9ad" stop-opacity="0"/></radialGradient>
+    <radialGradient id="bsStreet" cx=".5" cy=".3" r=".8"><stop offset="0" stop-color="#3a2c23"/><stop offset="1" stop-color="#1c1612"/></radialGradient>
+    <pattern id="bsTile" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="#ddd0b7"/><path d="M0 .5H22M.5 0V22" stroke="#c3b498" stroke-width="1.2"/></pattern>
+    <clipPath id="bsDoorway"><rect x="50" y="280" width="300" height="460"/></clipPath>
+  </defs>
+
+  <!-- the street at night and the shop front -->
+  <rect width="400" height="800" fill="url(#bsStreet)"/>
+  <rect x="0" y="92" width="400" height="660" fill="url(#bsTile)"/>
+  <rect x="0" y="744" width="400" height="56" fill="#3b322b"/>
+  <rect x="38" y="738" width="324" height="9" rx="2" fill="#8d8174"/>
+
+  <!-- 간판 with its two lamps -->
+  <rect x="12" y="110" width="376" height="136" rx="6" fill="#c4231b"/>
+  <rect x="21" y="119" width="358" height="118" rx="3" fill="none" stroke="#f3e3c3" stroke-width="3"/>
+  <text class="bs-sign" x="203" y="205" text-anchor="middle" font-size="78" fill="#7a100c">노포 지도</text>
+  <text class="bs-sign" x="200" y="201" text-anchor="middle" font-size="78" fill="#f7eede">노포 지도</text>
+  <g fill="#2a2420"><path d="M78 92v8h-12v6h28v-6H84v-8z"/><path d="M322 92v8h-12v6h28v-6h-10v-8z"/></g>
+  <ellipse cx="80" cy="112" rx="34" ry="10" fill="url(#bsGlow)"/><ellipse cx="324" cy="112" rx="34" ry="10" fill="url(#bsGlow)"/>
+
+  <!-- inside: what the doors open onto -->
+  <g clip-path="url(#bsDoorway)">
+    <rect x="50" y="280" width="300" height="330" fill="#efd39b"/>
+    <rect x="50" y="516" width="300" height="94" fill="#a5663b"/>
+    <rect x="50" y="512" width="300" height="7" fill="#7b4527"/>
+    <path d="M90 516v94M140 516v94M190 516v94M240 516v94M290 516v94M340 516v94" stroke="#8e5532" stroke-width="2"/>
+    <rect x="50" y="610" width="300" height="130" fill="#8f8172"/>
+    <path d="M50 640H350M50 676H350M50 714H350M110 610l-24 130M200 610v130M290 610l24 130" stroke="#7d7062" stroke-width="2"/>
+
+    <!-- 차림표 on the wall -->
+    <rect x="68" y="296" width="264" height="50" rx="3" fill="#6b3f22"/>
+    <g font-weight="800" text-anchor="middle">
+      <rect x="74" y="302" width="60" height="38" rx="2" fill="#f6ecd6"/><text x="104" y="318" font-size="11.5" fill="#2a1e16">김치찌개</text><text x="104" y="334" font-size="10.5" fill="#b3261e">8,000</text>
+      <rect x="138" y="302" width="60" height="38" rx="2" fill="#f6ecd6"/><text x="168" y="318" font-size="11.5" fill="#2a1e16">된장찌개</text><text x="168" y="334" font-size="10.5" fill="#b3261e">8,000</text>
+      <rect x="202" y="302" width="60" height="38" rx="2" fill="#f6ecd6"/><text x="232" y="318" font-size="11.5" fill="#2a1e16">제육볶음</text><text x="232" y="334" font-size="10.5" fill="#b3261e">10,000</text>
+      <rect x="266" y="302" width="60" height="38" rx="2" fill="#f6ecd6"/><text x="296" y="318" font-size="11.5" fill="#2a1e16">백반</text><text x="296" y="334" font-size="10.5" fill="#b3261e">9,000</text>
+    </g>
+    <!-- 달력 -->
+    <rect x="300" y="362" width="36" height="46" rx="2" fill="#fbf8f1"/><rect x="300" y="362" width="36" height="11" rx="2" fill="#c4231b"/>
+    <text x="318" y="399" text-anchor="middle" font-size="20" font-weight="800" fill="#2a1e16">10</text>
+
+    <!-- the lamp over the table -->
+    <circle cx="200" cy="430" r="170" fill="url(#bsGlow)" opacity=".5"/>
+    <path d="M200 280v70" stroke="#2a2420" stroke-width="2"/>
+    <path d="M186 350h28l12 24h-52z" fill="#2f6b4f"/><ellipse cx="200" cy="375" rx="11" ry="4" fill="#fff4c8"/>
+
+    <!-- 사장님: 뽀글머리, 꽃무늬 앞치마, waving -->
+    <g class="bs-owner">
+      <g class="bs-arm"><path d="M286 486 Q300 464 306 446" fill="none" stroke="#6e4f78" stroke-width="16" stroke-linecap="round"/><circle cx="307" cy="439" r="10" fill="#efc39b"/></g>
+      <rect x="242" y="450" width="16" height="22" rx="6" fill="#e4b48b"/>
+      <path d="M200 574V504q0-34 34-38l8-2q8 10 16 0l8 2q34 4 34 38v70z" fill="#7c5a86"/>
+      <path d="M238 466l12 18 12-18" fill="none" stroke="#f3ece0" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M213 490q-6 38-2 78" fill="none" stroke="#6e4f78" stroke-width="15" stroke-linecap="round"/>
+      <path d="M222 486h56l6 88h-68z" fill="#e98ea3"/>
+      <g fill="#fff" opacity=".85"><circle cx="234" cy="508" r="3"/><circle cx="262" cy="503" r="3"/><circle cx="249" cy="524" r="3"/><circle cx="232" cy="542" r="3"/><circle cx="270" cy="534" r="3"/><circle cx="256" cy="556" r="3"/></g>
+      <path d="M224 486l8-18M276 486l-8-18" stroke="#e98ea3" stroke-width="4" stroke-linecap="round"/>
+      <g fill="#d8d3ca" stroke="#aea79c" stroke-width="1.3">
+        <circle cx="227" cy="430" r="12"/><circle cx="273" cy="430" r="12"/><circle cx="231" cy="415" r="12"/><circle cx="269" cy="415" r="12"/>
+        <circle cx="241" cy="404" r="12"/><circle cx="259" cy="404" r="12"/><circle cx="250" cy="400" r="11"/><circle cx="226" cy="444" r="8"/><circle cx="274" cy="444" r="8"/>
+      </g>
+      <circle cx="250" cy="438" r="22" fill="#f1c7a0"/>
+      <g fill="#d8d3ca" stroke="#aea79c" stroke-width="1.3"><circle cx="238" cy="419" r="7.5"/><circle cx="250" cy="416" r="8"/><circle cx="262" cy="419" r="7.5"/></g>
+      <g fill="none" stroke="#4a3426" stroke-width="2.2" stroke-linecap="round">
+        <path d="M236 437q5-5 10 0M254 437q5-5 10 0"/>
+        <path d="M244 449q6 6 12 0"/>
+      </g>
+      <path d="M231 434l-3-2M269 434l3-2M233 440l-3 1M267 440l3 1" stroke="#c99b78" stroke-width="1.2" stroke-linecap="round"/>
+      <circle cx="238" cy="446" r="4.5" fill="#ee8a86" opacity=".55"/><circle cx="262" cy="446" r="4.5" fill="#ee8a86" opacity=".55"/>
+    </g>
+
+    <!-- 빨간 플라스틱 의자 -->
+    <g class="bs-stool"><path d="M80 690h60l8 52H72z" fill="#c7372b"/><ellipse cx="110" cy="690" rx="31" ry="9" fill="#e4493b"/><ellipse cx="110" cy="712" rx="9" ry="4" fill="#8e2219"/></g>
+    <g class="bs-stool"><path d="M260 690h60l8 52h-76z" fill="#c7372b"/><ellipse cx="290" cy="690" rx="31" ry="9" fill="#e4493b"/><ellipse cx="290" cy="712" rx="9" ry="4" fill="#8e2219"/></g>
+
+    <!-- the round stainless table, a little sticky -->
+    <ellipse cx="200" cy="730" rx="104" ry="11" fill="#000" opacity=".2"/>
+    <rect x="192" y="590" width="16" height="136" fill="#878e93"/><ellipse cx="200" cy="726" rx="46" ry="8" fill="#757c81"/>
+    <ellipse cx="200" cy="578" rx="130" ry="35" fill="#878e93"/>
+    <ellipse cx="200" cy="571" rx="130" ry="35" fill="url(#bsSteel)"/>
+    <ellipse cx="200" cy="571" rx="122" ry="31" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.5"/>
+    <ellipse cx="150" cy="560" rx="44" ry="6" fill="#fff" opacity=".5" transform="rotate(-5 150 560)"/>
+    <path d="M232 586c6-3 15-2 18 2-2 4-12 5-18 2z M120 584c4-2 9-1 11 1-2 3-8 3-11 1z M286 568c3-2 8-1 9 1-2 2-7 2-9 0z" fill="#fff" opacity=".35"/>
+    <ellipse cx="258" cy="575" rx="13" ry="4.5" fill="none" stroke="#9b7444" stroke-opacity=".35" stroke-width="2"/>
+
+    <!-- 노란 양은주전자, 뚝배기, 소주 -->
+    <g class="bs-kettle">
+      <path d="M96 562c-3-22 6-36 26-36s29 14 26 36z" fill="#e3b03e"/>
+      <path d="M104 534c6-10 30-10 36 0" fill="#d29f2f"/><circle cx="122" cy="526" r="4" fill="#c38f22"/>
+      <path d="M146 548l18-14 4 4-16 16z" fill="#d29f2f"/>
+      <path d="M100 538c-16-2-18 22-2 22" fill="none" stroke="#c38f22" stroke-width="4"/>
+      <path d="M108 540v16" stroke="#fff" stroke-opacity=".45" stroke-width="4" stroke-linecap="round"/>
+    </g>
+    <g>
+      <path d="M176 556c0 18 12 24 28 24s28-6 28-24z" fill="#2a2523"/>
+      <ellipse cx="204" cy="556" rx="28" ry="7" fill="#c8432f"/><ellipse cx="196" cy="555" rx="8" ry="2.5" fill="#e9785f"/>
+      <g class="bs-steam" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7">
+        <path d="M194 544c-6-8 6-12 0-22"/><path d="M206 542c-6-8 6-12 0-22"/><path d="M218 544c-6-8 6-12 0-22"/>
+      </g>
+    </g>
+    <g>
+      <rect x="262" y="510" width="20" height="52" rx="5" fill="#3f8f57" opacity=".92"/><rect x="267" y="494" width="10" height="20" rx="2" fill="#3f8f57" opacity=".92"/>
+      <rect x="262" y="528" width="20" height="16" fill="#f3efe2"/><rect x="268" y="514" width="3" height="40" rx="1.5" fill="#fff" opacity=".35"/>
+      <path d="M292 556h13l-2 12h-9z" fill="#fff" opacity=".7"/><path d="M240 566h13l-2 12h-9z" fill="#fff" opacity=".7"/>
+    </g>
+
+  </g>
+
+  <!-- 알루미늄 미닫이문 (slide apart: 드르륵) -->
+  <rect x="46" y="276" width="308" height="468" fill="none" stroke="#6f767b" stroke-width="8"/>
+  <g class="bs-door">
+    <rect x="50" y="280" width="300" height="460" fill="url(#bsGlass)" stroke="#aeb4b8" stroke-width="7"/>
+    <rect x="50" y="508" width="300" height="9" fill="#aeb4b8"/>
+    <path d="M78 300h40l-64 84v-40zM300 300l30 0-70 92v-30zM64 566l56-44v20l-56 44z" fill="#fff" opacity=".35"/>
+    <circle cx="122" cy="400" r="34" fill="#c4231b"/><circle cx="122" cy="400" r="29" fill="none" stroke="#f3e3c3" stroke-width="2"/>
+    <text class="bs-sign" x="122" y="408" text-anchor="middle" font-size="21" fill="#f7eede">영업중</text>
+    <g class="bs-sign" text-anchor="middle" font-size="30" fill="#c4231b">
+      <text x="262" y="360">백반</text><text x="262" y="400">찌개</text><text x="262" y="440">국밥</text>
+    </g>
+    <rect x="330" y="470" width="7" height="74" rx="3.5" fill="#6f767b"/>
+  </g>
+  <!-- 고무대야 화분 -->
+  <g><path d="M356 716h40l-5 26h-30z" fill="#b8352b"/><path d="M362 716c-6-24 4-34 14-40-2 14 2 26 0 40zM378 716c2-20 14-30 24-30-6 10-10 22-14 30z" fill="#4f8a3c"/></g>
+</svg>
+<div class="boot-sfx">드르륵</div>
+<div class="boot-red"><div class="boot-sign"><span>노포</span><span>지도</span></div></div>
+</div>
 <script>
   // the installed app (home-screen PWA or the Android APK) opens on the full-screen signboard; a browser tab does not
   (() => {
@@ -397,6 +594,7 @@ dialog .btn { width: 100%; }
     <button class="chip" type="button" data-f="bb" aria-pressed="false"><i class="dot bb"></i>백반기행 <span class="n"></span></button>
     <button class="chip" type="button" data-f="both" aria-pressed="false"><i class="dot both"></i>둘 다 <span class="n"></span></button>
     <button class="chip" type="button" data-f="mine" aria-pressed="false"><span class="star">★</span>저장 <span class="n"></span></button>
+    <button class="chip stamp-chip" type="button" id="stampChip" aria-haspopup="dialog"><i class="stamp-dot" aria-hidden="true"></i>도장판 <span class="n" id="stampN"></span></button>
   </div>
 </div>
 
@@ -420,6 +618,12 @@ dialog .btn { width: 100%; }
 </section>
 
 <div class="toast" id="toast" role="status" hidden></div>
+<div class="app-banner" id="appBanner" hidden>
+  <span class="logo" aria-hidden="true">노포</span>
+  <span>노포 지도 앱이 설치돼 있어요</span>
+  <a class="btn primary" id="appOpen">앱에서 열기</a>
+  <button class="icon-btn" type="button" id="appClose" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+</div>
 
 <dialog id="updateDialog" class="update-dialog" aria-labelledby="updateTitle">
   <div class="update-sign" aria-hidden="true">새 소식</div>
@@ -429,6 +633,18 @@ dialog .btn { width: 100%; }
     <button class="btn" type="button" id="updateLater">나중에</button>
     <button class="btn primary" type="button" id="updateNow" autofocus>지금 업데이트</button>
   </div>
+</dialog>
+
+<dialog id="stamps" class="stamps" aria-labelledby="stampsTitle">
+  <header class="stamps-head">
+    <h2 id="stampsTitle">노포 도장판</h2>
+    <p class="stamps-rank" id="stampsRank"></p>
+    <p class="stamps-sum" id="stampsSum"></p>
+  </header>
+  <div class="stamps-grid" id="stampsGrid"></div>
+  <h3 class="stamps-sub">시·도별</h3>
+  <ul class="stamps-regions" id="stampsRegions"></ul>
+  <form method="dialog"><button class="btn primary">닫기</button></form>
 </dialog>
 
 <dialog id="about">
@@ -556,6 +772,18 @@ dialog .btn { width: 100%; }
   const kindOf = s => s.t.length > 1 ? "both" : s.t[0];
   // 가고 싶어요 / 가 봤어요, kept on this phone by each place's stable key
   let marks = store.get("marks", {});
+  let beenAt = store.get("beenAt", {});   // key → "YYYY-MM-DD" of the 도장
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  // keeps visit dates in step with ✓ marks; a new ✓ gets a 도장 and a toast
+  const syncBeen = k => {
+    if (marks[k] === "been" && !beenAt[k]) {
+      beenAt[k] = today(); store.set("beenAt", beenAt);
+      const n = Object.values(marks).filter(m => m === "been").length;
+      toast(`도장 쾅! ${n}번째 노포예요.`);
+      stampNew = k;
+    } else if (marks[k] !== "been" && beenAt[k]) { delete beenAt[k]; store.set("beenAt", beenAt); }
+  };
+  let stampNew = null;
   let notes = store.get("notes", {});   // { key: { r: 1-5, m: "memo" } }
   let kind = store.get("kind", "");
   const passes = s => (filter === "all" || (filter === "both" ? s.t.length > 1 : filter === "mine" ? !!marks[s.k] : s.t.includes(filter)))
@@ -774,7 +1002,7 @@ dialog .btn { width: 100%; }
       buzz();
       const m = b.dataset.m;
       if (marks[s.k] === m) delete marks[s.k]; else marks[s.k] = m;
-      store.set("marks", marks);
+      store.set("marks", marks); syncBeen(s.k);
       $("detail").querySelectorAll("[data-m]").forEach(x => x.setAttribute("aria-pressed", String(marks[s.k] === x.dataset.m)));
       countChips();
       if (filter === "mine") drawMarkers();
@@ -792,7 +1020,7 @@ dialog .btn { width: 100%; }
       if (!n.r) delete n.r;
       // rating a place means you have been there
       if (n.r && marks[s.k] !== "been") {
-        marks[s.k] = "been"; store.set("marks", marks); countChips();
+        marks[s.k] = "been"; store.set("marks", marks); syncBeen(s.k); countChips();
         $("detail").querySelectorAll("[data-m]").forEach(x => x.setAttribute("aria-pressed", String(marks[s.k] === x.dataset.m)));
       }
       $("detail").querySelectorAll(".stars button").forEach(x => x.classList.toggle("on", (n.r || 0) >= +x.dataset.r));
@@ -846,6 +1074,8 @@ dialog .btn { width: 100%; }
     const n = { all: stores.length, bn: 0, bb: 0, both: 0, mine: 0 };
     for (const s of stores) { if (s.t.includes("bn")) n.bn++; if (s.t.includes("bb")) n.bb++; if (s.t.length > 1) n.both++; if (marks[s.k]) n.mine++; }
     chips.forEach(c => { c.querySelector(".n").textContent = n[c.dataset.f].toLocaleString(); });
+    const been = Object.values(marks).filter(m => m === "been").length;
+    $("stampN").textContent = been ? String(been) : "";
   };
   chips.forEach(c => c.addEventListener("click", () => {
     filter = c.dataset.f; store.set("filter", filter); syncChips();
@@ -918,7 +1148,7 @@ dialog .btn { width: 100%; }
     results._regions = regions;
   }
   // Kakao's place search (much better for Korean places) when a JavaScript key is set; else OpenStreetMap
-  const KAKAO_JS_KEY = "4e97e3b7bde5b3f21a2a5e04a8e961de";
+  const KAKAO_JS_KEY = "";
   let kakaoPlaces = null, kakaoGeo = null;
   if (KAKAO_JS_KEY && !KAKAO_JS_KEY.startsWith("__")) {
     const sdk = document.createElement("script");
@@ -1069,13 +1299,13 @@ dialog .btn { width: 100%; }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 7aaa9672";
+    $("aboutVersion").textContent = "앱 버전 b69cf2dd";
     $("about").showModal();
   });
 
   // ---------- my records: export / import ----------
   $("exportMine").addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify({ app: "노포 지도", saved: new Date().toISOString(), marks, notes }, null, 1)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify({ app: "노포 지도", saved: new Date().toISOString(), marks, notes, beenAt }, null, 1)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `노포지도-내기록-${new Date().toISOString().slice(0, 10)}.json`;
@@ -1088,7 +1318,8 @@ dialog .btn { width: 100%; }
     try {
       const d = JSON.parse(await f.text());
       if (!d || typeof d.marks !== "object") throw new Error();
-      marks = { ...marks, ...d.marks }; notes = { ...notes, ...(d.notes || {}) };
+      marks = { ...marks, ...d.marks }; notes = { ...notes, ...(d.notes || {}) }; beenAt = { ...(d.beenAt || {}), ...beenAt };
+      store.set("beenAt", beenAt);
       store.set("marks", marks); store.set("notes", notes);
       countChips(); drawMarkers(); refreshList();
       toast(`내 기록을 가져왔어요 (${Object.keys(d.marks).length}곳).`);
@@ -1155,15 +1386,50 @@ dialog .btn { width: 100%; }
   $("showIntro").checked = !store.get("skipIntro", false);
   $("showIntro").addEventListener("change", e => store.set("skipIntro", !e.target.checked));
 
+  // ---------- 도장판 ----------
+  const RANKS = [[1, "노포 입문"], [5, "동네 단골"], [15, "노포 순례자"], [30, "노포 박사"], [60, "노포 명예 주민"], [100, "노포 전설"]];
+  const regionOf = s => province(s.r ? s.r[0] : s.a);
+  const hash = k => [...k].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7);
+  function showStamps() {
+    const been = stores.filter(s => marks[s.k] === "been")
+      .sort((a, b) => (beenAt[b.k] || "").localeCompare(beenAt[a.k] || ""));
+    const n = been.length;
+    const rank = [...RANKS].reverse().find(([min]) => n >= min);
+    const next = RANKS.find(([min]) => n < min);
+    $("stampsRank").innerHTML = rank ? `<b>${rank[1]}</b>가 본 노포 ${n}곳` : "아직 첫 도장 전이에요";
+    $("stampsSum").textContent = next ? `다음 칭호 「${next[1]}」까지 ${next[0] - n}곳 남았어요.` : "모든 칭호를 모았어요. 대단해요!";
+    const slots = Math.max(0, (n < 6 ? 6 : n % 3 ? 3 - n % 3 : 0) - (n < 6 ? n : 0));
+    $("stampsGrid").innerHTML = been.map(s => {
+      const d = beenAt[s.k] ? beenAt[s.k].slice(2).replaceAll("-", ".") : "";
+      const name = s.n.length > 8 ? s.n.slice(0, 7) + "…" : s.n;
+      return `<button type="button" class="stamp${s.k === stampNew ? " new" : ""}${name.length > 5 ? " long" : ""}" data-s="${s.id}" style="--r:${(hash(s.k) % 15) - 7}deg" aria-label="${esc(s.n)}${d ? ", " + d : ""}"><span><strong>${esc(name)}</strong>${d ? `<small>${d}</small>` : ""}</span></button>`;
+    }).join("") + '<div class="stamp empty" aria-hidden="true"><span></span></div>'.repeat(slots) +
+      (n ? "" : '<p class="stamps-empty">식당에서 「✓ 가 봤어요」를 누르면 여기에 도장이 찍혀요.</p>');
+    stampNew = null;
+    const by = new Map();
+    for (const s of stores) { const r = regionOf(s); if (!r) continue; const v = by.get(r) || [0, 0]; v[0]++; if (marks[s.k] === "been") v[1]++; by.set(r, v); }
+    $("stampsRegions").innerHTML = [...by].sort((a, b) => b[1][1] - a[1][1] || b[1][0] - a[1][0])
+      .map(([r, [all, got]]) => `<li><span>${esc(r)}</span><span class="bar"><i style="width:${got ? Math.max(4, got / all * 100) : 0}%"></i></span><em>${got}/${all}</em></li>`).join("");
+    $("stamps").showModal();
+  }
+  $("stampChip").addEventListener("click", showStamps);
+  $("stampsGrid").addEventListener("click", e => {
+    const b = e.target.closest(".stamp[data-s]"); if (!b) return;
+    $("stamps").close();
+    openDetail(stores[+b.dataset.s], true);
+  });
+
   // ---------- the boot screen leaves once the map has its places (and after a beat, so it does not flash) ----------
   const leaveBoot = () => {
     const boot = $("boot");
     if (!boot || boot.classList.contains("out")) return;
     // let the lettering show for a moment once it is painted
     if (!boot.classList.contains("ready")) { setTimeout(leaveBoot, 100); return; }
-    setTimeout(() => { boot.classList.add("out"); setTimeout(() => boot.remove(), 500); }, Math.max(0, 800 - (performance.now() - +boot.dataset.t)));
+    const play = matchMedia("(prefers-reduced-motion: reduce)").matches ? 1400 : 4300;
+    setTimeout(() => { boot.classList.add("out"); setTimeout(() => boot.remove(), 500); }, Math.max(0, play - (performance.now() - +boot.dataset.t)));
   };
-  setTimeout(leaveBoot, 6000);   // never hold the app hostage to a slow network
+  setTimeout(leaveBoot, 8000);   // never hold the app hostage to a slow network
+  $("boot")?.addEventListener("click", () => { const boot = $("boot"); boot.classList.add("out"); setTimeout(() => boot.remove(), 500); });
 
   // ---------- Android back button: step back through the app before leaving it ----------
   if (native) {
@@ -1180,6 +1446,32 @@ dialog .btn { width: 100%; }
     });
   }
 
+  // ---------- shared links: open the place, in the Android app when it is installed ----------
+  function openShared(k) {
+    const target = k && stores.find(s => s.k === k);
+    if (!target) return false;
+    if (!$("intro").hidden) closeIntro();
+    for (const d of document.querySelectorAll("dialog[open]")) d.close();
+    if (!passes(target)) { filter = "all"; kind = ""; store.set("filter", filter); store.set("kind", kind); syncChips(); syncKind(); drawMarkers(); }
+    openDetail(target, true);
+    return true;
+  }
+  // https://…/matjip/?p=<key> or nopomap://p/<key>
+  const openFromUrl = url => { const m = /[?&]p=([0-9a-f]{6,})/.exec(url) || /^nopomap:\/\/p\/([0-9a-f]{6,})/.exec(url); if (m) openShared(m[1]); };
+  if (native) listen("App", "appUrlOpen", e => e && e.url && openFromUrl(e.url));
+  // in a phone browser with the app installed (Chrome can tell, through the app's asset statement), offer to switch
+  async function offerApp(k) {
+    if (native || matchMedia("(display-mode: standalone)").matches || !navigator.getInstalledRelatedApps) return;
+    try {
+      const apps = await navigator.getInstalledRelatedApps();
+      if (!apps.some(a => a.id === "io.github.yosebchoi.nopo")) return;
+    } catch { return; }
+    const banner = $("appBanner");
+    $("appOpen").href = `intent://${k ? "p/" + k : "open"}#Intent;scheme=nopomap;package=io.github.yosebchoi.nopo;end`;
+    banner.hidden = false;
+    $("appClose").onclick = () => { banner.hidden = true; };
+  }
+
   // ---------- go ----------
   fetch("stores.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
     meta = d; stores = d.stores || []; unplaced = d.unplaced || [];
@@ -1192,13 +1484,9 @@ dialog .btn { width: 100%; }
     if (!new URLSearchParams(location.search).get("p") && !store.get("skipIntro", false)) showIntro(d);
     // a shared link (?p=<key>) opens that place
     const shared = new URLSearchParams(location.search).get("p");
-    const target = shared && stores.find(s => s.k === shared);
-    if (target) {
-      if (!passes(target)) { filter = "all"; kind = ""; store.set("filter", filter); store.set("kind", kind); syncChips(); syncKind(); drawMarkers(); }
-      openDetail(target, true);
-      history.replaceState(null, "", location.pathname);
-      return;
-    }
+    offerApp(shared);
+    if (native) call("App", "getLaunchUrl").then(r => r && r.url && openFromUrl(r.url)).catch(() => {});
+    if (openShared(shared)) { history.replaceState(null, "", location.pathname); return; }
     // a first visit starts from where you are, if the browser already allows it
     if (!store.get("view", null) && navigator.permissions) {
       navigator.permissions.query({ name: "geolocation" }).then(p => { if (p.state === "granted") locate(true); }).catch(() => {});
