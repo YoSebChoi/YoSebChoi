@@ -1,6 +1,6 @@
 // 노포 지도 service worker: the app shell is served from cache; the store list
 // is fetched fresh when online and falls back to the cached copy offline.
-const CACHE = "nopo-map-ab304343";
+const CACHE = "nopo-map-e7cb4967";
 const SHELL = ["./", "./index.html", "./stores.json", "./manifest.webmanifest", "./icon-192.png"];
 
 self.addEventListener("install", e => {
