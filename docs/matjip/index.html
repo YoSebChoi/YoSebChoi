@@ -3,8 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1e1e1f" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#1d1612">
 <meta name="description" content="내 주변 또는 지도에서 고른 곳 근처의 백년가게와 허영만의 백반기행 맛집을 찾아요.">
 <title>노포 지도</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -13,6 +12,9 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Batang:wght@400;700&display=swap">
 <style>
 /* Layout: the map fills the screen; a search bar floats on top, and a sheet at the
    bottom lists what is near the map's centre, nearest first. Dragging the map
@@ -198,6 +200,63 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .toast { position: fixed; z-index: 1100; left: 50%; transform: translateX(-50%); top: calc(118px + env(safe-area-inset-top, 0px)); background: var(--ink); color: var(--surface);
   border-radius: 12px; padding: 10px 16px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
 
+/* my rating + memo */
+.rate { margin: 0 0 12px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
+.rate-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.stars { display: inline-flex; gap: 2px; }
+.stars button { border: 0; background: transparent; padding: 0 2px; font-size: 26px; line-height: 1; cursor: pointer; color: var(--surface-3); }
+.stars button.on { color: var(--both); }
+.rate textarea { width: 100%; border: 0; border-radius: 10px; background: var(--surface); color: var(--ink); padding: 9px 11px; font: inherit; font-size: 14px; resize: none; min-height: 42px; outline: none; }
+.rate textarea::placeholder { color: var(--muted); }
+.myrate { font-size: 12px; font-weight: 700; color: var(--both); margin-left: 6px; }
+.memo-line { display: block; font-size: 12.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.backup { display: flex; gap: 8px; margin: 8px 0 14px; }
+.backup .btn { flex: 1; height: 40px; font-size: 14px; }
+
+/* ── opening screen: a night-time eatery — red signboard, a handwritten 차림표, today's pick ── */
+.intro { position: fixed; inset: 0; z-index: 3000; overflow-y: auto; color: #f3e6cc;
+  background: radial-gradient(120% 70% at 50% -5%, #4a2a1a 0%, #24170f 45%, #160f0a 100%);
+  padding: calc(26px + env(safe-area-inset-top, 0px)) 20px calc(26px + env(safe-area-inset-bottom, 0px));
+  font-family: "Gowun Batang", var(--font); transition: opacity .35s ease, transform .35s ease; }
+.intro.out { opacity: 0; transform: scale(1.03); pointer-events: none; }
+.intro-in { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.lamp { width: 2px; height: 26px; background: #6b5a48; margin: 0 auto -18px; position: relative; }
+.lamp::after { content: ""; position: absolute; left: 50%; bottom: -14px; width: 26px; height: 14px; margin-left: -13px; border-radius: 13px 13px 0 0; background: #ffcf7a;
+  box-shadow: 0 6px 40px 18px rgba(255, 190, 90, .35); }
+.signboard { position: relative; margin: 14px auto 0; padding: 18px 24px 16px; background: linear-gradient(#c22d22, #a3201a); border-radius: 10px; text-align: center;
+  box-shadow: inset 0 0 0 3px #f3e6cc, inset 0 0 0 7px #a3201a, inset 0 0 0 8.5px #f3e6cc, 0 18px 40px rgba(0, 0, 0, .55); }
+.signboard h1 { margin: 0; font-family: "Black Han Sans", var(--font); font-weight: 400; font-size: 56px; line-height: 1.05; letter-spacing: .06em; color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .25); }
+.signboard p { margin: 6px 0 0; font-size: 13.5px; letter-spacing: .25em; color: #ffe6c4; }
+.intro-lead { text-align: center; font-size: 15px; line-height: 1.7; color: #e9d9bb; margin: 0; }
+.intro-lead b { color: #ffcf7a; font-weight: 700; }
+.menuboard { background: #f4e8cf; color: #3a2516; border-radius: 6px; padding: 16px 18px 14px; position: relative;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .45), inset 0 0 0 1px #d9c49c; background-image: repeating-linear-gradient(0deg, transparent 0 27px, rgba(120, 80, 40, .07) 27px 28px); }
+.menuboard h2 { margin: 0 0 8px; text-align: center; font-family: "Black Han Sans", var(--font); font-weight: 400; font-size: 20px; letter-spacing: .6em; color: #9c2219; }
+.menuboard ul { list-style: none; margin: 0; padding: 0; }
+.menuboard li { display: flex; align-items: baseline; gap: 6px; font-size: 16px; padding: 3px 0; font-weight: 700; }
+.menuboard li .dots { flex: 1; border-bottom: 2px dotted #b49a72; transform: translateY(-4px); }
+.menuboard li .v { font-family: "Black Han Sans", var(--font); font-weight: 400; color: #9c2219; font-size: 18px; }
+.menuboard .tack { position: absolute; top: -7px; left: 50%; margin-left: -7px; width: 14px; height: 14px; border-radius: 50%; background: #8f8172; box-shadow: inset 0 -2px 0 rgba(0,0,0,.3); filter: none; }
+.ticket { background: #fff8ea; color: #3a2516; border-radius: 10px; padding: 14px 16px; position: relative; cursor: pointer; border: 0; text-align: left; width: 100%; font: inherit;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .45); -webkit-mask: radial-gradient(circle 9px at 0 50%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 9px at 100% 50%, #0000 98%, #000) right / 51% 100% no-repeat; }
+.ticket .t-top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #9c2219; font-weight: 700; letter-spacing: .1em; border-bottom: 1.5px dashed #d8c3a0; padding-bottom: 7px; margin-bottom: 8px; }
+.ticket .t-name { font-family: "Black Han Sans", var(--font); font-weight: 400; font-size: 26px; line-height: 1.2; color: #2b1a10; }
+.ticket .t-meta { font-size: 13.5px; color: #6b5440; margin-top: 3px; }
+.ticket .t-go { margin-top: 9px; font-size: 13px; font-weight: 700; color: #9c2219; }
+.ticket .tags { margin-left: 6px; vertical-align: 3px; }
+.intro h3 { margin: 4px 0 -6px; font-size: 14px; color: #cdb48d; font-weight: 700; letter-spacing: .08em; }
+.regions { display: flex; flex-wrap: wrap; gap: 8px; }
+.regions button { border: 1.5px solid #6b4b33; background: rgba(255, 220, 170, .06); color: #f3e6cc; border-radius: 999px; padding: 7px 13px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.regions button span { color: #ffcf7a; font-size: 12px; margin-left: 4px; font-family: var(--font); }
+.intro-cta { display: grid; gap: 10px; margin-top: 2px; }
+.intro-cta .btn { height: 52px; font-size: 16px; font-family: var(--font); }
+.intro-cta .btn.primary { background: #d6402c; color: #fff; }
+.intro-cta .btn.ghost { background: transparent; color: #e9d9bb; box-shadow: inset 0 0 0 1.5px #6b4b33; }
+.intro-mine { text-align: center; font-size: 13.5px; color: #cdb48d; margin: -4px 0 0; }
+.intro-skip { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: #a8916f; font-family: var(--font); }
+.intro-skip input { accent-color: #d6402c; }
+
 /* about */
 dialog { border: 0; border-radius: 20px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); max-width: min(480px, calc(100% - 32px)); padding: 22px; }
 dialog::backdrop { background: rgba(0, 0, 0, .4); }
@@ -212,6 +271,27 @@ dialog .btn { width: 100%; }
 </head>
 <body>
 <div id="map" aria-label="지도"></div>
+
+<section class="intro" id="intro" aria-label="노포 지도 소개" hidden>
+  <div class="intro-in">
+    <div class="lamp" aria-hidden="true"></div>
+    <div class="signboard"><h1>노포 지도</h1><p>오래된 맛집 찾아가는 길</p></div>
+    <p class="intro-lead">한자리를 <b>30년 넘게</b> 지킨 <b>백년가게</b>와<br>허영만 화백이 다녀간 <b>백반기행</b> 밥집을 한 지도에.</p>
+    <div class="menuboard" aria-label="차림표"><span class="tack"></span>
+      <h2>차림표</h2>
+      <ul id="introBoard"></ul>
+    </div>
+    <button class="ticket" type="button" id="introPick" hidden></button>
+    <h3>어디로 가 볼까요?</h3>
+    <div class="regions" id="introRegions"></div>
+    <p class="intro-mine" id="introMine" hidden></p>
+    <div class="intro-cta">
+      <button class="btn primary" type="button" id="introNear">내 주변 노포 찾기</button>
+      <button class="btn ghost" type="button" id="introMap">지도 둘러보기</button>
+    </div>
+    <label class="intro-skip"><input type="checkbox" id="introSkip"> 다음부터 바로 지도로 시작</label>
+  </div>
+</section>
 <svg class="crosshair" id="crosshair" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 2v6M11 14v6M2 11h6M14 11h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
 
 <div class="top">
@@ -274,6 +354,13 @@ dialog .btn { width: 100%; }
     <li>위치 정보는 이 기기 안에서만 쓰이고 어디에도 저장되지 않아요.</li>
   </ul>
   <p>지도 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> 기여자 · 백년가게: 공공데이터포털(소상공인시장진흥공단) · 백반기행: 카카오맵 방송 정보와 기사</p>
+  <p><b>내 기록</b> (★·✓ 표시, 별점, 메모)은 이 폰에만 저장돼요. 폰을 바꾸기 전에 내보내 두세요.</p>
+  <div class="backup">
+    <button class="btn" type="button" id="exportMine">내 기록 내보내기</button>
+    <label class="btn" for="importMine">가져오기</label>
+    <input type="file" id="importMine" accept="application/json,.json" hidden>
+  </div>
+  <label class="intro-skip" style="color:var(--muted);justify-content:flex-start"><input type="checkbox" id="showIntro"> 앱을 열 때 첫 화면 보이기</label>
   <p id="aboutVersion"></p>
   <form method="dialog"><button class="btn primary">닫기</button></form>
 </dialog>
@@ -351,6 +438,7 @@ dialog .btn { width: 100%; }
   const kindOf = s => s.t.length > 1 ? "both" : s.t[0];
   // 가고 싶어요 / 가 봤어요, kept on this phone by each place's stable key
   let marks = store.get("marks", {});
+  let notes = store.get("notes", {});   // { key: { r: 1-5, m: "memo" } }
   let kind = store.get("kind", "");
   const passes = s => (filter === "all" || (filter === "both" ? s.t.length > 1 : filter === "mine" ? !!marks[s.k] : s.t.includes(filter)))
     && (!kind || s.g === kind);
@@ -359,12 +447,14 @@ dialog .btn { width: 100%; }
   const PROVINCES = [["충청북", "충북"], ["충청남", "충남"], ["전라북", "전북"], ["전라남", "전남"], ["경상북", "경북"], ["경상남", "경남"], ["전남광주", "전남"]];
   const province = n => { for (const [l, sh] of PROVINCES) if (n.startsWith(l)) return sh; return n.slice(0, 2); };
   const inRegion = (s, R) => {
+    if (R.test) return R.test(s);
     if (!s.r) return false;
     if (province(s.r[0]) !== R.r1) return false;
     if (R.r2 && !(s.r[1] === R.r2 || s.r[1].startsWith(R.r2 + " "))) return false;
     if (R.r3 && !s.r[2].startsWith(R.r3.replace(/\d*가$/, ""))) return false;
     return true;
   };
+  const rateHtml = s => notes[s.k]?.r ? `<span class="myrate">내 ★${notes[s.k].r}</span>` : "";
   const markHtml = s => marks[s.k] === "want" ? '<span class="mark want" title="가고 싶어요">★</span>' : marks[s.k] === "been" ? '<span class="mark been" title="가 봤어요">✓</span>' : "";
   const REPORT_URL = "https://github.com/YoSebChoi/YoSebChoi/issues/new?" + new URLSearchParams({
     title: "[노포 지도 제보] ",
@@ -421,15 +511,20 @@ dialog .btn { width: 100%; }
     for (const s of stores) {
       if (!passes(s)) continue;
       const d = c.distanceTo(s.ll);
-      if (region ? inRegion(s, region) : d <= radius) near.push([d, s]);
+      if (filter === "mine" || (region ? inRegion(s, region) : d <= radius)) near.push([d, s]);
     }
-    near.sort((a, b) => a[0] - b[0]);
-    $("radius").hidden = !!region;
+    // saved places: all of them, best rated first
+    if (filter === "mine" && !region) near.sort((a, b) => (notes[b[1].k]?.r || 0) - (notes[a[1].k]?.r || 0) || a[0] - b[0]);
+    else near.sort((a, b) => a[0] - b[0]);
+    $("radius").hidden = !!region || filter === "mine";
     $("regionClear").hidden = !region;
     $("sheetTitle").classList.toggle("region", !!region);
     if (region) {
       $("sheetTitle").innerHTML = `${esc(region.label)} <b>${near.length}</b>곳`;
       $("sheetSub").textContent = "지역 전체 · 지도 가운데에서 가까운 순";
+    } else if (filter === "mine") {
+      $("sheetTitle").innerHTML = `저장한 노포 <b>${near.length}</b>곳`;
+      $("sheetSub").textContent = "내 별점 높은 순 · 가고 싶어요 ★ / 가 봤어요 ✓";
     } else {
       $("sheetTitle").innerHTML = near.length ? `가까운 노포 <b>${near.length}</b>곳` : "주변 노포";
       $("sheetSub").textContent = (centerLabel ? centerLabel + " · " : "") + `지도 가운데 ＋ 기준 ${radius / 1000}km`;
@@ -452,7 +547,7 @@ dialog .btn { width: 100%; }
     const cap = region ? 300 : 80;
     list.innerHTML = near.slice(0, cap).map(([d, s]) =>
       `<button class="item" type="button" data-id="${s.id}"><span class="badge" style="--k:var(--${kindOf(s)})">${BADGE[kindOf(s)]}</span>` +
-      `<span class="txt"><span class="name">${esc(s.n)}${markHtml(s)}</span><span class="meta">${tagHtml(s)}${s.q ? '<span class="check">확인 필요 · </span>' : ""}${esc([s.m || (s.g !== "기타" ? s.g : ""), shortAddr(s.a)].filter(Boolean).join(" · "))}</span></span>` +
+      `<span class="txt"><span class="name">${esc(s.n)}${markHtml(s)}${rateHtml(s)}</span><span class="meta">${tagHtml(s)}${s.q ? '<span class="check">확인 필요 · </span>' : ""}${esc([s.m || (s.g !== "기타" ? s.g : ""), shortAddr(s.a)].filter(Boolean).join(" · "))}</span>${notes[s.k]?.m ? `<span class="memo-line">“${esc(notes[s.k].m)}”</span>` : ""}</span>` +
       `<span class="dist">${fmtDist(d)}</span></button>`).join("") +
       (near.length > cap ? `<div class="note">가까운 ${cap}곳만 보여요. 지도를 확대하거나 반경을 줄여 보세요.</div>` : "") +
       `<p class="report">찾는 곳이 없나요? <a href="${REPORT_URL}" target="_blank" rel="noopener">빠진 식당 제보하기</a></p>`;
@@ -530,12 +625,15 @@ dialog .btn { width: 100%; }
       `<button class="btn been" type="button" data-m="been" aria-pressed="${marks[s.k] === "been"}">✓ 가 봤어요</button>` +
       `<button class="btn" type="button" id="share" aria-label="공유"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>` +
       `</div>` +
+      `<div class="rate"><div class="rate-top"><span>내 평가 · 이 폰에만 저장</span><span class="stars" role="group" aria-label="내 별점">` +
+      [1, 2, 3, 4, 5].map(n => `<button type="button" data-r="${n}" aria-label="${n}점" class="${(notes[s.k]?.r || 0) >= n ? "on" : ""}">★</button>`).join("") +
+      `</span></div><textarea id="memo" rows="2" maxlength="300" placeholder="한 줄 메모 — 무엇이 맛있었는지, 언제 갔는지">${esc(notes[s.k]?.m || "")}</textarea></div>` +
       (s.q ? `<p class="warn">카카오맵에서 이 주소의 가게를 찾지 못했어요. 문을 닫았거나 옮겼을 수 있으니 가기 전에 꼭 확인하세요.</p>` : "") +
       (s.x ? `<p class="warn">정확한 번지를 찾지 못해 길 위치로 표시했어요. 실제 위치는 지도 앱에서 확인하세요.</p>` : "") +
       `<div class="facts">${facts.join("")}</div>` +
       `<div class="actions">` +
       `<a class="btn primary" href="https://map.kakao.com/link/to/${name},${lat},${lng}" target="_blank" rel="noopener">길찾기</a>` +
-      `<a class="btn" href="${kakaoPlace ? esc(s.u) : `https://map.kakao.com/link/search/${q}`}" target="_blank" rel="noopener">카카오맵</a>` +
+      `<a class="btn" href="${kakaoPlace ? esc(s.u.replace(/^http:/, "https:")) + "#review" : `https://map.kakao.com/link/search/${q}`}" target="_blank" rel="noopener">${kakaoPlace ? "카카오맵 후기" : "카카오맵"}</a>` +
       `<a class="btn" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버 지도</a>` +
       `</div>`;
     $("list").hidden = true;
@@ -551,6 +649,29 @@ dialog .btn { width: 100%; }
       countChips();
       if (filter === "mine") drawMarkers();
     });
+    const saveNote = () => {
+      const n = notes[s.k] || {};
+      if (!n.r && !n.m) delete notes[s.k]; else notes[s.k] = n;
+      store.set("notes", notes);
+    };
+    $("detail").querySelectorAll(".stars button").forEach(b => b.onclick = () => {
+      const n = notes[s.k] || (notes[s.k] = {});
+      const r = +b.dataset.r;
+      n.r = n.r === r ? 0 : r;   // tapping the same star again clears it
+      if (!n.r) delete n.r;
+      // rating a place means you have been there
+      if (n.r && marks[s.k] !== "been") {
+        marks[s.k] = "been"; store.set("marks", marks); countChips();
+        $("detail").querySelectorAll("[data-m]").forEach(x => x.setAttribute("aria-pressed", String(marks[s.k] === x.dataset.m)));
+      }
+      $("detail").querySelectorAll(".stars button").forEach(x => x.classList.toggle("on", (n.r || 0) >= +x.dataset.r));
+      saveNote();
+    });
+    let memoTimer = 0;
+    $("memo").oninput = e => {
+      clearTimeout(memoTimer);
+      memoTimer = setTimeout(() => { (notes[s.k] || (notes[s.k] = {})).m = e.target.value.trim(); if (!notes[s.k].m) delete notes[s.k].m; saveNote(); }, 300);
+    };
     $("share").onclick = async () => {
       const url = new URL(location.pathname, location.origin);
       url.searchParams.set("p", s.k);
@@ -665,7 +786,7 @@ dialog .btn { width: 100%; }
     results._regions = regions;
   }
   // Kakao's place search (much better for Korean places) when a JavaScript key is set; else OpenStreetMap
-  const KAKAO_JS_KEY = "4e97e3b7bde5b3f21a2a5e04a8e961de";
+  const KAKAO_JS_KEY = "";
   let kakaoPlaces = null, kakaoGeo = null;
   if (KAKAO_JS_KEY && !KAKAO_JS_KEY.startsWith("__")) {
     const sdk = document.createElement("script");
@@ -816,9 +937,85 @@ dialog .btn { width: 100%; }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 e7cb4967";
+    $("aboutVersion").textContent = "앱 버전 b552d310";
     $("about").showModal();
   });
+
+  // ---------- my records: export / import ----------
+  $("exportMine").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify({ app: "노포 지도", saved: new Date().toISOString(), marks, notes }, null, 1)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `노포지도-내기록-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $("importMine").addEventListener("change", async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (!d || typeof d.marks !== "object") throw new Error();
+      marks = { ...marks, ...d.marks }; notes = { ...notes, ...(d.notes || {}) };
+      store.set("marks", marks); store.set("notes", notes);
+      countChips(); drawMarkers(); refreshList();
+      toast(`내 기록을 가져왔어요 (${Object.keys(d.marks).length}곳).`);
+    } catch { toast("이 파일은 노포 지도 기록이 아니에요."); }
+    e.target.value = "";
+  });
+
+  // ---------- opening screen ----------
+  // [label, 시도, 시군구]
+  const INTRO_REGIONS = [["서울"], ["부산"], ["대구"], ["인천"], ["광주"], ["대전"], ["전주", "전북", "전주시"], ["강릉", "강원", "강릉시"],
+    ["경주", "경북", "경주시"], ["통영", "경남", "통영시"], ["제주"]];
+  const introRegion = ([label, r1, r2]) => label === "광주"
+    // 광주 is filed under 전남(광주통합특별시) in Kakao's regions: its districts are the 구s there
+    ? { label: "광주", test: s => (s.r ? province(s.r[0]) === "전남" && /구$/.test(s.r[1]) : s.a.startsWith("광주")) }
+    : { r1: r1 || label, r2: r2 || "", r3: "", label: [r1 || label, r2].filter(Boolean).join(" ") };
+  const inIntroRegion = (s, it) => inRegion(s, introRegion(it));
+  function showIntro(d) {
+    const intro = $("intro");
+    const provinces = new Set(stores.map(s => s.r && province(s.r[0])).filter(Boolean));
+    const nBn = stores.filter(s => s.t.includes("bn")).length, nBb = stores.filter(s => s.t.includes("bb")).length;
+    const rows = [["백년가게", `${nBn.toLocaleString()}곳`], ["백반기행", `${nBb.toLocaleString()}곳`],
+      ["둘 다 해당", `${stores.filter(s => s.t.length > 1).length}곳`], ["전국", `${provinces.size}개 시·도`]];
+    $("introBoard").innerHTML = rows.map(([k, v]) => `<li><span>${k}</span><span class="dots"></span><span class="v">${v}</span></li>`).join("");
+    // today's pick: the same for everyone on a given day, from places with a known menu
+    const pool = stores.filter(s => s.m && !s.q);
+    if (pool.length) {
+      const day = new Date(); const seed = day.getFullYear() * 400 + day.getMonth() * 32 + day.getDate();
+      const pick = pool[(seed * 2654435761 >>> 0) % pool.length];
+      $("introPick").innerHTML = `<div class="t-top"><span>오늘의 노포</span><span>${day.getMonth() + 1}월 ${day.getDate()}일</span></div>` +
+        `<div class="t-name">${esc(pick.n)}${tagHtml(pick)}</div><div class="t-meta">${esc([pick.m, pick.a.split(/\s+/).slice(0, 2).join(" ")].join(" · "))}</div>` +
+        `<div class="t-go">보러 가기 →</div>`;
+      $("introPick").hidden = false;
+      $("introPick").onclick = () => { closeIntro(); openDetail(pick, true); };
+    }
+    $("introRegions").innerHTML = INTRO_REGIONS.map((it, i) => {
+      const n = stores.filter(s => inIntroRegion(s, it)).length;
+      return n ? `<button type="button" data-i="${i}">${it[0]}<span>${n}</span></button>` : "";
+    }).join("");
+    $("introRegions").onclick = e => {
+      const b = e.target.closest("button"); if (!b) return;
+      const it = INTRO_REGIONS[+b.dataset.i];
+      closeIntro();
+      showRegion(introRegion(it));
+    };
+    const want = Object.values(marks).filter(m => m === "want").length, been = Object.values(marks).filter(m => m === "been").length;
+    if (want || been) { $("introMine").textContent = `가고 싶은 곳 ${want}곳 · 가 본 곳 ${been}곳을 저장해 두셨어요.`; $("introMine").hidden = false; }
+    $("introSkip").checked = false;
+    intro.hidden = false;
+  }
+  function closeIntro() {
+    const intro = $("intro");
+    if ($("introSkip").checked) store.set("skipIntro", true);
+    intro.classList.add("out");
+    setTimeout(() => { intro.hidden = true; intro.classList.remove("out"); }, 350);
+  }
+  $("introNear").addEventListener("click", () => { closeIntro(); locate(false); });
+  $("introMap").addEventListener("click", closeIntro);
+  $("showIntro").checked = !store.get("skipIntro", false);
+  $("showIntro").addEventListener("change", e => store.set("skipIntro", !e.target.checked));
 
   // ---------- go ----------
   fetch("stores.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
@@ -828,6 +1025,7 @@ dialog .btn { width: 100%; }
     centerLabel = guessArea();
     refreshList();
     $("reportLink").href = REPORT_URL;
+    if (!new URLSearchParams(location.search).get("p") && !store.get("skipIntro", false)) showIntro(d);
     // a shared link (?p=<key>) opens that place
     const shared = new URLSearchParams(location.search).get("p");
     const target = shared && stores.find(s => s.k === shared);
