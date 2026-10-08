@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12161c">
+<meta name="description" content="내 주변 또는 지도에서 고른 곳 근처의 백년가게와 허영만의 백반기행 맛집을 찾아요.">
+<title>노포 지도</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap">
+<style>
+/* Layout: the map fills the screen; a search bar floats on top, and a sheet at the
+   bottom lists what is near the map's centre, nearest first. Dragging the map
+   re-centres the list.
+   Look: a clean, bright map app — white cards on a soft map, one warm accent,
+   and a colour per list: indigo 백년가게, gochujang red 백반기행, amber for both. */
+:root {
+  --bg: #f3f1ee;
+  --surface: #ffffff;
+  --surface-2: #f4f2ef;
+  --surface-3: #ebe7e2;
+  --ink: #1d1b19;
+  --ink-2: #4a4540;
+  --muted: #8a827a;
+  --rule: #ece8e3;
+  --accent: #d2462c;
+  --accent-ink: #ffffff;
+  --bn: #3457a6;
+  --bb: #d2462c;
+  --both: #c98410;
+  --me: #1a73e8;
+  --shadow-sm: 0 1px 2px rgba(29, 27, 25, .06), 0 2px 8px rgba(29, 27, 25, .06);
+  --shadow: 0 2px 6px rgba(29, 27, 25, .08), 0 10px 30px rgba(29, 27, 25, .12);
+  --font-sign: "Black Han Sans", "Pretendard Variable", "Apple SD Gothic Neo", sans-serif;   /* signboard lettering, used sparingly */
+  --sign: #b3261e;   /* the signboard red of the icon and the opening screen */
+  --font: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  --sheet-peek: 236px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #121212; --surface: #1e1e1f; --surface-2: #262628; --surface-3: #303033; --ink: #f2f0ed; --ink-2: #cfcac4; --muted: #8f8a85; --rule: #2c2c2e;
+    --accent: #ff7a5c; --accent-ink: #1a0f0b; --bn: #8eaaf0; --bb: #ff7a5c; --both: #f2b443; --me: #6aa8ff;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow: 0 2px 6px rgba(0, 0, 0, .35), 0 10px 30px rgba(0, 0, 0, .45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #121212; --surface: #1e1e1f; --surface-2: #262628; --surface-3: #303033; --ink: #f2f0ed; --ink-2: #cfcac4; --muted: #8f8a85; --rule: #2c2c2e;
+  --accent: #ff7a5c; --accent-ink: #1a0f0b; --bn: #8eaaf0; --bb: #ff7a5c; --both: #f2b443; --me: #6aa8ff;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .4); --shadow: 0 2px 6px rgba(0, 0, 0, .35), 0 10px 30px rgba(0, 0, 0, .45);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.5; overflow: hidden; letter-spacing: -0.01em; }
+button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
+[hidden] { display: none !important; }
+
+#map { position: fixed; inset: 0; background: var(--bg); }
+.leaflet-container { font-family: var(--font); background: var(--bg); }
+/* soften the busy OSM style a little in light mode; dark mode turns it into a calm night map */
+.base-tiles { filter: saturate(.75) contrast(.96); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .base-tiles { filter: invert(1) hue-rotate(185deg) saturate(.35) brightness(.9) contrast(.88); } }
+:root[data-theme="dark"] .base-tiles { filter: invert(1) hue-rotate(185deg) saturate(.35) brightness(.9) contrast(.88); }
+.leaflet-control-attribution { font-size: 10px; background: color-mix(in srgb, var(--surface) 75%, transparent) !important; color: var(--muted); border-radius: 6px 0 0 0; }
+.leaflet-control-attribution a { color: var(--muted); }
+.leaflet-bottom { bottom: var(--sheet-h, var(--sheet-peek)); transition: bottom .25s ease; }
+.leaflet-tooltip { font-family: var(--font); font-weight: 600; border: 0; border-radius: 8px; box-shadow: var(--shadow-sm); background: var(--surface); color: var(--ink); padding: 3px 8px; }
+.leaflet-tooltip-top::before { border-top-color: var(--surface); }
+
+/* pins */
+.pin { width: 30px; height: 38px; position: relative; filter: drop-shadow(0 2px 3px rgba(0,0,0,.25)); }
+.pin svg { width: 30px; height: 38px; display: block; }
+.pin .body { fill: var(--k); stroke: #fff; stroke-width: 2; }
+.pin .glyph { fill: #fff; }
+.pin.approx { opacity: .6; }
+.pin.sel { transform: scale(1.25); transform-origin: 50% 100%; z-index: 1000 !important; }
+.cluster { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 13px; color: #fff;
+  background: var(--k, #48413b); box-shadow: 0 0 0 4px color-mix(in srgb, var(--k, #48413b) 28%, transparent), var(--shadow-sm); }
+.cluster.lg { width: 48px; height: 48px; font-size: 14px; }
+.me-dot { width: 18px; height: 18px; border-radius: 50%; background: var(--me); border: 3px solid #fff; box-shadow: 0 0 0 6px color-mix(in srgb, var(--me) 25%, transparent), var(--shadow-sm); }
+
+/* top: search + filters */
+.top { position: fixed; z-index: 1000; left: 0; right: 0; top: 0; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0;
+  pointer-events: none; max-width: 560px; margin: 0 auto; }
+.top > * { pointer-events: auto; }
+.searchbar { display: flex; align-items: center; gap: 2px; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); padding: 4px 4px 4px 8px; height: 52px; }
+.logo { flex: none; height: 34px; padding: 0 9px; border-radius: 7px; background: var(--sign); color: #fff; display: grid; place-items: center;
+  font-family: var(--font-sign); font-size: 17px; letter-spacing: .08em; line-height: 1; box-shadow: inset 0 0 0 1.5px #f3e6cc, inset 0 0 0 3px var(--sign); }
+.searchbar input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 8px; outline: none; font-size: 16px; }
+.searchbar input::placeholder { color: var(--muted); }
+.searchbar input::-webkit-search-cancel-button { display: none; }
+.icon-btn { flex: none; width: 42px; height: 42px; border: 0; border-radius: 12px; background: transparent; display: grid; place-items: center; cursor: pointer; color: var(--ink-2); }
+.icon-btn:active { background: var(--surface-2); }
+.icon-btn svg { width: 21px; height: 21px; }
+.chips { display: flex; gap: 6px; margin: 2px -12px 0; overflow-x: auto; scrollbar-width: none; padding: 8px 12px 12px; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 0; border-radius: 999px; height: 34px; padding: 0 14px; background: var(--surface); box-shadow: var(--shadow-sm); cursor: pointer;
+  font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); }
+.chip .n { font-weight: 500; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--surface) 65%, transparent); }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+.dot.bn { background: var(--bn); } .dot.bb { background: var(--bb); } .dot.both { background: var(--both); }
+
+.chip.kind { position: relative; padding-right: 26px; }
+.chip.kind::after { content: ""; position: absolute; right: 12px; top: 50%; width: 6px; height: 6px; margin-top: -5px; border: solid currentColor; border-width: 0 1.6px 1.6px 0; transform: rotate(45deg); }
+.chip.kind select { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; font-size: 16px; }
+.chip.kind.on { background: var(--accent); color: var(--accent-ink); }
+.chip .star { color: var(--both); }
+.chip[aria-pressed="true"] .star { color: inherit; }
+
+/* search results */
+.results { margin-top: 8px; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); max-height: min(55vh, 440px); overflow-y: auto; padding: 6px; }
+.results h3 { font-size: 12px; color: var(--muted); font-weight: 600; margin: 10px 10px 4px; }
+.results button { display: block; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 10px; padding: 9px 10px; cursor: pointer; font-weight: 600; }
+.results button:active, .results button:focus-visible { background: var(--surface-2); outline: none; }
+.results .sub { display: block; font-size: 13px; color: var(--muted); font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.results .empty { padding: 10px; color: var(--muted); font-size: 14px; }
+
+/* floating actions */
+.fab { position: fixed; z-index: 900; right: 12px; width: 46px; height: 46px; border-radius: 50%; border: 0; background: var(--surface); box-shadow: var(--shadow);
+  display: grid; place-items: center; cursor: pointer; color: var(--ink-2); transition: bottom .25s ease; }
+.fab svg { width: 22px; height: 22px; }
+.fab.locate { bottom: calc(var(--sheet-h, var(--sheet-peek)) + 14px); }
+.fab.locate.busy svg { animation: spin 1s linear infinite; }
+.fab.locate.on { color: var(--me); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.crosshair { position: fixed; z-index: 500; left: 50%; top: 50%; width: 20px; height: 20px; margin: -10px 0 0 -10px; pointer-events: none; color: var(--ink); opacity: .45; }
+
+/* bottom sheet */
+.sheet { position: fixed; z-index: 950; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; background: var(--surface); border-radius: 20px 20px 0 0;
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, .12); height: var(--sheet-h, var(--sheet-peek)); display: flex; flex-direction: column;
+  transition: height .25s ease; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.sheet.dragging { transition: none; }
+.grab { flex: none; padding: 8px 18px 8px; cursor: grab; touch-action: none; user-select: none; }
+.grab::before { content: ""; display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--surface-3); margin: 0 auto 10px; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sheet-title { font-weight: 700; font-size: 19px; margin: 0; letter-spacing: -0.02em; white-space: nowrap; }
+.sheet-title b { color: var(--accent); font-family: var(--font-sign); font-weight: 400; font-size: 21px; margin: 0 1px; }
+.sheet-head > div:first-child { min-width: 0; }
+.sheet-title.region { overflow: hidden; text-overflow: ellipsis; }
+.region-clear { flex: none; border: 0; background: var(--surface-2); color: var(--ink-2); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.results .count { color: var(--accent); font-weight: 700; margin-left: 6px; font-size: 13px; }
+.sheet-sub { font-size: 13px; color: var(--muted); margin: 2px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.radius { flex: none; display: inline-flex; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 2px; }
+.radius button { border: 0; background: transparent; border-radius: 8px; padding: 4px 7px; font-size: 12.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.radius button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.list { flex: 1; overflow-y: auto; padding: 2px 12px 16px; overscroll-behavior: contain; }
+.item { display: grid; grid-template-columns: 40px 1fr auto; gap: 0 12px; align-items: center; padding: 12px 6px; cursor: pointer; border: 0; border-bottom: 1px solid var(--rule);
+  background: transparent; width: 100%; text-align: left; }
+.item:last-child { border-bottom: 0; }
+.item:active { background: var(--surface-2); }
+.badge { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: color-mix(in srgb, var(--k) 14%, transparent); color: var(--k); }
+.badge svg { width: 22px; height: 22px; }
+.item .txt { min-width: 0; }
+.item .name { font-weight: 700; font-size: 16px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .meta { display: block; font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
+.item .dist { font-size: 13px; font-weight: 600; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tags { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.tag { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 2px 7px; white-space: nowrap; }
+.tag.bn { color: var(--bn); background: color-mix(in srgb, var(--bn) 13%, transparent); }
+.tag.bb { color: var(--bb); background: color-mix(in srgb, var(--bb) 13%, transparent); }
+.item .tags { margin-right: 4px; vertical-align: 1px; }
+.mark { font-size: 13px; margin-left: 4px; }
+.mark.want { color: var(--both); } .mark.been { color: #2e9e6b; }
+.check { color: var(--both); font-weight: 700; }
+.note { font-size: 14px; color: var(--muted); padding: 18px 8px; text-align: center; line-height: 1.6; }
+.note button { border: 0; background: var(--surface-2); color: var(--ink); font-weight: 600; border-radius: 10px; padding: 8px 14px; cursor: pointer; margin-top: 10px; }
+
+/* detail card */
+.detail { padding: 0 18px 18px; overflow-y: auto; }
+.detail-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.back { border: 0; background: var(--surface-2); color: var(--ink-2); border-radius: 999px; padding: 5px 12px 5px 9px; cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
+.detail h2 { font-family: var(--font-sign); font-weight: 400; font-size: 27px; margin: 8px 0 8px; line-height: 1.25; letter-spacing: .01em; text-wrap: balance; }
+.detail .tag { font-size: 12px; padding: 3px 8px; }
+.facts { margin: 14px 0 16px; display: grid; gap: 10px; font-size: 14px; }
+.fact { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; color: var(--ink-2); }
+.fact svg { width: 18px; height: 18px; color: var(--muted); margin-top: 2px; }
+.fact a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btn { border: 0; border-radius: 12px; height: 46px; padding: 0 14px; background: var(--surface-2); color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 700; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); grid-column: 1 / -1; }
+.mine { display: grid; grid-template-columns: 1fr 1fr 46px; gap: 8px; margin: 0 0 10px; }
+.mine .btn { height: 40px; font-size: 14px; background: transparent; box-shadow: inset 0 0 0 1.5px var(--rule); }
+.mine .btn[aria-pressed="true"].want { background: color-mix(in srgb, var(--both) 16%, transparent); box-shadow: inset 0 0 0 1.5px var(--both); color: var(--ink); }
+.mine .btn[aria-pressed="true"].been { background: color-mix(in srgb, #2e9e6b 16%, transparent); box-shadow: inset 0 0 0 1.5px #2e9e6b; color: var(--ink); }
+.mine .btn svg { width: 18px; height: 18px; }
+.report { display: block; text-align: center; font-size: 13px; color: var(--muted); padding: 4px 0 8px; }
+.report a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.warn { font-size: 13px; color: var(--ink-2); background: color-mix(in srgb, var(--both) 14%, transparent); border-radius: 10px; padding: 9px 12px; margin: 10px 0 0; }
+
+.toast { position: fixed; z-index: 1100; left: 50%; transform: translateX(-50%); top: calc(118px + env(safe-area-inset-top, 0px)); background: var(--ink); color: var(--surface);
+  border-radius: 12px; padding: 10px 16px; font-size: 14px; font-weight: 600; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
+
+/* my rating + memo */
+.rate { margin: 0 0 12px; padding: 12px; border-radius: 14px; background: var(--surface-2); }
+.rate-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 13px; color: var(--muted); font-weight: 600; }
+.stars { display: inline-flex; gap: 2px; }
+.stars button { border: 0; background: transparent; padding: 0 2px; font-size: 26px; line-height: 1; cursor: pointer; color: color-mix(in srgb, var(--muted) 45%, transparent); }
+.stars button.on { color: var(--both); }
+.rate textarea { width: 100%; border: 0; border-radius: 10px; background: var(--surface); color: var(--ink); padding: 9px 11px; font: inherit; font-size: 14px; resize: none; min-height: 42px; outline: none; }
+.rate textarea::placeholder { color: var(--muted); }
+.myrate { font-size: 12px; font-weight: 700; color: var(--both); margin-left: 6px; }
+.memo-line { display: block; font-size: 12.5px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+.backup { display: flex; gap: 8px; margin: 8px 0 14px; }
+.backup .btn { flex: 1; height: 40px; font-size: 14px; }
+
+/* ── opening screen ──────────────────────────────────────────────
+   A Korean alley after dark: cool night air, one warm lamp, the red 간판 hanging
+   under it, a wooden 차림표 with painted letters and a mint 식권 for today's pick.
+   Shapes: things you can touch in a real 노포 (간판, board, ticket) get small 8px
+   corners; everything you tap is a pill. One accent: the signboard red. */
+.intro {
+  --night: #12161c; --night-2: #1c222b; --lamp: #ffc46e; --paint: #f4ede1; --paint-dim: #b9b2a6;
+  --wood: #4b3322; --wood-2: #3a2719; --ticket: #d3eadb; --ticket-ink: #1b3528; --stamp: #c8241b;
+  position: fixed; inset: 0; z-index: 3000; overflow-y: auto; overscroll-behavior: contain; scroll-padding-bottom: 170px; color: var(--paint); color-scheme: dark;
+  background:
+    radial-gradient(70% 38% at 50% 0%, rgba(255, 196, 110, .26), transparent 70%),
+    linear-gradient(180deg, var(--night-2) 0%, var(--night) 55%);
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 18px calc(150px + env(safe-area-inset-bottom, 0px));
+  font-family: var(--font); transition: opacity .35s ease, transform .35s ease; }
+.intro.out { opacity: 0; transform: scale(1.03); pointer-events: none; }
+.intro-in { max-width: 440px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.lamp { width: 2px; height: 30px; background: #59606b; margin: 0 auto -16px; position: relative; }
+.lamp::after { content: ""; position: absolute; left: 50%; bottom: -13px; width: 28px; height: 14px; margin-left: -14px; border-radius: 14px 14px 0 0; background: var(--lamp);
+  box-shadow: 0 8px 46px 20px rgba(255, 196, 110, .32); }
+.signboard { position: relative; margin: 16px auto 0; padding: 16px 26px 14px; border-radius: 8px; text-align: center;
+  background: linear-gradient(180deg, #d42d22 0%, var(--sign) 55%, #a81d16 100%);
+  box-shadow: inset 0 0 0 3px var(--paint), inset 0 0 0 7px var(--sign), inset 0 0 0 8.5px var(--paint), 0 22px 44px rgba(0, 0, 0, .55); }
+.signboard::before, .signboard::after { content: ""; position: absolute; top: -26px; width: 2px; height: 28px; background: #6d7480; }
+.signboard::before { left: 22%; transform: rotate(14deg); } .signboard::after { right: 22%; transform: rotate(-14deg); }
+.signboard h1 { margin: 0; font-family: var(--font-sign); font-weight: 400; font-size: clamp(44px, 14vw, 58px); line-height: 1.05; letter-spacing: .08em; color: #fff6ec;
+  text-shadow: 0 2px 0 rgba(90, 10, 6, .45); }
+.signboard p { margin: 6px 0 0; font-size: 13px; font-weight: 600; letter-spacing: .3em; color: #ffe1cc; }
+.intro-lead { text-align: center; font-size: 15px; line-height: 1.65; color: var(--paint-dim); margin: 0; text-wrap: balance; }
+.intro-lead b { color: var(--paint); font-weight: 700; }
+/* the 차림표: a wooden board, letters painted on */
+.menuboard { border-radius: 8px; padding: 16px 18px 12px; position: relative;
+  background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .07) 0 2px, transparent 2px 9px), linear-gradient(180deg, var(--wood), var(--wood-2));
+  box-shadow: inset 0 0 0 2px rgba(255, 220, 170, .08), 0 14px 30px rgba(0, 0, 0, .5); }
+.menuboard h2 { margin: 0 0 6px; font-family: var(--font-sign); font-weight: 400; font-size: 21px; letter-spacing: .5em; color: var(--paint); }
+.menuboard ul { list-style: none; margin: 0; padding: 0; }
+.menuboard li { display: flex; align-items: baseline; gap: 8px; font-size: 15.5px; padding: 4px 0; font-weight: 600; color: var(--paint); }
+.menuboard li .dots { flex: 1; border-bottom: 2px dotted rgba(244, 237, 225, .3); transform: translateY(-4px); }
+.menuboard li .v { font-family: var(--font-sign); font-weight: 400; color: var(--lamp); font-size: 19px; font-variant-numeric: tabular-nums; }
+.menuboard .tack { position: absolute; top: 9px; right: 12px; width: 9px; height: 9px; border-radius: 50%; background: #8d8478; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .35); }
+/* today's pick: a mint 식권 with a red stamp */
+.ticket { background: var(--ticket); color: var(--ticket-ink); border-radius: 8px; padding: 14px 16px 14px; position: relative; cursor: pointer; border: 0; text-align: left; width: 100%; font: inherit;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, .5);
+  -webkit-mask: radial-gradient(circle 8px at 0 56%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 8px at 100% 56%, #0000 98%, #000) right / 51% 100% no-repeat;
+  mask: radial-gradient(circle 8px at 0 56%, #0000 98%, #000) left / 51% 100% no-repeat, radial-gradient(circle 8px at 100% 56%, #0000 98%, #000) right / 51% 100% no-repeat; }
+.ticket:active { transform: translateY(1px); }
+.ticket .t-top { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; font-weight: 700; color: #3e5f4e; border-bottom: 1.5px dashed rgba(27, 53, 40, .3); padding-bottom: 7px; margin-bottom: 9px; }
+.ticket .t-name { font-family: var(--font-sign); font-weight: 400; font-size: 27px; line-height: 1.2; padding-right: 64px; }
+.ticket .t-meta { font-size: 14px; color: #3e5f4e; margin-top: 3px; }
+.ticket .t-go { margin-top: 10px; font-size: 13.5px; font-weight: 700; color: var(--stamp); }
+.ticket .tags { margin-left: 6px; vertical-align: 4px; }
+.ticket .stamp { position: absolute; right: 14px; top: 44px; width: 56px; height: 56px; border-radius: 50%; border: 2.5px solid var(--stamp); color: var(--stamp);
+  display: grid; place-items: center; font-family: var(--font-sign); font-size: 15px; line-height: 1.05; text-align: center; transform: rotate(-12deg); opacity: .85; }
+.intro h3 { margin: 4px 0 -8px; font-size: 15px; color: var(--paint); font-weight: 700; }
+.regions { display: flex; flex-wrap: wrap; gap: 8px; }
+.regions button { border: 1.5px solid rgba(244, 237, 225, .22); background: rgba(244, 237, 225, .05); color: var(--paint); border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; }
+.regions button:active { transform: translateY(1px); }
+.intro button { touch-action: manipulation; }
+@media (hover: hover) {
+  .regions button:hover { border-color: rgba(255, 196, 110, .6); background: rgba(255, 196, 110, .08); }
+  .intro-cta .btn.primary:hover { background: #d92c21; }
+  .intro-cta .btn.ghost:hover { background: rgba(244, 237, 225, .14); }
+  .ticket:hover .t-go { text-decoration: underline; }
+}
+.ticket .t-top, .ticket .t-name, .ticket .t-meta, .ticket .t-go { display: block; }
+.ticket .t-top { display: flex; }
+.regions button span { color: var(--lamp); font-size: 12.5px; margin-left: 5px; font-variant-numeric: tabular-nums; }
+.intro-mine { font-size: 14px; color: var(--paint-dim); margin: -6px 0 0; }
+/* the two actions stay in reach at the bottom of the screen */
+.intro-cta { position: fixed; z-index: 3001; left: 0; right: 0; bottom: 0; padding: 28px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, transparent, var(--night) 34%); }
+.intro-cta > div { max-width: 440px; margin: 0 auto; display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
+.intro-cta .btn { height: 52px; border-radius: 999px; font-size: 15.5px; font-weight: 700; }
+.intro-cta .btn.primary { background: var(--sign); color: #fff6ec; grid-column: auto; }
+.intro-cta .btn.ghost { background: rgba(244, 237, 225, .08); color: var(--paint); box-shadow: inset 0 0 0 1.5px rgba(244, 237, 225, .25); }
+.intro-cta .btn:active { transform: translateY(1px); }
+.intro-skip { display: flex; align-items: center; justify-content: center; gap: 7px; font-size: 13px; color: var(--paint-dim); margin-top: 10px; }
+.intro-skip input { accent-color: var(--sign); width: 16px; height: 16px; }
+.intro:not([hidden]) .lamp::after { animation: lamp-on 1.1s ease-out both; }
+.intro:not([hidden]) .signboard { transform-origin: 50% -30px; animation: sign-swing 1.6s cubic-bezier(.3, 1.5, .5, 1) both; }
+.intro:not([hidden]) .intro-lead, .intro:not([hidden]) .menuboard, .intro:not([hidden]) .ticket { animation: rise .6s ease-out both; }
+.intro:not([hidden]) .menuboard { animation-delay: .15s; } .intro:not([hidden]) .ticket { animation-delay: .3s; }
+@keyframes lamp-on { 0% { opacity: .15; box-shadow: none; } 18% { opacity: 1; } 26% { opacity: .35; } 40%, 100% { opacity: 1; } }
+@keyframes sign-swing { 0% { transform: rotate(-5deg); } 45% { transform: rotate(2.2deg); } 75% { transform: rotate(-.8deg); } 100% { transform: rotate(0); } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* keyboard focus and reduced motion */
+:where(button, a, select, textarea, input, label.chip):focus-visible { outline: 2.5px solid var(--me); outline-offset: 2px; border-radius: 10px; }
+.signboard h1, dialog h2 { text-wrap: balance; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
+}
+
+/* about */
+dialog { border: 0; border-radius: 20px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); max-width: min(480px, calc(100% - 32px)); padding: 22px; }
+dialog::backdrop { background: rgba(0, 0, 0, .4); }
+dialog h2 { margin: 0 0 8px; font-size: 20px; font-weight: 800; }
+dialog p, dialog li { font-size: 14px; color: var(--ink-2); }
+dialog ul { padding-left: 18px; color: var(--muted); }
+dialog a { color: var(--accent); }
+dialog .btn { width: 100%; }
+.legend { display: flex; flex-direction: column; gap: 8px; font-size: 14px; margin: 12px 0; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+</style>
+</head>
+<body>
+<div id="map" aria-label="지도"></div>
+
+<section class="intro" id="intro" role="dialog" aria-modal="true" aria-label="노포 지도 첫 화면" hidden>
+  <div class="intro-in">
+    <div class="lamp" aria-hidden="true"></div>
+    <div class="signboard"><h1>노포 지도</h1><p>오래된 맛집 찾아가는 길</p></div>
+    <p class="intro-lead">한자리를 <b>30년 넘게</b> 지킨 <b>백년가게</b>와<br>허영만 화백이 다녀간 <b>백반기행</b> 밥집을 한 지도에.</p>
+    <div class="menuboard" aria-label="차림표"><span class="tack" aria-hidden="true"></span>
+      <h2>차림표</h2>
+      <ul id="introBoard"></ul>
+    </div>
+    <button class="ticket" type="button" id="introPick" hidden></button>
+    <h3>어느 동네로 갈까요?</h3>
+    <div class="regions" id="introRegions"></div>
+    <p class="intro-mine" id="introMine" hidden></p>
+  </div>
+  <div class="intro-cta">
+    <div>
+      <button class="btn primary" type="button" id="introNear">내 주변 노포 찾기</button>
+      <button class="btn ghost" type="button" id="introMap">지도 둘러보기</button>
+    </div>
+    <label class="intro-skip"><input type="checkbox" id="introSkip"> 다음부터 바로 지도로 시작</label>
+  </div>
+</section>
+<svg class="crosshair" id="crosshair" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 2v6M11 14v6M2 11h6M14 11h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+
+<div class="top">
+  <form class="searchbar" id="searchForm" role="search" autocomplete="off">
+    <button class="logo" type="button" id="logoBtn" aria-label="첫 화면 보기">노포</button>
+    <input id="q" type="search" placeholder="노포 이름, 동네, 역 검색…" aria-label="식당 이름이나 장소 검색" enterkeyhint="search">
+    <button class="icon-btn" type="submit" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+    <button class="icon-btn" type="button" id="aboutBtn" aria-label="앱 정보"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg></button>
+  </form>
+  <div class="results" id="results" hidden></div>
+  <div class="chips" role="group" aria-label="보기 필터">
+    <label class="chip kind" id="kindChip"><span id="kindLabel">종류</span>
+      <select id="kind" aria-label="음식 종류">
+        <option value="">모든 종류</option><option>한식</option><option>국밥·탕</option><option>면</option><option>고기</option>
+        <option>해산물</option><option>중식</option><option>일식·양식</option><option>빵·카페</option><option>기타</option>
+      </select>
+    </label>
+    <button class="chip" type="button" data-f="all" aria-pressed="true">전체 <span class="n"></span></button>
+    <button class="chip" type="button" data-f="bn" aria-pressed="false"><i class="dot bn"></i>백년가게 <span class="n"></span></button>
+    <button class="chip" type="button" data-f="bb" aria-pressed="false"><i class="dot bb"></i>백반기행 <span class="n"></span></button>
+    <button class="chip" type="button" data-f="both" aria-pressed="false"><i class="dot both"></i>둘 다 <span class="n"></span></button>
+    <button class="chip" type="button" data-f="mine" aria-pressed="false"><span class="star">★</span>저장 <span class="n"></span></button>
+  </div>
+</div>
+
+<button class="fab locate" id="locate" type="button" aria-label="내 위치로 이동">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+</button>
+
+<section class="sheet" id="sheet" aria-label="주변 식당">
+  <div class="grab" id="grab">
+    <div class="sheet-head">
+      <h2 class="sheet-title" id="sheetTitle">주변 노포</h2>
+      <button class="region-clear" type="button" id="regionClear" hidden>지역 해제 ✕</button>
+      <div class="radius" id="radius" role="group" aria-label="검색 반경">
+        <button type="button" data-r="1000">1km</button><button type="button" data-r="3000">3km</button><button type="button" data-r="10000">10km</button><button type="button" data-r="30000">30km</button>
+      </div>
+    </div>
+    <p class="sheet-sub" id="sheetSub">불러오는 중…</p>
+  </div>
+  <div class="list" id="list"></div>
+  <div class="detail" id="detail" hidden></div>
+</section>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<dialog id="about">
+  <h2>노포 지도</h2>
+  <p>지도 가운데(＋)를 기준으로 가까운 식당을 보여 줘요. 지도를 움직이거나 장소를 검색하면 목록도 그 위치 기준으로 바뀌어요.</p>
+  <div class="legend">
+    <span><i class="dot bn"></i>백년가게: 중소벤처기업부가 지정한 30년 이상 된 가게 중 음식점</span>
+    <span><i class="dot bb"></i>백반기행: TV조선 「식객 허영만의 백반기행」에 나온 식당</span>
+    <span><i class="dot both"></i>둘 다 해당하는 곳</span>
+  </div>
+  <p id="aboutData"></p>
+  <p>빠진 백반기행·백년가게 식당을 알고 있다면 <a id="reportLink" target="_blank" rel="noopener">제보해 주세요</a>.</p>
+  <ul>
+    <li>방송 뒤에 옮기거나 문을 닫은 곳이 있을 수 있어요. 가기 전에 지도 앱에서 영업 여부를 꼭 확인하세요.</li>
+    <li>백반기행은 공식 목록이 없어서 카카오맵에 방송 정보가 등록된 곳과 기사로 확인한 곳을 담았어요.</li>
+    <li>위치 정보는 이 기기 안에서만 쓰이고 어디에도 저장되지 않아요.</li>
+  </ul>
+  <p>지도 © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> 기여자 · 백년가게: 공공데이터포털(소상공인시장진흥공단) · 백반기행: 카카오맵 방송 정보와 기사</p>
+  <p><b>내 기록</b> (★·✓ 표시, 별점, 메모)은 이 폰에만 저장돼요. 폰을 바꾸기 전에 내보내 두세요.</p>
+  <div class="backup">
+    <button class="btn" type="button" id="exportMine">내 기록 내보내기</button>
+    <label class="btn" for="importMine">가져오기</label>
+    <input type="file" id="importMine" accept="application/json,.json" hidden>
+  </div>
+  <label class="intro-skip" style="color:var(--muted);justify-content:flex-start"><input type="checkbox" id="showIntro"> 앱을 열 때 첫 화면 보이기</label>
+  <p id="aboutVersion"></p>
+  <form method="dialog"><button class="btn primary">닫기</button></form>
+</dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+<script>
+(() => {
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem("nopo:" + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem("nopo:" + k, JSON.stringify(v)); } catch {} },
+  };
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const toast = (msg, ms = 2600) => { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, ms); };
+
+  // ---------- app updates (installed copy) — registered first, so the app installs even when the map library fails to load ----------
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    addEventListener("load", async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("sw.js");
+        const offer = w => {
+          toast("새 버전이 있어요. 탭하면 업데이트해요.", 8000);
+          $("toast").onclick = () => w.postMessage("skip-waiting");
+        };
+        if (reg.waiting && navigator.serviceWorker.controller) offer(reg.waiting);
+        reg.addEventListener("updatefound", () => {
+          const w = reg.installing;
+          if (w) w.addEventListener("statechange", () => { if (w.state === "installed" && navigator.serviceWorker.controller) offer(w); });
+        });
+        let reloading = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloading) { reloading = true; location.reload(); } });
+      } catch {}
+    });
+  }
+
+  if (!window.L) {
+    $("sheetSub").textContent = "지도를 불러오지 못했어요. 인터넷 연결을 확인한 뒤 다시 열어 주세요.";
+    return;
+  }
+
+  // ---------- map ----------
+  const start = store.get("view", { c: [37.5665, 126.978], z: 14 });   // 서울시청 by default
+  const map = L.map("map", { zoomControl: false, attributionControl: true }).setView(start.c, start.z);
+  // OpenStreetMap tiles (Korean labels, no key). In dark mode they are toned down with a
+  // CSS filter on the tile layer rather than swapped for another (keyed) basemap.
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 19, className: "base-tiles",
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(map);
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => drawMarkers());
+  map.attributionControl.setPrefix(false);
+  const clusterKind = ms => {
+    const ks = new Set(ms.map(m => m.options.kind));
+    return ks.size === 1 ? [...ks][0] : null;
+  };
+  const markers = (L.markerClusterGroup ? L.markerClusterGroup({
+    showCoverageOnHover: false, spiderfyOnMaxZoom: true, maxClusterRadius: 48, disableClusteringAtZoom: 15,
+    iconCreateFunction: c => {
+      const n = c.getChildCount(), k = clusterKind(c.getAllChildMarkers());
+      return L.divIcon({ html: `<div class="cluster${n >= 100 ? " lg" : ""}" style="${k ? `--k:var(--${k})` : ""}">${n}</div>`, className: "", iconSize: [48, 48] });
+    },
+  }) : L.layerGroup()).addTo(map);
+  let meMarker = null, meAcc = null, selId = null;
+  const markerById = new Map();
+
+  // ---------- data ----------
+  let stores = [], unplaced = [], meta = {};
+  let filter = store.get("filter", "all");
+  let radius = store.get("radius", 3000);
+  let selected = null;
+
+  const kindOf = s => s.t.length > 1 ? "both" : s.t[0];
+  // 가고 싶어요 / 가 봤어요, kept on this phone by each place's stable key
+  let marks = store.get("marks", {});
+  let notes = store.get("notes", {});   // { key: { r: 1-5, m: "memo" } }
+  let kind = store.get("kind", "");
+  const passes = s => (filter === "all" || (filter === "both" ? s.t.length > 1 : filter === "mine" ? !!marks[s.k] : s.t.includes(filter)))
+    && (!kind || s.g === kind);
+  // a searched region ("화성시 동탄구", "울산 동구"): the list shows every place in it
+  let region = null;
+  const PROVINCES = [["충청북", "충북"], ["충청남", "충남"], ["전라북", "전북"], ["전라남", "전남"], ["경상북", "경북"], ["경상남", "경남"], ["전남광주", "전남"]];
+  const province = n => { for (const [l, sh] of PROVINCES) if (n.startsWith(l)) return sh; return n.slice(0, 2); };
+  const inRegion = (s, R) => {
+    if (R.test) return R.test(s);
+    if (!s.r) return false;
+    if (province(s.r[0]) !== R.r1) return false;
+    if (R.r2 && !(s.r[1] === R.r2 || s.r[1].startsWith(R.r2 + " "))) return false;
+    if (R.r3 && !s.r[2].startsWith(R.r3.replace(/\d*가$/, ""))) return false;
+    return true;
+  };
+  const rateHtml = s => notes[s.k]?.r ? `<span class="myrate">내 ★${notes[s.k].r}</span>` : "";
+  const markHtml = s => marks[s.k] === "want" ? '<span class="mark want" title="가고 싶어요">★</span>' : marks[s.k] === "been" ? '<span class="mark been" title="가 봤어요">✓</span>' : "";
+  const REPORT_URL = "https://github.com/YoSebChoi/YoSebChoi/issues/new?" + new URLSearchParams({
+    title: "[노포 지도 제보] ",
+    body: "상호:\n주소:\n백반기행 / 백년가게 중 어디에 해당하나요:\n방송 회차나 참고한 기사 링크(있으면):\n",
+  });
+  const tagHtml = s => `<span class="tags">${s.t.includes("bn") ? '<span class="tag bn">백년가게</span>' : ""}${s.t.includes("bb") ? '<span class="tag bb">백반기행</span>' : ""}</span>`;
+  const shortAddr = a => a.split(/\s+/).slice(1, 4).join(" ");
+  const fmtDist = m => m < 1000 ? `${Math.round(m / 10) * 10}m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0)}km`;
+
+  // a signboard for 백년가게, a rice bowl for 백반기행, a star for both
+  const GLYPH = {
+    bn: '<path class="glyph" d="M9 10.5h12v7H9z M11 17.5v3M19 17.5v3" stroke="#fff" stroke-width="1.6" fill="none"/><path class="glyph" d="M12 13h6v1.6h-6z"/>',
+    bb: '<path class="glyph" d="M8.5 13h13a6.5 6.5 0 0 1-13 0Z"/><path d="M12.5 11c.5-.9.5-1.6 0-2.4M16.5 11c.5-.9.5-1.6 0-2.4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none"/>',
+    both: '<path class="glyph" d="m15 8.2 1.9 3.9 4.3.6-3.1 3 .7 4.3-3.8-2-3.8 2 .7-4.3-3.1-3 4.3-.6Z"/>',
+  };
+  const BADGE = {
+    bn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 6h16v9H4z"/><path d="M7 15v4M17 15v4M8 10.5h8"/></svg>',
+    bb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3.5 11h17a8.5 8.5 0 0 1-17 0Z"/><path d="M9 8c.6-1 .6-2 0-3M13 8c.6-1 .6-2 0-3"/></svg>',
+    both: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 3.5 2.6 5.3 5.9.9-4.2 4.1 1 5.8L12 16.9l-5.3 2.7 1-5.8-4.2-4.1 5.9-.9Z"/></svg>',
+  };
+  const pinIcon = (s, sel) => L.divIcon({
+    className: "", iconSize: [30, 38], iconAnchor: [15, 37], tooltipAnchor: [0, -34],
+    html: `<div class="pin${s.x ? " approx" : ""}${sel ? " sel" : ""}" style="--k:var(--${kindOf(s)})"><svg viewBox="0 0 30 38"><path class="body" d="M15 1.5C7.5 1.5 1.5 7.4 1.5 14.8 1.5 24.4 15 36.5 15 36.5S28.5 24.4 28.5 14.8C28.5 7.4 22.5 1.5 15 1.5Z"/>${GLYPH[kindOf(s)]}</svg></div>`,
+  });
+
+  function drawMarkers() {
+    markers.clearLayers();
+    markerById.clear();
+    const list = [];
+    for (const s of stores) {
+      if (!passes(s)) continue;
+      const m = L.marker(s.ll, { icon: pinIcon(s, s.id === selId), kind: kindOf(s), riseOnHover: true });
+      m.on("click", () => openDetail(s, false));
+      m.bindTooltip(s.n, { direction: "top" });
+      markerById.set(s.id, m);
+      list.push(m);
+    }
+    markers.addLayers ? markers.addLayers(list) : list.forEach(m => markers.addLayer(m));
+  }
+  function markSelected(id) {
+    const prev = markerById.get(selId);
+    if (prev) prev.setIcon(pinIcon(stores[selId], false));
+    selId = id;
+    const m = markerById.get(id);
+    if (m) { m.setIcon(pinIcon(stores[id], true)); m.setZIndexOffset(1000); }
+  }
+
+  // ---------- nearby list ----------
+  let centerLabel = "";
+  function refreshList() {
+    if (!$("detail").hidden) return;
+    const c = map.getCenter();
+    const near = [];
+    for (const s of stores) {
+      if (!passes(s)) continue;
+      const d = c.distanceTo(s.ll);
+      if (filter === "mine" || (region ? inRegion(s, region) : d <= radius)) near.push([d, s]);
+    }
+    // saved places: all of them, best rated first
+    if (filter === "mine" && !region) near.sort((a, b) => (notes[b[1].k]?.r || 0) - (notes[a[1].k]?.r || 0) || a[0] - b[0]);
+    else near.sort((a, b) => a[0] - b[0]);
+    $("radius").hidden = !!region || filter === "mine";
+    $("regionClear").hidden = !region;
+    $("sheetTitle").classList.toggle("region", !!region);
+    if (region) {
+      $("sheetTitle").innerHTML = `${esc(region.label)} <b>${near.length}</b>곳`;
+      $("sheetSub").textContent = "지역 전체 · 지도 가운데에서 가까운 순";
+    } else if (filter === "mine") {
+      $("sheetTitle").innerHTML = `저장한 노포 <b>${near.length}</b>곳`;
+      $("sheetSub").textContent = "내 별점 높은 순 · 가고 싶어요 ★ / 가 봤어요 ✓";
+    } else {
+      $("sheetTitle").innerHTML = near.length ? `가까운 노포 <b>${near.length}</b>곳` : "주변 노포";
+      $("sheetSub").textContent = (centerLabel ? centerLabel + " · " : "") + `지도 가운데 ＋ 기준 ${radius / 1000}km`;
+    }
+    const list = $("list");
+    if (!stores.length) { list.innerHTML = '<div class="note">아직 지도에 올라간 식당이 없어요.</div>'; return; }
+    if (filter === "mine" && !Object.keys(marks).length) {
+      list.innerHTML = '<div class="note">아직 저장한 곳이 없어요.<br>식당을 눌러 ★ 가고 싶어요나 ✓ 가 봤어요를 표시해 보세요.</div>';
+      return;
+    }
+    if (!near.length) {
+      // point at the nearest one, wherever it is
+      let best = null;
+      for (const s of stores) if (passes(s)) { const d = c.distanceTo(s.ll); if (!best || d < best[0]) best = [d, s]; }
+      list.innerHTML = `<div class="note">${region ? "이 지역에는 아직 없어요." : `${radius / 1000}km 안에는 아직 없어요.`}` +
+        (best ? `<br>가장 가까운 곳은 <b>${esc(best[1].n)}</b> · ${fmtDist(best[0])}<br><button type="button" id="goNearest">그곳으로 이동</button>` : "") + "</div>";
+      if (best) $("goNearest").onclick = () => openDetail(best[1], true);
+      return;
+    }
+    const cap = region ? 300 : 80;
+    list.innerHTML = near.slice(0, cap).map(([d, s]) =>
+      `<button class="item" type="button" data-id="${s.id}"><span class="badge" style="--k:var(--${kindOf(s)})">${BADGE[kindOf(s)]}</span>` +
+      `<span class="txt"><span class="name">${esc(s.n)}${markHtml(s)}${rateHtml(s)}</span><span class="meta">${tagHtml(s)}${s.q ? '<span class="check">확인 필요 · </span>' : ""}${esc([s.m || (s.g !== "기타" ? s.g : ""), shortAddr(s.a)].filter(Boolean).join(" · "))}</span>${notes[s.k]?.m ? `<span class="memo-line">“${esc(notes[s.k].m)}”</span>` : ""}</span>` +
+      `<span class="dist">${fmtDist(d)}</span></button>`).join("") +
+      (near.length > cap ? `<div class="note">가까운 ${cap}곳만 보여요. 지도를 확대하거나 반경을 줄여 보세요.</div>` : "") +
+      `<p class="report">찾는 곳이 없나요? <a href="${REPORT_URL}" target="_blank" rel="noopener">빠진 식당 제보하기</a></p>`;
+  }
+  $("list").addEventListener("click", e => {
+    const b = e.target.closest(".item");
+    if (b) openDetail(stores[+b.dataset.id], true);
+  });
+
+  // a coarse place name for the centre, without a network call: the most common 시/구 among nearby stores
+  function guessArea() {
+    const c = map.getCenter(), counts = {};
+    for (const s of stores) {
+      if (c.distanceTo(s.ll) > Math.max(radius, 3000)) continue;
+      const parts = s.a.split(/\s+/);
+      const k = parts.slice(0, 2).join(" ");
+      counts[k] = (counts[k] || 0) + 1;
+    }
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+    return top ? top[0] + " 근처" : "";
+  }
+
+  let moveTimer = 0;
+  map.on("moveend", () => {
+    clearTimeout(moveTimer);
+    moveTimer = setTimeout(() => {
+      if (!labelLock) centerLabel = guessArea();
+      labelLock = false;
+      refreshList();
+      store.set("view", { c: [map.getCenter().lat, map.getCenter().lng], z: map.getZoom() });
+    }, 150);
+  });
+  let labelLock = false;
+  const flyTo = (ll, zoom, label) => {
+    centerLabel = label || "";
+    labelLock = !!label;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) map.setView(ll, zoom ?? Math.max(map.getZoom(), 15));
+    else map.flyTo(ll, zoom ?? Math.max(map.getZoom(), 15), { duration: .6 });
+  };
+
+  // ---------- detail ----------
+  const ICON = {
+    menu: '<path d="M7 3v8a2 2 0 0 0 4 0V3M9 11v10M17 3c-1.7 1.3-2.5 3.5-2.5 6.5V13H17v8"/>',
+    addr: '<path d="M12 21s7-6.2 7-11.5a7 7 0 0 0-14 0C5 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>',
+    phone: '<path d="M5 3.5h3.5l1.5 4.5-2.2 1.4a11 11 0 0 0 4.8 4.8L14 12l4.5 1.5V17a2 2 0 0 1-2 2A13.5 13.5 0 0 1 3 5.5a2 2 0 0 1 2-2Z"/>',
+    since: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+    award: '<circle cx="12" cy="9" r="5.5"/><path d="m9 13.8-1.5 7 4.5-2.3 4.5 2.3-1.5-7"/>',
+    tv: '<rect x="3" y="6" width="18" height="12.5" rx="2"/><path d="m9 2.5 3 3.5 3-3.5"/>',
+    dist: '<path d="M4 12h16M14 6l6 6-6 6"/>',
+    link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  };
+  const fact = (icon, html) => `<div class="fact"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[icon]}</svg><div>${html}</div></div>`;
+  function openDetail(s, move) {
+    selected = s;
+    markSelected(s.id);
+    const d = meMarker ? meMarker.getLatLng().distanceTo(s.ll) : null;
+    const q = encodeURIComponent(`${s.n} ${s.a.split(/\s+/).slice(0, 2).join(" ")}`);
+    const name = encodeURIComponent(s.n);
+    const [lat, lng] = s.ll;
+    const kakaoPlace = s.u && s.u.includes("place.map.kakao.com");
+    const facts = [
+      s.m && fact("menu", esc(s.m)),
+      fact("addr", esc(s.a)),
+      s.p && fact("phone", `<a href="tel:${esc(s.p.replace(/[^\d+]/g, ""))}">${esc(s.p)}</a>`),
+      s.s && fact("since", `${s.s}년 창업 · ${new Date().getFullYear() - s.s}년째`),
+      s.y && fact("award", `${s.y}년 백년가게 지정`),
+      s.e && fact("tv", esc(s.e)),
+      d != null && fact("dist", `내 위치에서 ${fmtDist(d)}`),
+      s.u && !kakaoPlace && fact("link", `<a href="${esc(s.u)}" target="_blank" rel="noopener">소개 기사 보기</a>`),
+    ].filter(Boolean);
+    $("detail").innerHTML =
+      `<div class="detail-top"><button class="back" type="button" id="back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="m15 5-7 7 7 7"/></svg>목록</button>${tagHtml(s)}</div>` +
+      `<h2>${esc(s.n)}</h2>` +
+      `<div class="mine">` +
+      `<button class="btn want" type="button" data-m="want" aria-pressed="${marks[s.k] === "want"}">★ 가고 싶어요</button>` +
+      `<button class="btn been" type="button" data-m="been" aria-pressed="${marks[s.k] === "been"}">✓ 가 봤어요</button>` +
+      `<button class="btn" type="button" id="share" aria-label="공유"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>` +
+      `</div>` +
+      `<div class="rate"><div class="rate-top"><span>내 평가 · 이 폰에만 저장</span><span class="stars" role="group" aria-label="내 별점">` +
+      [1, 2, 3, 4, 5].map(n => `<button type="button" data-r="${n}" aria-label="${n}점" class="${(notes[s.k]?.r || 0) >= n ? "on" : ""}">★</button>`).join("") +
+      `</span></div><textarea id="memo" rows="2" maxlength="300" placeholder="한 줄 메모 (무엇이 맛있었는지, 언제 갔는지)">${esc(notes[s.k]?.m || "")}</textarea></div>` +
+      (s.q ? `<p class="warn">카카오맵에서 이 주소의 가게를 찾지 못했어요. 문을 닫았거나 옮겼을 수 있으니 가기 전에 꼭 확인하세요.</p>` : "") +
+      (s.x ? `<p class="warn">정확한 번지를 찾지 못해 길 위치로 표시했어요. 실제 위치는 지도 앱에서 확인하세요.</p>` : "") +
+      `<div class="facts">${facts.join("")}</div>` +
+      `<div class="actions">` +
+      `<a class="btn primary" href="https://map.kakao.com/link/to/${name},${lat},${lng}" target="_blank" rel="noopener">길찾기</a>` +
+      `<a class="btn" href="${kakaoPlace ? esc(s.u.replace(/^http:/, "https:")) + "#review" : `https://map.kakao.com/link/search/${q}`}" target="_blank" rel="noopener">${kakaoPlace ? "카카오맵 후기" : "카카오맵"}</a>` +
+      `<a class="btn" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버 지도</a>` +
+      `</div>`;
+    $("list").hidden = true;
+    $("detail").hidden = false;
+    $("grab").querySelector(".sheet-head").hidden = true;
+    $("sheetSub").hidden = true;
+    $("back").onclick = closeDetail;
+    $("detail").querySelectorAll("[data-m]").forEach(b => b.onclick = () => {
+      const m = b.dataset.m;
+      if (marks[s.k] === m) delete marks[s.k]; else marks[s.k] = m;
+      store.set("marks", marks);
+      $("detail").querySelectorAll("[data-m]").forEach(x => x.setAttribute("aria-pressed", String(marks[s.k] === x.dataset.m)));
+      countChips();
+      if (filter === "mine") drawMarkers();
+    });
+    const saveNote = () => {
+      const n = notes[s.k] || {};
+      if (!n.r && !n.m) delete notes[s.k]; else notes[s.k] = n;
+      store.set("notes", notes);
+    };
+    $("detail").querySelectorAll(".stars button").forEach(b => b.onclick = () => {
+      const n = notes[s.k] || (notes[s.k] = {});
+      const r = +b.dataset.r;
+      n.r = n.r === r ? 0 : r;   // tapping the same star again clears it
+      if (!n.r) delete n.r;
+      // rating a place means you have been there
+      if (n.r && marks[s.k] !== "been") {
+        marks[s.k] = "been"; store.set("marks", marks); countChips();
+        $("detail").querySelectorAll("[data-m]").forEach(x => x.setAttribute("aria-pressed", String(marks[s.k] === x.dataset.m)));
+      }
+      $("detail").querySelectorAll(".stars button").forEach(x => x.classList.toggle("on", (n.r || 0) >= +x.dataset.r));
+      saveNote();
+    });
+    let memoTimer = 0;
+    $("memo").oninput = e => {
+      clearTimeout(memoTimer);
+      memoTimer = setTimeout(() => { (notes[s.k] || (notes[s.k] = {})).m = e.target.value.trim(); if (!notes[s.k].m) delete notes[s.k].m; saveNote(); }, 300);
+    };
+    $("share").onclick = async () => {
+      const url = new URL(location.pathname, location.origin);
+      url.searchParams.set("p", s.k);
+      const data = { title: s.n, text: `${s.n}, ${s.a}`, url: url.href };
+      try {
+        if (navigator.share) await navigator.share(data);
+        else { await navigator.clipboard.writeText(url.href); toast("링크를 복사했어요."); }
+      } catch (e) { if (e.name !== "AbortError") toast("공유하지 못했어요."); }
+    };
+    setSheet(Math.max(sheetH(), 360));
+    if (move) flyTo(s.ll, Math.max(map.getZoom(), 16));
+    else if (!map.getBounds().pad(-.2).contains(s.ll)) map.panTo(s.ll);
+  }
+  function closeDetail() {
+    selected = null;
+    markSelected(null);
+    $("detail").hidden = true;
+    $("list").hidden = false;
+    $("grab").querySelector(".sheet-head").hidden = false;
+    $("sheetSub").hidden = false;
+    refreshList();
+  }
+  addEventListener("keydown", e => { if (e.key === "Escape" && selected) closeDetail(); });
+
+  // ---------- filters ----------
+  const chips = document.querySelectorAll(".chip[data-f]");
+  const syncKind = () => {
+    $("kind").value = kind;
+    $("kindLabel").textContent = kind || "종류";
+    $("kindChip").classList.toggle("on", !!kind);
+  };
+  $("kind").addEventListener("change", e => {
+    kind = e.target.value; store.set("kind", kind); syncKind();
+    if (selected && !passes(selected)) closeDetail();
+    drawMarkers(); refreshList();
+  });
+  syncKind();
+  const syncChips = () => chips.forEach(c => c.setAttribute("aria-pressed", String(c.dataset.f === filter)));
+  const countChips = () => {
+    const n = { all: stores.length, bn: 0, bb: 0, both: 0, mine: 0 };
+    for (const s of stores) { if (s.t.includes("bn")) n.bn++; if (s.t.includes("bb")) n.bb++; if (s.t.length > 1) n.both++; if (marks[s.k]) n.mine++; }
+    chips.forEach(c => { c.querySelector(".n").textContent = n[c.dataset.f].toLocaleString(); });
+  };
+  chips.forEach(c => c.addEventListener("click", () => {
+    filter = c.dataset.f; store.set("filter", filter); syncChips();
+    if (selected && !passes(selected)) closeDetail();
+    drawMarkers(); refreshList();
+  }));
+  syncChips();
+  const radiusBtns = $("radius").querySelectorAll("button");
+  const syncRadius = () => radiusBtns.forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.r === radius)));
+  radiusBtns.forEach(b => b.addEventListener("click", () => { radius = +b.dataset.r; store.set("radius", radius); syncRadius(); refreshList(); }));
+  syncRadius();
+
+  // ---------- my location ----------
+  function locate(quiet) {
+    if (!navigator.geolocation) { if (!quiet) toast("이 브라우저는 위치 찾기를 지원하지 않아요."); return; }
+    const btn = $("locate");
+    btn.classList.add("busy");
+    navigator.geolocation.getCurrentPosition(pos => {
+      btn.classList.remove("busy"); btn.classList.add("on");
+      const ll = [pos.coords.latitude, pos.coords.longitude];
+      if (!meMarker) {
+        meAcc = L.circle(ll, { radius: pos.coords.accuracy, weight: 0, fillColor: css("--me"), fillOpacity: .1, interactive: false }).addTo(map);
+        meMarker = L.marker(ll, { icon: L.divIcon({ className: "", html: '<div class="me-dot"></div>', iconSize: [18, 18] }), interactive: false, zIndexOffset: 2000 }).addTo(map);
+      } else { meMarker.setLatLng(ll); meAcc.setLatLng(ll).setRadius(pos.coords.accuracy); }
+      if (selected) closeDetail();
+      region = null;
+      flyTo(ll, 15, "내 위치");
+    }, err => {
+      btn.classList.remove("busy");
+      if (quiet) return;
+      toast(err.code === 1 ? "위치 권한이 꺼져 있어요. 브라우저 설정에서 위치를 허용해 주세요." : "위치를 찾지 못했어요. 잠시 뒤 다시 눌러 주세요.", 4000);
+    }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+  }
+  $("locate").addEventListener("click", () => locate(false));
+
+  // ---------- search ----------
+  const norm = s => (s || "").toLowerCase().replace(/\s+/g, "");
+  const results = $("results");
+  let placeCtl = null;
+  function localMatches(q) {
+    const k = norm(q);
+    if (!k) return [];
+    const hits = [];
+    for (const s of stores) {
+      const n = norm(s.n), a = norm(s.a), m = norm(s.m);
+      const score = n === k ? 0 : n.startsWith(k) ? 1 : n.includes(k) ? 2 : m.includes(k) ? 3 : a.includes(k) ? 4 : -1;
+      if (score >= 0) hits.push([score, s]);
+    }
+    const c = map.getCenter();
+    return hits.sort((a, b) => a[0] - b[0] || c.distanceTo(a[1].ll) - c.distanceTo(b[1].ll)).slice(0, 8).map(h => h[1]);
+  }
+  const regionCount = R => stores.filter(s => passes(s) && inRegion(s, R)).length;
+  function renderResults(q, local, places, placeState, regions = []) {
+    let h = "";
+    if (regions.length) {
+      h += "<h3>지역</h3>" + regions.map((R, i) => `<button type="button" data-g="${i}">${esc(R.label)}<span class="count">노포 ${regionCount(R)}곳</span><span class="sub">이 지역의 노포 모두 보기</span></button>`).join("");
+    }
+    if (local.length) {
+      h += "<h3>노포</h3>" + local.map(s => `<button type="button" data-s="${s.id}">${esc(s.n)} ${tagHtml(s)}<span class="sub">${esc(s.a)}</span></button>`).join("");
+    }
+    if (!places.length && regions.length && !placeState) { results.innerHTML = h; results.hidden = false; results._places = places; results._regions = regions; return; }
+    h += "<h3>장소</h3>";
+    if (placeState === "loading") h += '<div class="empty">장소 찾는 중…</div>';
+    else if (placeState === "error") h += '<div class="empty">장소 검색에 실패했어요. 잠시 뒤 다시 해 보세요.</div>';
+    else if (!places.length) h += `<div class="empty">'${esc(q)}' 장소를 찾지 못했어요. 동네·역 이름이나 도로명 주소로 해 보세요.</div>`;
+    else h += places.map((p, i) => `<button type="button" data-p="${i}">${esc(p.title)}<span class="sub">${esc(p.sub)}</span></button>`).join("");
+    results.innerHTML = h;
+    results.hidden = false;
+    results._places = places;
+    results._regions = regions;
+  }
+  // Kakao's place search (much better for Korean places) when a JavaScript key is set; else OpenStreetMap
+  const KAKAO_JS_KEY = "__KAKAO_JS_KEY__";
+  let kakaoPlaces = null, kakaoGeo = null;
+  if (KAKAO_JS_KEY && !KAKAO_JS_KEY.startsWith("__")) {
+    const sdk = document.createElement("script");
+    sdk.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&libraries=services&autoload=false`;
+    sdk.onload = () => window.kakao?.maps?.load(() => {
+      kakaoPlaces = new kakao.maps.services.Places();
+      kakaoGeo = new kakao.maps.services.Geocoder();
+    });
+    document.head.appendChild(sdk);
+  }
+  // places by name and, at the same time, the query read as a region or an address
+  const kakaoSearch = q => {
+    const c = map.getCenter();
+    const OK = kakao.maps.services.Status.OK;
+    const byName = new Promise(resolve => kakaoPlaces.keywordSearch(q, (rows, status) => resolve(status === OK ? rows.map(r => ({
+      title: r.place_name, sub: [r.category_name.split(" > ").pop(), r.road_address_name || r.address_name].filter(Boolean).join(" · "),
+      ll: [+r.y, +r.x], type: "poi",
+    })) : []), { size: 8, location: new kakao.maps.LatLng(c.lat, c.lng), sort: kakao.maps.services.SortBy.ACCURACY }));
+    const asAddress = new Promise(resolve => kakaoGeo.addressSearch(q, (rows, status) => resolve(status === OK ? rows : [])));
+    return Promise.all([byName, asAddress]).then(([places, rows]) => {
+      const regions = [], seen = new Set();
+      for (const r of rows) {
+        const a = r.address;
+        if (r.address_type !== "REGION" || !a) {
+          // a street address: offer it as a place
+          if (places.length < 8) places.push({ title: r.address_name, sub: r.road_address?.building_name || "주소", ll: [+r.y, +r.x], type: "poi" });
+          continue;
+        }
+        const R = { r1: province(a.region_1depth_name), r2: a.region_2depth_name, r3: a.region_3depth_name, ll: [+r.y, +r.x] };
+        R.label = [R.r1, R.r2, R.r3].filter(Boolean).join(" ");
+        if (!seen.has(R.label)) { seen.add(R.label); regions.push(R); }
+      }
+      return { places, regions: regions.slice(0, 5) };
+    });
+  };
+  function showRegion(R) {
+    region = R;
+    if (selected) closeDetail();
+    results.hidden = true;
+    $("q").blur();
+    const inside = stores.filter(s => passes(s) && inRegion(s, R));
+    if (inside.length) {
+      map.fitBounds(L.latLngBounds(inside.map(s => s.ll)), {
+        paddingTopLeft: [24, 150], paddingBottomRight: [24, sheetH() + 24], maxZoom: 15,
+      });
+    } else map.flyTo(R.ll, R.r3 ? 15 : R.r2 ? 13 : 10, { duration: .6 });
+    refreshList();
+  }
+  $("regionClear").addEventListener("click", () => { region = null; centerLabel = guessArea(); refreshList(); });
+  async function searchPlaces(q) {
+    if (kakaoPlaces) return (await kakaoSearch(q)).places;
+    if (placeCtl) placeCtl.abort();
+    placeCtl = new AbortController();
+    const url = "https://nominatim.openstreetmap.org/search?" + new URLSearchParams({ q, format: "jsonv2", countrycodes: "kr", limit: "6", "accept-language": "ko" });
+    const res = await fetch(url, { signal: placeCtl.signal });
+    if (!res.ok) throw new Error(res.status);
+    const rows = await res.json();
+    return rows.map(r => {
+      const parts = r.display_name.split(",").map(x => x.trim());
+      return { title: r.name || parts[0], sub: parts.slice(1).reverse().filter(x => !/^\d{5}$/.test(x) && x !== "대한민국").join(" "), ll: [+r.lat, +r.lon], type: r.addresstype || r.type };
+    });
+  }
+  $("searchForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const q = $("q").value.trim();
+    if (!q) { results.hidden = true; return; }
+    const local = localMatches(q);
+    renderResults(q, local, [], "loading");
+    if (kakaoPlaces) {
+      const { places, regions } = await kakaoSearch(q);
+      // a region name ("화성시 동탄구", "울산 동구") goes straight to that region's list
+      if (regions.length) { showRegion(regions[0]); return; }
+      renderResults(q, local, places);
+      return;
+    }
+    try { renderResults(q, local, await searchPlaces(q)); }
+    catch (err) { if (err.name !== "AbortError") renderResults(q, local, [], "error"); }
+  });
+  let typeTimer = 0;
+  $("q").addEventListener("input", () => {
+    const q = $("q").value.trim();
+    if (!q) { results.hidden = true; return; }
+    const local = localMatches(q);
+    if (kakaoPlaces) {
+      // Kakao is quick and has no strict rate limit: look places up as you type
+      clearTimeout(typeTimer);
+      renderResults(q, local, [], "loading");
+      typeTimer = setTimeout(async () => {
+        const { places, regions } = await kakaoSearch(q);
+        if ($("q").value.trim() === q) renderResults(q, local, places, undefined, regions);
+      }, 250);
+      return;
+    }
+    // as-you-type shows only matching restaurants; OpenStreetMap places are looked up on 검색 (Enter)
+    results.innerHTML = (local.length ? "<h3>노포</h3>" + local.map(s => `<button type="button" data-s="${s.id}">${esc(s.n)} ${tagHtml(s)}<span class="sub">${esc(s.a)}</span></button>`).join("") : "") +
+      `<h3>장소</h3><div class="empty">검색을 누르면 '${esc(q)}' 장소도 찾아요.</div>`;
+    results.hidden = false;
+  });
+  results.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    results.hidden = true;
+    $("q").blur();
+    if (b.dataset.s != null) { openDetail(stores[+b.dataset.s], true); return; }
+    if (b.dataset.g != null) { showRegion(results._regions[+b.dataset.g]); return; }
+    const p = results._places[+b.dataset.p];
+    region = null;
+    if (selected) closeDetail();
+    const zoom = /^(city|state|province|county|region)$/.test(p.type) ? 12 : /^(town|suburb|borough|city_district|district)$/.test(p.type) ? 14 : 16;
+    flyTo(p.ll, zoom, p.title + " 근처");
+  });
+  document.addEventListener("pointerdown", e => { if (!e.target.closest(".top")) results.hidden = true; });
+
+  // ---------- bottom sheet drag ----------
+  const sheet = $("sheet");
+  const sheetH = () => sheet.getBoundingClientRect().height;
+  const maxH = () => Math.round(innerHeight * .82);
+  function setSheet(h) {
+    h = Math.max(120, Math.min(maxH(), h));
+    document.documentElement.style.setProperty("--sheet-h", h + "px");
+  }
+  {
+    let y0 = 0, h0 = 0, moved = false;
+    const grab = $("grab");
+    grab.addEventListener("pointerdown", e => {
+      if (e.target.closest("select, button")) return;
+      y0 = e.clientY; h0 = sheetH(); moved = false;
+      sheet.classList.add("dragging"); grab.setPointerCapture(e.pointerId);
+    });
+    grab.addEventListener("pointermove", e => {
+      if (!sheet.classList.contains("dragging")) return;
+      if (Math.abs(e.clientY - y0) > 4) moved = true;
+      setSheet(h0 + (y0 - e.clientY));
+    });
+    const end = () => {
+      if (!sheet.classList.contains("dragging")) return;
+      sheet.classList.remove("dragging");
+      const h = sheetH(), stops = [236, Math.round(innerHeight * .45), maxH()];
+      if (!moved) { setSheet(h < stops[1] - 10 ? stops[1] : stops[0]); return; }   // a tap toggles
+      setSheet(stops.reduce((a, b) => Math.abs(b - h) < Math.abs(a - h) ? b : a));
+    };
+    grab.addEventListener("pointerup", end);
+    grab.addEventListener("pointercancel", end);
+  }
+
+  // ---------- about ----------
+  $("aboutBtn").addEventListener("click", () => {
+    const c = meta.counts || {};
+    $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
+      (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
+    $("aboutVersion").textContent = "앱 버전 __VERSION__";
+    $("about").showModal();
+  });
+
+  // ---------- my records: export / import ----------
+  $("exportMine").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify({ app: "노포 지도", saved: new Date().toISOString(), marks, notes }, null, 1)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `노포지도-내기록-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  $("importMine").addEventListener("change", async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (!d || typeof d.marks !== "object") throw new Error();
+      marks = { ...marks, ...d.marks }; notes = { ...notes, ...(d.notes || {}) };
+      store.set("marks", marks); store.set("notes", notes);
+      countChips(); drawMarkers(); refreshList();
+      toast(`내 기록을 가져왔어요 (${Object.keys(d.marks).length}곳).`);
+    } catch { toast("이 파일은 노포 지도 기록이 아니에요."); }
+    e.target.value = "";
+  });
+
+  // ---------- opening screen ----------
+  // [label, 시도, 시군구]
+  const INTRO_REGIONS = [["서울"], ["부산"], ["대구"], ["인천"], ["광주"], ["대전"], ["전주", "전북", "전주시"], ["강릉", "강원", "강릉시"],
+    ["경주", "경북", "경주시"], ["통영", "경남", "통영시"], ["제주"]];
+  const introRegion = ([label, r1, r2]) => label === "광주"
+    // 광주 is filed under 전남(광주통합특별시) in Kakao's regions: its districts are the 구s there
+    ? { label: "광주", test: s => (s.r ? province(s.r[0]) === "전남" && /구$/.test(s.r[1]) : s.a.startsWith("광주")) }
+    : { r1: r1 || label, r2: r2 || "", r3: "", label: [r1 || label, r2].filter(Boolean).join(" ") };
+  const inIntroRegion = (s, it) => inRegion(s, introRegion(it));
+  function showIntro(d) {
+    const intro = $("intro");
+    const provinces = new Set(stores.map(s => s.r && province(s.r[0])).filter(Boolean));
+    const nBn = stores.filter(s => s.t.includes("bn")).length, nBb = stores.filter(s => s.t.includes("bb")).length;
+    const rows = [["백년가게", `${nBn.toLocaleString()}곳`], ["백반기행", `${nBb.toLocaleString()}곳`],
+      ["둘 다 해당", `${stores.filter(s => s.t.length > 1).length}곳`], ["전국", `${provinces.size}개 시·도`]];
+    $("introBoard").innerHTML = rows.map(([k, v]) => `<li><span>${k}</span><span class="dots"></span><span class="v">${v}</span></li>`).join("");
+    // today's pick: the same for everyone on a given day, from places with a known menu
+    const pool = stores.filter(s => s.m && !s.q);
+    if (pool.length) {
+      const day = new Date(); const seed = day.getFullYear() * 400 + day.getMonth() * 32 + day.getDate();
+      const pick = pool[(seed * 2654435761 >>> 0) % pool.length];
+      const today = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric" }).format(day);
+      $("introPick").innerHTML = `<span class="t-top"><span>오늘의 노포 식권</span><span>${today}</span></span>` +
+        `<span class="stamp" aria-hidden="true">오늘의<br>추천</span><span class="t-name">${esc(pick.n)}${tagHtml(pick)}</span><span class="t-meta">${esc([pick.m, pick.a.split(/\s+/).slice(0, 2).join(" ")].join(" · "))}</span>` +
+        `<span class="t-go">보러 가기 →</span>`;
+      $("introPick").hidden = false;
+      $("introPick").onclick = () => { closeIntro(); openDetail(pick, true); };
+    }
+    $("introRegions").innerHTML = INTRO_REGIONS.map((it, i) => {
+      const n = stores.filter(s => inIntroRegion(s, it)).length;
+      return n ? `<button type="button" data-i="${i}">${it[0]}<span>${n}</span></button>` : "";
+    }).join("");
+    $("introRegions").onclick = e => {
+      const b = e.target.closest("button"); if (!b) return;
+      const it = INTRO_REGIONS[+b.dataset.i];
+      closeIntro();
+      showRegion(introRegion(it));
+    };
+    const want = Object.values(marks).filter(m => m === "want").length, been = Object.values(marks).filter(m => m === "been").length;
+    if (want || been) { $("introMine").textContent = `가고 싶은 곳 ${want}곳 · 가 본 곳 ${been}곳을 저장해 두셨어요.`; $("introMine").hidden = false; }
+    $("introSkip").checked = false;
+    intro.hidden = false;
+    for (const el of document.body.children) if (el !== intro && el.tagName !== "SCRIPT") el.inert = true;
+    intro.scrollTop = 0;
+    $("introNear").focus({ preventScroll: true });
+  }
+  function closeIntro() {
+    const intro = $("intro");
+    if ($("introSkip").checked) store.set("skipIntro", true);
+    for (const el of document.body.children) el.inert = false;
+    intro.classList.add("out");
+    setTimeout(() => { intro.hidden = true; intro.classList.remove("out"); }, 350);
+  }
+  $("introNear").addEventListener("click", () => { closeIntro(); locate(false); });
+  $("introMap").addEventListener("click", closeIntro);
+  $("logoBtn").addEventListener("click", () => { if (meta.stores) showIntro(meta); });
+  $("showIntro").checked = !store.get("skipIntro", false);
+  $("showIntro").addEventListener("change", e => store.set("skipIntro", !e.target.checked));
+
+  // ---------- go ----------
+  fetch("stores.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+    meta = d; stores = d.stores || []; unplaced = d.unplaced || [];
+    countChips();
+    drawMarkers();
+    centerLabel = guessArea();
+    refreshList();
+    $("reportLink").href = REPORT_URL;
+    if (!new URLSearchParams(location.search).get("p") && !store.get("skipIntro", false)) showIntro(d);
+    // a shared link (?p=<key>) opens that place
+    const shared = new URLSearchParams(location.search).get("p");
+    const target = shared && stores.find(s => s.k === shared);
+    if (target) {
+      if (!passes(target)) { filter = "all"; kind = ""; store.set("filter", filter); store.set("kind", kind); syncChips(); syncKind(); drawMarkers(); }
+      openDetail(target, true);
+      history.replaceState(null, "", location.pathname);
+      return;
+    }
+    // a first visit starts from where you are, if the browser already allows it
+    if (!store.get("view", null) && navigator.permissions) {
+      navigator.permissions.query({ name: "geolocation" }).then(p => { if (p.state === "granted") locate(true); }).catch(() => {});
+    }
+  }).catch(() => {
+    $("sheetSub").textContent = "식당 목록을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.";
+  });
+
+})();
+</script>
+</body>
+</html>

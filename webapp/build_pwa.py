@@ -94,8 +94,13 @@ MANIFEST = {
     "short_name": "시약선 노트",
     "description": "임신테스트기 사진에서 대조선 대비 시약선 진하기를 재고 기록해요.",
     "lang": "ko",
-    "start_url": "./",
-    "scope": "./",
+    # the app owns only its own page, so other apps in sub-folders of this site
+    # (matjip/ …) can be installed separately; "id" keeps the identity of the
+    # copy installed back when start_url was "./" (an id resolves against the
+    # site's origin, not this folder, hence the repository path)
+    "id": "/YoSebChoi/",
+    "start_url": "./index.html",
+    "scope": "./index.html",
     "display": "standalone",
     "background_color": "#edf1ec",
     "theme_color": "#e6ede7",
@@ -122,8 +127,10 @@ self.addEventListener("activate", e => {
     .then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
-  const req = e.request;
+  const req = e.request, url = new URL(req.url), base = new URL("./", self.registration.scope);
   if (req.method !== "GET") return;
+  // other apps live in sub-folders of this site (matjip/ …): leave their pages and files alone
+  if (url.origin === base.origin && url.pathname.slice(base.pathname.length).includes("/")) return;
   if (req.mode === "navigate") {
     e.respondWith(caches.open(CACHE).then(c => c.match("./index.html")).then(hit => hit || fetch(req)));
     return;

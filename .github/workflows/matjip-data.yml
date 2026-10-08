@@ -1,0 +1,55 @@
+# Rebuilds 노포 지도 (docs/matjip) whenever its data or page changes:
+# looks up coordinates for new addresses and commits the result back.
+# Optional: add a repository secret KAKAO_REST_KEY (Kakao Developers REST API key)
+# for accurate Korean address lookup; without it OpenStreetMap is used.
+name: 노포 지도 데이터 빌드
+
+on:
+  push:
+    paths:
+      - "matjip/**"
+      - ".github/workflows/matjip-data.yml"
+  workflow_dispatch:
+  # monthly refresh: new 백반기행 places on Kakao Map, re-checks of 백년가게 that may have closed
+  schedule:
+    - cron: "17 18 1 * *"   # 03:17 KST on the 2nd
+
+permissions:
+  contents: write
+
+concurrency:
+  group: matjip-data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
+      - name: Geocode and build
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
+        run: python3 matjip/build.py
+      - name: Check the built app in a browser
+        run: |
+          cd matjip/check
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.48.2 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          node check_app.mjs
+      - name: Commit the built map
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/matjip matjip/data/geocode_cache.json matjip/data/baekban_kakao.json
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit -m "matjip: rebuild map data"
+          # the branch may have moved on while addresses were being looked up
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

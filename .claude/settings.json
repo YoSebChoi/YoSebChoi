@@ -1,0 +1,18 @@
+{
+  "env": {
+    "AGENT_BROWSER_EXECUTABLE_PATH": "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+    "AGENT_BROWSER_ARGS": "--no-sandbox"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/scripts/install-agent-browser.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
