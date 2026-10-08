@@ -510,8 +510,8 @@ MANIFEST = {
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
-    "background_color": "#12161c",
-    "theme_color": "#12161c",
+    "background_color": "#c4231b",   # the launch screen is the signboard: all 간판 red
+    "theme_color": "#c4231b",
     "icons": [
         {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
         {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
