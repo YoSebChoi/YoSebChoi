@@ -16,15 +16,15 @@ permissions:
 
 concurrency:
   group: matjip-data-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - run: pip install pillow
@@ -39,4 +39,6 @@ jobs:
           git add docs/matjip matjip/data/geocode_cache.json
           if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
           git commit -m "matjip: rebuild map data"
-          git push
+          # the branch may have moved on while addresses were being looked up
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
