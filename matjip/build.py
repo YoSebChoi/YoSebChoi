@@ -154,7 +154,10 @@ def load(geo=None):
                 if not food:
                     skipped += 1
                     continue
-            s = {"n": name, "a": addr, "t": [tag]}
+            # "로쏘 주식회사(성심당)" -> "로쏘(성심당)": drop company-form words from the shown name
+            shown = re.sub(r"\s*(주식회사|유한회사|농업회사법인|㈜|\(주\)|\(유\))\s*", " ", name)
+            shown = re.sub(r"\s+(?=\()", "", re.sub(r"\s+", " ", shown)).strip() or name
+            s = {"n": shown, "a": addr, "t": [tag]}
             for k, key in (("menu", "m"), ("phone", "p"), ("episode", "e"), ("source", "u"), ("kind", "k")):
                 if get(k):
                     s[key] = get(k)
@@ -259,12 +262,10 @@ class Geocoder:
 
     def kakao_is_food(self, name, addr):
         """Ask Kakao what kind of place this store is (음식점 FD6 / 카페 CE7); None without a key."""
-        if not self.kakao:
-            return None
         key = "kind:" + name + "@" + clean_addr(addr)
         if key in self.cache:
             return self.cache[key]
-        if self.offline:
+        if self.offline or not self.kakao:
             return None
         region = " ".join(addr.split()[:2])
         try:
