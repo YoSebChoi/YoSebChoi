@@ -402,7 +402,7 @@ class Geocoder:
         A store Kakao does not list may have closed or moved. Looked up again after 60 days."""
         key = "place2:" + name + "@" + clean_addr(addr)   # place2: lookups that also match by location
         hit = self.cache.get(key)
-        fresh = hit and (datetime.now(timezone.utc) - datetime.fromisoformat(hit["d"])).days < 60
+        fresh = hit and (datetime.now(timezone.utc).date() - datetime.fromisoformat(hit["d"]).date()).days < 60
         if hit and (fresh or self.offline or not self.kakao):
             return True, hit["r"]
         if self.offline or not self.kakao:
