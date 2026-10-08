@@ -337,6 +337,8 @@ class Geocoder:
         self.offline = offline
         self.kakao = os.environ.get("KAKAO_REST_KEY", "").strip()
         self.cache = json.loads(CACHE_FILE.read_text(encoding="utf-8")) if CACHE_FILE.exists() else {}
+        # "place:" lookups matched by address only; "place2:" replaced them
+        self.cache = {k: v for k, v in self.cache.items() if not k.startswith("place:")}
         self.last = 0.0
         self.looked_up = 0
 
@@ -371,21 +373,34 @@ class Geocoder:
         hits = self._get(url, {"User-Agent": "nopo-map-builder/1.0 (github.com/YoSebChoi/YoSebChoi)"})
         return [float(hits[0]["lat"]), float(hits[0]["lon"])] if hits else None
 
-    def _find_place(self, name, addr):
-        """The Kakao place for a store: keyword search for "<시/도 시/군/구> <name>", kept only
-        when its road address is on the same road and number."""
+    def _find_place(self, name, addr, ll=None):
+        """The Kakao place for a store: keyword search for "<시/도 시/군/구> <name>", kept when
+        its road or lot address matches, or — the official lists often carry old or lot
+        addresses — when it lies within 300 m of the store's location and the names agree."""
         region = " ".join(addr.split()[:2])
-        url = "https://dapi.kakao.com/v2/local/search/keyword.json?" + urllib.parse.urlencode({"query": f"{region} {name}", "size": 5})
+        url = "https://dapi.kakao.com/v2/local/search/keyword.json?" + urllib.parse.urlencode({"query": f"{region} {name}", "size": 10})
         docs = self._get(url, {"Authorization": f"KakaoAK {self.kakao}"}).get("documents", [])
         road = clean_addr(addr).split()[-2:]
         want = addr_key(addr)
-        return next((d for d in docs if addr_key(d.get("road_address_name") or "") == want
-                     or all(t in (d.get("road_address_name") or "") for t in road)), None)
+        key = norm_name(name)[:2]
 
-    def kakao_place(self, name, addr):
+        def near(d):
+            if not ll:
+                return False
+            dy = (float(d["y"]) - ll[0]) * 111000
+            dx = (float(d["x"]) - ll[1]) * 111000 * 0.8
+            return dx * dx + dy * dy < 300 * 300
+
+        for d in docs:
+            ra, ja = d.get("road_address_name") or "", d.get("address_name") or ""
+            if want in (addr_key(ra), addr_key(ja)) or (ra and all(t in ra for t in road)) or (ja and all(t in ja for t in road)):
+                return d
+        return next((d for d in docs if near(d) and norm_name(d["place_name"]).startswith(key)), None)
+
+    def kakao_place(self, name, addr, ll=None):
         """(checked, place) — place is {u, c, p} when Kakao lists the store at its address.
         A store Kakao does not list may have closed or moved. Looked up again after 60 days."""
-        key = "place:" + name + "@" + clean_addr(addr)
+        key = "place2:" + name + "@" + clean_addr(addr)   # place2: lookups that also match by location
         hit = self.cache.get(key)
         fresh = hit and (datetime.now(timezone.utc) - datetime.fromisoformat(hit["d"])).days < 60
         if hit and (fresh or self.offline or not self.kakao):
@@ -393,7 +408,7 @@ class Geocoder:
         if self.offline or not self.kakao:
             return False, None
         try:
-            d = self._find_place(re.sub(r"\(.*?\)", "", name).strip() or name, addr)
+            d = self._find_place(re.sub(r"\(.*?\)", "", name).strip() or name, addr, ll)
         except SystemExit:
             raise
         except Exception as e:
@@ -534,21 +549,6 @@ def main():
     if geo.kakao and not offline:
         collect_tv(geo)
     stores = load(geo)
-    # 백년가게 the list gives no Kakao page for: look each up, which also tells which may have closed
-    closed = 0
-    for s in stores:
-        if BAEKNYEON in s["t"] and "place.map.kakao.com" not in s.get("u", ""):
-            checked, r = geo.kakao_place(s["n"], s["a"])
-            if r:
-                s["u"] = r["u"]
-                s.setdefault("c", r["c"])
-                if r["p"]:
-                    s.setdefault("p", r["p"])
-            elif checked:
-                s["q"] = 1   # not on Kakao Map at this address: may have closed or moved
-                closed += 1
-    if closed:
-        print(f"{closed} 백년가게 not found on Kakao Map at their address (marked 영업 확인 필요)")
     if not offline:
         print("geocoding with", "Kakao" if geo.kakao else "OpenStreetMap Nominatim")
     placed, missing, approx = [], [], 0
@@ -562,6 +562,21 @@ def main():
             placed.append(s)
         else:
             missing.append(s)
+    # 백년가게 the list gives no Kakao page for: look each up, which also tells which may have closed
+    closed = 0
+    for s in placed:
+        if BAEKNYEON in s["t"] and "place.map.kakao.com" not in s.get("u", ""):
+            checked, r = geo.kakao_place(s["n"], s["a"], s["ll"])
+            if r:
+                s["u"] = r["u"]
+                s.setdefault("c", r["c"])
+                if r["p"]:
+                    s.setdefault("p", r["p"])
+            elif checked:
+                s["q"] = 1   # not on Kakao Map at this address: may have closed or moved
+                closed += 1
+    if closed:
+        print(f"{closed} 백년가게 not found on Kakao Map at their address (marked 영업 확인 필요)")
     geo.save()
     for i, s in enumerate(placed):
         s["id"] = i
