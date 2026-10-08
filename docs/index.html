@@ -147,9 +147,9 @@ details.photo summary { cursor: pointer; color: var(--muted); font-size: 14px; }
 .photo-box canvas.picking { cursor: crosshair; outline: 2px solid var(--accent); }
 .pick-step { color: var(--accent); }
 
-.save { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 10px; align-items: end;
+.save { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: end;
   border-top: 1px solid var(--rule); padding-top: 16px; }
-@media (max-width: 560px) { .save { grid-template-columns: 1fr; } }
+.span2 { grid-column: 1 / -1; }
 label.f { display: grid; gap: 4px; font-size: 13px; color: var(--muted); min-width: 0; }
 input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--ink); background: var(--bg); border: 0;
   border-radius: 14px; padding: 10px 12px; width: 100%; min-width: 0; }
@@ -158,6 +158,55 @@ input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--i
   z-index: 6; display: flex; align-items: center; gap: 12px; background: var(--ink); color: var(--bg); border-radius: 999px;
   padding: 8px 8px 8px 18px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px); white-space: nowrap; }
 .toast .btn { background: var(--bg); color: var(--ink); padding: 6px 14px; font-size: 13.5px; }
+
+/* timer */
+.timer-row { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.timer-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.ring { width: 64px; height: 64px; flex: none; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 6; }
+.ring-bg { stroke: var(--surface-2); }
+.ring-fg { stroke: var(--c-mark); stroke-linecap: round; }
+@media (prefers-reduced-motion: no-preference) { .ring-fg { transition: stroke-dasharray .5s linear; } }
+.timer.ready { background: var(--accent-soft); }
+.timer.ready .ring-fg { stroke: var(--accent); }
+.timer.late .ring-fg { stroke: var(--muted); }
+.timer-clock { font-family: var(--font-display); font-size: 28px; font-weight: 700; flex: none; }
+
+/* gauge */
+.gauge { display: grid; gap: 4px; }
+.g-track { position: relative; display: flex; height: 12px; border-radius: 6px; overflow: visible; }
+.g-seg { height: 100%; background: var(--accent); }
+.g-seg:first-child { border-radius: 6px 0 0 6px; } .g-seg:last-child { border-radius: 0 6px 6px 0; }
+.g-mark { position: absolute; top: -5px; width: 4px; height: 22px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface); }
+.g-labels { position: relative; height: 18px; font-size: 12px; color: var(--muted); }
+.g-labels span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.g-labels span.edge-l { transform: none; } .g-labels span.edge-r { transform: translateX(-100%); }
+
+/* line-up: strips stacked and aligned on the control line */
+.lineup { display: grid; gap: 6px; }
+.lu-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) 46px; gap: 10px; align-items: center; }
+.lu-date { font-size: 12.5px; line-height: 1.25; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lu-date b { display: block; color: var(--ink); font-weight: 400; font-size: 13.5px; }
+.lu-strip { position: relative; height: 30px; border-radius: 6px; background-color: var(--bg); background-size: 100% auto; background-position: center; background-repeat: no-repeat; }
+.lu-strip::after { content: ""; position: absolute; top: -3px; bottom: -3px; left: 81.25%; border-left: 1.5px dashed var(--c-mark); opacity: .55; }
+.lu-pct { text-align: right; font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lu-head { height: 16px; }
+.lu-head .lu-strip { background: none; height: 16px; }
+.lu-head .lu-strip::after { display: none; }
+.lu-head .lu-strip span { position: absolute; left: 81.25%; transform: translateX(-50%); font-size: 12px; font-weight: 700; color: var(--c-mark); line-height: 16px; }
+.lu-row.now .lu-date b, .lu-row.now .lu-pct { color: var(--accent); }
+
+/* compare */
+.compare { display: grid; gap: 10px; background: var(--bg); border-radius: 16px; padding: 14px; }
+.compare h3 { font-size: 16px; }
+
+/* product filter */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.fchip { appearance: none; border: 0; font: inherit; font-size: 13.5px; padding: 6px 14px; border-radius: 999px; cursor: pointer;
+  background: var(--surface); color: var(--muted); box-shadow: var(--shadow); }
+.fchip[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+.fchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.file-btn.plain { padding: 10px 18px; font-size: inherit; }
 
 /* records */
 .summary { display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline; }
@@ -174,7 +223,12 @@ input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--i
 .rec .pct { font-family: var(--font-display); font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .rec .memo { color: var(--muted); font-size: 14px; overflow-wrap: anywhere; grid-column: 1 / -1; }
 .rec-actions { display: flex; gap: 2px; align-items: center; }
-.memo-edit { grid-column: 1 / -1; display: grid; gap: 8px; }
+.memo-edit { grid-column: 1 / -1; display: grid; gap: 10px; }
+.edit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.rec .prod { font-size: 12.5px; color: var(--c-mark); }
+.rec.flash { animation: flash 1.6s ease; }
+@keyframes flash { 0%, 60% { background: var(--accent-soft); } 100% { background: transparent; } }
+.trend svg { cursor: pointer; }
 .memo-edit .row { justify-content: flex-end; }
 .empty { color: var(--muted); font-size: 14.5px; padding: 26px 18px; background: var(--bg); border-radius: 18px; text-align: center; }
 .empty .btn { margin-top: 12px; }
@@ -199,6 +253,21 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding:
 
   <!-- 측정 -->
   <section class="tabpanel" id="panel-measure" role="tabpanel" aria-labelledby="tab-measure">
+    <div class="card timer" id="timerCard">
+      <div class="timer-row">
+        <svg class="ring" viewBox="0 0 64 64" aria-hidden="true"><circle class="ring-bg" cx="32" cy="32" r="27"/><circle class="ring-fg" id="ringFg" cx="32" cy="32" r="27" pathLength="100" stroke-dasharray="0 100"/></svg>
+        <div class="timer-text">
+          <h2>판독 타이머</h2>
+          <p class="small muted" id="timerText">테스트기에 소변을 묻힌 직후 눌러 주세요. 3분이 되면 알려 드려요.</p>
+        </div>
+        <span class="timer-clock num" id="timerClock" hidden>0:00</span>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="timerStart" type="button">타이머 시작</button>
+        <button class="btn ghost" id="timerStop" type="button" hidden>멈추기</button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-head">
         <h2>사진 고르기</h2>
@@ -230,6 +299,7 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding:
         <div class="profile" id="profile"></div>
         <div class="axis-note"><span>← 흡수부 쪽</span><span>손잡이 쪽 →</span></div>
       </div>
+      <div class="compare" id="compare" hidden></div>
       <details class="photo" id="photoDetails">
         <summary>원본 사진에서 위치 확인 · 직접 지정</summary>
         <div class="photo-box">
@@ -244,15 +314,19 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding:
       </details>
       <form class="save" id="saveForm">
         <label class="f">검사 시각<input id="when" type="datetime-local" required></label>
-        <label class="f">메모<input id="memo" type="text" maxlength="80" placeholder="예: 아침 첫 소변"></label>
-        <button class="btn primary" id="saveBtn" type="submit">기록에 남기기</button>
+        <label class="f">제품<input id="product" type="text" maxlength="40" list="productList" placeholder="예: ○○ 테스트기" autocomplete="off"></label>
+        <label class="f span2">메모<input id="memo" type="text" maxlength="80" placeholder="예: 아침 첫 소변"></label>
+        <button class="btn primary span2" id="saveBtn" type="submit">기록에 남기기</button>
+        <p class="small muted span2" id="saveHint" hidden>예시 결과는 기록할 수 없어요. 내 사진을 골라 주세요.</p>
       </form>
+      <datalist id="productList"></datalist>
       <p class="small" id="saveMsg" role="status"></p>
     </div>
   </section>
 
   <!-- 기록 -->
   <section class="tabpanel" id="panel-records" role="tabpanel" aria-labelledby="tab-records" hidden>
+    <div class="filters" id="filters" role="group" aria-label="제품별로 보기" hidden></div>
     <div class="card">
       <div class="card-head">
         <h2>흐름</h2>
@@ -261,9 +335,28 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding:
       <div class="summary" id="summary"></div>
       <div class="trend" id="trend"></div>
     </div>
+    <div class="card" id="lineupCard" hidden>
+      <div class="card-head">
+        <h2>줄 세우기</h2>
+        <span class="small muted">대조선(C)에 맞춰 날짜순으로</span>
+      </div>
+      <div class="lineup" id="lineup"></div>
+    </div>
     <div class="card">
       <h2>지난 기록</h2>
       <ul class="records" id="records"></ul>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <h2>백업</h2>
+        <span class="small muted">기록을 파일 하나로 보관해요</span>
+      </div>
+      <p class="small muted">폰을 바꾸거나 앱을 지우기 전에 파일로 내보내 두세요. 불러오면 지금 기록에 더해지고, 이미 있는 기록은 건너뛰어요.</p>
+      <div class="row">
+        <button class="btn" id="exportBtn" type="button">파일로 내보내기</button>
+        <span class="btn file-btn plain">파일에서 불러오기<input id="importFile" type="file" accept=".json,application/json" aria-label="백업 파일에서 불러오기"></span>
+      </div>
+      <p class="small" id="backupMsg" role="status"></p>
     </div>
   </section>
 
@@ -589,13 +682,16 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     $("#exampleChip").hidden = !work.isSample;
     $("#autoBtn").hidden = !manual;
     $("#saveMsg").textContent = "";
+    work.savedAt = null;
     renderResult();
+    renderCompare();
     drawPhoto();
   }
 
   function renderResult() {
     const body = $("#resultBody"), r = current;
-    $("#saveBtn").disabled = !!r.error;
+    $("#saveBtn").disabled = !!r.error || work.isSample;
+    $("#saveHint").hidden = !work.isSample;
     if (r.error) {
       const msg = {
         "no-handle": "분홍색 HCG 손잡이를 찾지 못했어요.",
@@ -609,15 +705,14 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       return;
     }
     $("#stripView").hidden = false;
-    const vals = [r.ratio, r.ratioArea, r.ratioGreen];
-    const lo = Math.min(...vals), hi = Math.max(...vals);
-    const consistent = r.detected && hi <= lo * 1.3 + 0.01;
+    const consistent = isConsistent(r);
     body.innerHTML = `
       <div style="display:grid;gap:14px">
         <div class="reading-head">
           <span class="big">${r.detected ? pct(r.ratio) : "—"}</span>
           <span class="chip"><span class="dot"></span>${GRADE[r.grade]}</span>
         </div>
+        ${gauge(r.detected ? r.ratio : 0)}
         <p class="muted">${r.detected
           ? `대조선 진하기를 100으로 볼 때 시약선은 약 <b>${Math.round(r.ratio * 100)}</b> 정도예요.`
           : `시약선이 노이즈와 구분되지 않아요. 있다면 대조선의 <b>${pct(r.upper)}</b> 이하예요.`}</p>
@@ -634,6 +729,17 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       </div>`;
     drawStrip();
     drawProfile();
+  }
+
+  const isConsistent = r => !!r.detected && Math.max(r.ratio, r.ratioArea, r.ratioGreen) <= Math.min(r.ratio, r.ratioArea, r.ratioGreen) * 1.3 + 0.01;
+  // 0–100% bar with the grade bands; a ratio above 100% pins to the end
+  const BANDS = [[0, .1, ""], [.1, .3, "희미"], [.3, .6, "중간"], [.6, .9, "진함"], [.9, 1, ""]];
+  function gauge(v) {
+    const segs = BANDS.map(([a, b], i) => `<span class="g-seg" style="width:${(b - a) * 100}%;opacity:${[.1, .2, .34, .52, .78][i]}"></span>`).join("");
+    const labels = BANDS.filter(b => b[2]).map(([a, b, t]) => `<span style="left:${(a + b) * 50}%">${t}</span>`).join("");
+    return `<div class="gauge" role="img" aria-label="대조선 대비 ${Math.round(v * 100)}%">
+      <div class="g-track">${segs}<span class="g-mark" style="left:${Math.min(1, Math.max(0, v)) * 100}%"></span></div>
+      <div class="g-labels"><span class="edge-l" style="left:0">0</span>${labels}<span class="edge-r" style="left:100%">100</span></div></div>`;
   }
 
   function drawStrip(target, opts) {
@@ -741,7 +847,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     drawPhoto();
   });
 
-  /* ---------- records: private per-person db, else this browser ---------- */
+  /* ---------- records: private per-person db, else this device ---------- */
   const store = {
     mode: "loading", items: [], db: null, uid: null, unsub: null,
     async init() {
@@ -751,7 +857,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
           const uid = user ? await user.id() : null;
           if (db && uid) {
             this.db = db; this.uid = uid; this.mode = "db";
-            this.unsub = db.collection("data/users/" + uid).orderBy("ts", "asc").onSnapshot(
+            this.unsub = this.col().orderBy("ts", "asc").onSnapshot(
               snap => { this.items = snap.docs.map(d => ({ id: d.id, ...d.data() })); renderHistory(); },
               () => { this.useLocal(); });
             renderHistory();
@@ -761,6 +867,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       } catch (e) { /* fall through */ }
       this.useLocal();
     },
+    col() { return this.db.collection("data/users/" + this.uid); },
     useLocal() {
       if (this.unsub) { try { this.unsub(); } catch (e) {} this.unsub = null; }
       this.mode = "local"; this.db = null;
@@ -769,90 +876,154 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       renderHistory();
     },
     saveLocal() { try { localStorage.setItem("hcg-records", JSON.stringify(this.items)); return true; } catch (e) { return false; } },
-    async add(rec) {
+    localFail() { return new Error("이 기기에 저장할 수 없어요. 비공개 창이면 일반 창에서 열어 주세요."); },
+    async add(rec) { return this.addMany([rec]); },
+    async addMany(recs) {
       if (this.mode === "db") {
-        try { await this.db.collection("data/users/" + this.uid).add(rec); return true; }
+        try { for (const r of recs) await this.col().add(r); return; }
         catch (e) {
-          if (e && e.code === "quota_exceeded") throw new Error("저장 공간이 가득 찼어요. 오래된 기록을 지운 뒤 다시 저장해 주세요.");
+          if (e && e.code === "quota_exceeded") throw new Error("저장 공간이 가득 찼어요. 오래된 기록을 지운 뒤 다시 해 주세요.");
           this.useLocal();
         }
       }
-      this.items.push({ id: "l" + Date.now().toString(36), ...rec });
+      let n = Date.now();
+      for (const r of recs) this.items.push({ ...r, id: "l" + (n++).toString(36) });
       this.items.sort((a, b) => a.ts - b.ts);
-      if (!this.saveLocal()) throw new Error("이 브라우저에 저장할 수 없어요. 비공개 창이면 일반 창에서 열어 주세요.");
+      if (!this.saveLocal()) throw this.localFail();
       renderHistory();
-      return true;
     },
-    async updateNote(id, note) {
-      if (this.mode === "db") { await this.db.collection("data/users/" + this.uid).doc(id).update({ note }); return; }
+    async update(id, patch) {
+      if (this.mode === "db") { await this.col().doc(id).update(patch); return; }
       const r = this.items.find(x => x.id === id);
-      if (r) r.note = note;
-      if (!this.saveLocal()) throw new Error("save-failed");
+      if (r) Object.assign(r, patch);
+      this.items.sort((a, b) => a.ts - b.ts);
+      if (!this.saveLocal()) throw this.localFail();
       renderHistory();
     },
     async remove(id) {
-      if (this.mode === "db") { await this.db.collection("data/users/" + this.uid).doc(id).delete(); return; }
+      if (this.mode === "db") { await this.col().doc(id).delete(); return; }
       this.items = this.items.filter(r => r.id !== id); this.saveLocal(); renderHistory();
     },
   };
 
+  const lget = (k, d = null) => { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } };
+  const lset = (k, v) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
+
+  function stripThumb(r) {
+    // thumbnail aligned on the control line (C at 81.25% of its width) so stacked records line up
+    const W = r.stripW;
+    return drawStrip(document.createElement("canvas"), { from: r.C - 2.6 * W, to: r.C + 0.6 * W, half: 0.5, w: 320, h: 100 }).toDataURL("image/jpeg", 0.82);
+  }
+
   $("#saveForm").addEventListener("submit", async e => {
     e.preventDefault();
     const r = current;
-    if (!r || r.error) return;
+    if (!r || r.error || work.isSample) return;
     const ts = new Date($("#when").value).getTime();
     if (!isFinite(ts)) { $("#saveMsg").textContent = "검사 시각을 입력해 주세요."; return; }
-    // thumbnail aligned on the control line so stacked records line up
-    const W = r.stripW, thumb = drawStrip(document.createElement("canvas"), { from: r.C - 2.6 * W, to: r.C + 0.6 * W, half: 0.5, w: 320, h: 100 });
+    const product = $("#product").value.trim().slice(0, 40);
     const rec = {
-      ts, createdAt: Date.now(), note: $("#memo").value.trim().slice(0, 80),
+      ts, createdAt: Date.now(), note: $("#memo").value.trim().slice(0, 80), product,
       ratio: +r.ratio.toFixed(4), ratioArea: +r.ratioArea.toFixed(4), ratioGreen: +r.ratioGreen.toFixed(4),
       snr: +(r.snr || 0).toFixed(1), detected: r.detected, grade: r.grade, mode: r.mode,
-      example: !!work.isSample, thumb: thumb.toDataURL("image/jpeg", 0.82),
+      consistent: isConsistent(r), example: false, thumb: r.thumbUrl || (r.thumbUrl = stripThumb(r)),
     };
     $("#saveBtn").disabled = true;
-    try { await store.add(rec); $("#saveMsg").textContent = ""; toast("기록에 남겼어요"); }
+    try {
+      await store.add(rec);
+      work.savedAt = rec.createdAt; lset("hcg-last-product", product || null);
+      $("#saveMsg").textContent = ""; toast("기록에 남겼어요"); renderCompare();
+    }
     catch (err) { $("#saveMsg").textContent = err.message; }
     finally { $("#saveBtn").disabled = false; }
   });
+  $("#product").addEventListener("change", () => renderCompare());
 
-  /* ---------- history: trend + list ---------- */
+  /* ---------- comparison with the previous record, right after measuring ---------- */
   const fmt = ts => { const d = new Date(ts); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+  const dayParts = ts => { const d = new Date(ts); return [`${d.getMonth() + 1}/${d.getDate()}`, `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`]; };
+  const shown = r => r.detected ? r.ratio : 0;
+  function luRow(label, sub, thumb, value, cls = "") {
+    return `<div class="lu-row ${cls}"><span class="lu-date"><b>${esc(label)}</b>${esc(sub)}</span>
+      <span class="lu-strip" style="${thumb ? `background-image:url('${esc(thumb)}')` : ""}"></span>
+      <span class="lu-pct">${esc(value)}</span></div>`;
+  }
+  const luHead = () => `<div class="lu-row lu-head"><span></span><span class="lu-strip"><span>C</span></span><span></span></div>`;
+  function renderCompare() {
+    const box = $("#compare"), r = current;
+    const prevs = store.items.filter(x => !x.example && x.createdAt !== (work && work.savedAt));
+    if (!r || r.error || !work || work.isSample || !prevs.length) { box.hidden = true; box.innerHTML = ""; return; }
+    const product = $("#product").value.trim();
+    const same = product ? prevs.filter(x => x.product === product) : [];
+    const prev = (same.length ? same : prevs)[(same.length ? same : prevs).length - 1];
+    r.thumbUrl = r.thumbUrl || stripThumb(r);
+    const diff = Math.round((shown(r) - shown(prev)) * 100);
+    const words = Math.abs(diff) < 2 ? "지난번과 비슷해요" : diff > 0 ? `지난번보다 <b>${diff}%p</b> 진해졌어요` : `지난번보다 <b>${-diff}%p</b> 옅어졌어요`;
+    const [pd, pt] = dayParts(prev.ts);
+    box.innerHTML = `
+      <div class="card-head"><h3>지난번과 비교</h3>${prev.product ? `<span class="small muted">${esc(prev.product)}</span>` : ""}</div>
+      <div class="lineup">${luHead()}${luRow(pd, pt, prev.thumb, prev.detected ? pct(prev.ratio) : "—")}${luRow("지금", "", r.thumbUrl, r.detected ? pct(r.ratio) : "—", "now")}</div>
+      <p class="small">${words}</p>`;
+    box.hidden = false;
+  }
+
+  /* ---------- history: filter, summary, trend, line-up, list ---------- */
+  const consistentVals = (a, b, c) => { const lo = Math.min(a, b, c), hi = Math.max(a, b, c); return hi <= lo * 1.3 + 0.01; };
+  const uncertain = r => !r.detected || (r.consistent === false) ||
+    (r.consistent === undefined && r.ratioArea != null && r.ratioGreen != null && !consistentVals(r.ratio, r.ratioArea, r.ratioGreen));
+  let filter = lget("hcg-filter");
+  const products = () => [...new Set(store.items.map(r => r.product).filter(Boolean))];
+  const visible = () => filter ? store.items.filter(r => r.product === filter) : store.items;
+
   function renderHistory() {
-    const items = store.items;
     $("#storeNote").textContent = store.mode === "db" ? "내 계정에 저장 · 나만 볼 수 있어요"
       : store.mode === "local" ? "이 기기에만 저장돼요" : "불러오는 중…";
-    const list = $("#records"), badge = $("#recBadge");
-    badge.hidden = !items.length; badge.textContent = items.length;
-    if (!items.length) {
+    const all = store.items, badge = $("#recBadge");
+    badge.hidden = !all.length; badge.textContent = all.length;
+    const prods = products();
+    $("#productList").innerHTML = prods.map(p => `<option value="${esc(p)}"></option>`).join("");
+    if (filter && !prods.includes(filter)) { filter = null; lset("hcg-filter", null); }
+    const fbox = $("#filters");
+    fbox.hidden = !prods.length;
+    fbox.innerHTML = [null, ...prods].map(p => `<button class="fchip" type="button" data-filter="${p === null ? "" : esc(p)}" aria-pressed="${String(filter === p)}">${p === null ? "전체" : esc(p)}</button>`).join("");
+    const items = visible(), list = $("#records");
+    if (!all.length) {
       $("#summary").innerHTML = "";
       $("#trend").innerHTML = `<p class="empty">아직 기록이 없어요.<br>측정 탭에서 사진을 재고 <b>기록에 남기기</b>를 누르면<br>여기에 날짜순으로 차곡차곡 쌓여요.<br><button class="btn primary small" type="button" data-go="measure">측정하러 가기</button></p>`;
+      $("#lineupCard").hidden = true;
       list.innerHTML = `<li class="small muted">남긴 기록이 여기에 보여요.</li>`;
+      renderCompare();
       return;
     }
     const last = items[items.length - 1], prev = items.length > 1 ? items[items.length - 2] : null;
-    const diff = prev ? Math.round((last.ratio - prev.ratio) * 100) : null;
+    const diff = prev ? Math.round((shown(last) - shown(prev)) * 100) : null;
     $("#summary").innerHTML = `
       <div><div class="small muted">가장 최근</div><div class="figure">${last.detected ? pct(last.ratio) : "—"}</div></div>
       <div><div class="small muted">지난번보다</div><div class="figure">${diff === null ? "—" : (diff > 0 ? "+" : "") + diff + "%p"}</div></div>
       <div><div class="small muted">남긴 기록</div><div class="figure">${items.length}</div></div>`;
     renderTrend(items);
+    renderLineup(items);
     list.innerHTML = items.slice().reverse().map(r => `
-      <li class="rec">
+      <li class="rec" data-id="${esc(r.id)}">
         <div class="meta">
           <span class="pct">${r.detected ? pct(r.ratio) : "—"}</span>
           <span class="chip"><span class="dot"></span>${GRADE[r.grade] || ""}</span>
           <span class="small muted num">${fmt(r.ts)}</span>
+          ${r.product ? `<span class="prod">${esc(r.product)}</span>` : ""}
           ${r.example ? `<span class="chip example">예시 사진</span>` : ""}
         </div>
         <span class="rec-actions">
-          <button class="btn ghost small" type="button" data-edit="${esc(r.id)}">메모 수정</button>
+          <button class="btn ghost small" type="button" data-edit="${esc(r.id)}">수정</button>
           <button class="btn ghost danger small" type="button" data-del="${esc(r.id)}">삭제</button>
         </span>
         ${r.thumb ? `<img src="${esc(r.thumb)}" alt="${fmt(r.ts)} 스트립">` : ""}
         ${editing && editing.id === r.id
           ? `<form class="memo-edit" data-edit-form="${esc(r.id)}">
-               <input id="memo-edit-input" type="text" maxlength="80" value="${esc(editing.draft)}" placeholder="메모를 적어 주세요" aria-label="메모">
+               <div class="edit-grid">
+                 <label class="f">검사 시각<input id="edit-when" type="datetime-local" required value="${esc(editing.when)}"></label>
+                 <label class="f">제품<input id="edit-product" type="text" maxlength="40" list="productList" autocomplete="off" value="${esc(editing.product)}"></label>
+                 <label class="f span2">메모<input id="edit-note" type="text" maxlength="80" value="${esc(editing.note)}" placeholder="메모를 적어 주세요"></label>
+               </div>
                <span class="row">
                  <button class="btn ghost small" type="button" data-cancel>취소</button>
                  <button class="btn primary small" type="submit">저장</button>
@@ -861,27 +1032,45 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
              </form>`
           : r.note ? `<span class="memo">${esc(r.note)}</span>` : ""}
       </li>`).join("");
-    const inp = $("#memo-edit-input");
+    const inp = $("#edit-note");
     if (inp && editing.focus) { editing.focus = false; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
+    renderCompare();
   }
-  // memo editing: which record is open and its unsaved text survive re-renders
+  $("#filters").addEventListener("click", e => {
+    const b = e.target.closest("[data-filter]");
+    if (!b) return;
+    filter = b.dataset.filter || null; lset("hcg-filter", filter);
+    renderHistory();
+  });
+
+  function renderLineup(items) {
+    const withThumb = items.filter(r => r.thumb);
+    $("#lineupCard").hidden = !withThumb.length;
+    $("#lineup").innerHTML = luHead() + withThumb.map(r => { const [d, t] = dayParts(r.ts); return luRow(d, t, r.thumb, r.detected ? pct(r.ratio) : "—"); }).join("");
+  }
+
+  // record editing: which record is open and its unsaved fields survive re-renders
   let editing = null;
-  $("#records").addEventListener("input", e => { if (e.target.id === "memo-edit-input" && editing) editing.draft = e.target.value; });
+  const EDIT_FIELDS = { "edit-when": "when", "edit-product": "product", "edit-note": "note" };
+  $("#records").addEventListener("input", e => { const k = EDIT_FIELDS[e.target.id]; if (k && editing) editing[k] = e.target.value; });
   $("#records").addEventListener("keydown", e => { if (e.key === "Escape" && editing) { editing = null; renderHistory(); } });
   $("#records").addEventListener("submit", async e => {
     const f = e.target.closest("[data-edit-form]");
     if (!f) return;
     e.preventDefault();
-    const id = f.dataset.editForm, note = editing.draft.trim().slice(0, 80);
+    const ts = new Date(editing.when).getTime();
+    if (!isFinite(ts)) { editing.error = "검사 시각을 입력해 주세요."; renderHistory(); return; }
+    const patch = { ts, product: editing.product.trim().slice(0, 40), note: editing.note.trim().slice(0, 80) };
     f.querySelectorAll("button, input").forEach(el => el.disabled = true);
-    try { await store.updateNote(id, note); editing = null; renderHistory(); toast("메모를 고쳤어요", false); }
+    try { await store.update(f.dataset.editForm, patch); editing = null; renderHistory(); toast("기록을 고쳤어요", false); }
     catch (err) { editing.error = "저장하지 못했어요. 잠시 뒤 다시 눌러 주세요."; renderHistory(); }
   });
   $("#records").addEventListener("click", async e => {
     const ed = e.target.closest("[data-edit]");
     if (ed) {
       const r = store.items.find(x => x.id === ed.dataset.edit);
-      editing = { id: ed.dataset.edit, draft: (r && r.note) || "", focus: true };
+      if (!r) return;
+      editing = { id: r.id, when: nowLocal(r.ts), product: r.product || "", note: r.note || "", focus: true };
       renderHistory(); return;
     }
     if (e.target.closest("[data-cancel]")) { editing = null; renderHistory(); return; }
@@ -895,44 +1084,173 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "삭제"; } }, 3500);
     }
   });
+  function jumpTo(id) {
+    const li = $("#records").querySelector(`[data-id="${CSS.escape(id)}"]`);
+    if (!li) return;
+    li.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+    li.classList.remove("flash"); void li.offsetWidth; li.classList.add("flash");
+  }
 
   function renderTrend(items) {
     const box = $("#trend");
     if (items.length < 2) { box.innerHTML = `<p class="small muted">기록이 두 개 이상이면 변화 그래프가 보여요.</p>`; return; }
     // drawn at the box's real width so labels stay at true pixel size
-    const W = Math.max(280, box.clientWidth || 360), H = 190, padL = 38, padR = 10, padT = 12, padB = 26;
+    const W = Math.max(280, box.clientWidth || 360), H = 190, padL = 38, padR = 12, padT = 12, padB = 26;
     const t0 = items[0].ts, t1 = items[items.length - 1].ts, span = Math.max(1, t1 - t0);
-    const yMax = Math.max(100, Math.ceil(Math.max(...items.map(r => r.ratio * 100)) / 25) * 25);
+    const yMax = Math.max(100, Math.ceil(Math.max(...items.map(r => shown(r) * 100)) / 25) * 25);
     const X = t => padL + (W - padL - padR) * (t - t0) / span, Y = v => padT + (H - padT - padB) * (1 - v / yMax);
+    const txt = (x, y, s, anchor = "middle") => `<text x="${x.toFixed(1)}" y="${y}" text-anchor="${anchor}" font-size="12" style="fill:var(--muted);font-family:var(--font-body)">${s}</text>`;
     let grid = "";
-    for (let v = 0; v <= yMax; v += 25) grid += `<line x1="${padL}" x2="${W - padR}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--rule)" stroke-dasharray="2 5"/><text x="${padL - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="12" style="fill:var(--muted);font-family:var(--font-body)">${v}%</text>`;
-    const pts = items.map(r => [X(r.ts), Y(r.detected ? r.ratio * 100 : 0)]);
+    for (let v = 0; v <= yMax; v += 25) grid += `<line x1="${padL}" x2="${W - padR}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--rule)" stroke-dasharray="2 5"/>${txt(padL - 6, Y(v) + 4, v + "%", "end")}`;
+    // day ticks at local midnight; fall back to the first and last time inside one day
+    const days = [], d = new Date(t0); d.setHours(0, 0, 0, 0);
+    while (d.getTime() <= t1) { if (d.getTime() >= t0) days.push(d.getTime()); d.setDate(d.getDate() + 1); }
+    let xlab = "";
+    if (days.length >= 2) {
+      const step = Math.ceil(days.length / Math.max(2, Math.floor((W - padL - padR) / 64)));
+      days.forEach((t, i) => {
+        const x = X(t);
+        xlab += `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${Y(0)}" y2="${Y(0) + 4}" style="stroke:var(--muted)"/>`;
+        if (i % step === 0) { const dd = new Date(t); xlab += txt(Math.min(Math.max(x, padL + 14), W - padR - 14), H - 6, `${dd.getMonth() + 1}/${dd.getDate()}`); }
+      });
+    } else {
+      xlab = txt(padL, H - 6, fmt(t0), "start") + txt(W - padR, H - 6, fmt(t1), "end");
+    }
+    const pts = items.map(r => [X(r.ts), Y(shown(r) * 100)]);
     const path = pts.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join("");
     const last = pts[pts.length - 1];
     const areaPath = path + `L${last[0].toFixed(1)} ${Y(0)}L${pts[0][0].toFixed(1)} ${Y(0)}Z`;
+    const dot = (p, r, big) => uncertain(r)
+      ? `<circle cx="${p[0]}" cy="${p[1]}" r="${big ? 6 : 4.5}" style="fill:var(--surface);stroke:var(--accent)" stroke-width="2"/>`
+      : `<circle cx="${p[0]}" cy="${p[1]}" r="${big ? 6.5 : 4}" style="fill:var(--accent);stroke:var(--surface)" stroke-width="2"/>`;
+    const anyUnc = items.some(uncertain);
     box.innerHTML = `
-      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="날짜별 시약선 진하기 변화">
-        ${grid}
-        <text x="${padL}" y="${H - 6}" font-size="12" style="fill:var(--muted);font-family:var(--font-body)">${fmt(t0)}</text>
-        <text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="12" style="fill:var(--muted);font-family:var(--font-body)">${fmt(t1)}</text>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="날짜별 시약선 진하기 변화. 점을 누르면 그 기록으로 이동해요.">
+        ${grid}${xlab}
         <path d="${areaPath}" style="fill:var(--accent);opacity:.1"/>
         <path d="${path}" fill="none" style="stroke:var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-        ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="4" style="fill:var(--accent);stroke:var(--surface)" stroke-width="2"/>`).join("")}
-        <circle cx="${last[0]}" cy="${last[1]}" r="6.5" style="fill:var(--accent);stroke:var(--surface)" stroke-width="2.5"/>
-        <rect id="hit" x="${padL}" y="0" width="${W - padL - padR}" height="${H}" fill="transparent"/>
+        ${pts.map((p, i) => dot(p, items[i], i === pts.length - 1)).join("")}
       </svg>
-      <div class="tip" hidden></div>`;
+      <div class="tip" hidden></div>
+      ${anyUnc ? `<p class="small muted">속이 빈 점은 측정이 불확실했던 기록이에요.</p>` : ""}`;
     const svg = box.querySelector("svg"), tip = box.querySelector(".tip");
+    const nearest = e => { const rc = svg.getBoundingClientRect(), x = (e.clientX - rc.left) / rc.width * W; let k = 0; pts.forEach((p, i) => { if (Math.abs(p[0] - x) < Math.abs(pts[k][0] - x)) k = i; }); return { k, rc }; };
     svg.addEventListener("pointermove", e => {
-      const rc = svg.getBoundingClientRect(), x = (e.clientX - rc.left) / rc.width * W;
-      let k = 0; pts.forEach((p, i) => { if (Math.abs(p[0] - x) < Math.abs(pts[k][0] - x)) k = i; });
-      const r = items[k];
+      const { k, rc } = nearest(e), r = items[k];
       tip.hidden = false;
       tip.style.left = (pts[k][0] / W * rc.width) + "px"; tip.style.top = (pts[k][1] / H * rc.height) + "px";
-      tip.textContent = `${fmt(r.ts)} · ${r.detected ? pct(r.ratio) : "안 보임"}`;
+      tip.textContent = `${fmt(r.ts)} · ${r.detected ? pct(r.ratio) : "안 보임"}${uncertain(r) ? " · 불확실" : ""}`;
     });
     svg.addEventListener("pointerleave", () => { tip.hidden = true; });
+    svg.addEventListener("click", e => { const { k } = nearest(e); jumpTo(items[k].id); });
   }
+
+  /* ---------- backup: export / import a JSON file ---------- */
+  const backupMsg = t => { $("#backupMsg").textContent = t; };
+  $("#exportBtn").addEventListener("click", async () => {
+    if (!store.items.length) { backupMsg("아직 내보낼 기록이 없어요."); return; }
+    const data = JSON.stringify({ app: "hcg-line-notes", format: 1, exportedAt: new Date().toISOString(), records: store.items.map(({ id, ...r }) => r) });
+    const name = `hcg-notes-backup-${nowLocal(Date.now()).slice(0, 10)}.json`, n = store.items.length;
+    const inViewer = !!(window.claude && typeof window.claude.use === "function");
+    if (inViewer) {
+      const dl = await window.claude.use("downloads");
+      if (dl) {
+        try { await dl.save({ filename: name, data }); backupMsg(`기록 ${n}개를 파일로 저장했어요.`); }
+        catch (e) { backupMsg(e && e.code === "declined" ? "저장을 취소했어요." : "파일로 저장하지 못했어요. 잠시 뒤 다시 해 주세요."); }
+        return;
+      }
+      if (window.top !== window) { backupMsg("이 화면에서는 파일을 저장할 수 없어요. 설치한 앱에서 해 주세요."); return; }
+    }
+    const url = URL.createObjectURL(new Blob([data], { type: "application/json" }));
+    const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    backupMsg(`기록 ${n}개를 ${name} 파일로 내려받았어요. 다운로드 폴더에 있어요.`);
+  });
+  const THUMB_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+  function cleanRecord(r) {
+    if (!r || typeof r !== "object") return null;
+    const ts = Number(r.ts), ratio = Number(r.ratio);
+    if (!isFinite(ts) || !isFinite(ratio)) return null;
+    const num = v => isFinite(Number(v)) ? Number(v) : 0, str = (v, n) => typeof v === "string" ? v.slice(0, n) : "";
+    const detected = !!r.detected;
+    const out = {
+      ts, createdAt: isFinite(Number(r.createdAt)) ? Number(r.createdAt) : ts, note: str(r.note, 80), product: str(r.product, 40),
+      ratio, ratioArea: num(r.ratioArea), ratioGreen: num(r.ratioGreen), snr: num(r.snr), detected,
+      grade: GRADE[r.grade] ? r.grade : (!detected ? "none" : ratio < .1 ? "very-faint" : ratio < .3 ? "faint" : ratio < .6 ? "medium" : ratio < .9 ? "strong" : "equal"),
+      mode: r.mode === "manual" ? "manual" : "auto", example: !!r.example,
+      thumb: typeof r.thumb === "string" && r.thumb.length < 400000 && THUMB_RE.test(r.thumb) ? r.thumb : "",
+    };
+    if (typeof r.consistent === "boolean") out.consistent = r.consistent;
+    return out;
+  }
+  $("#importFile").addEventListener("change", async e => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!f) return;
+    let list;
+    try { const obj = JSON.parse(await f.text()); list = Array.isArray(obj) ? obj : obj && Array.isArray(obj.records) ? obj.records : null; }
+    catch (err) { list = null; }
+    if (!list) { backupMsg("시약선 노트 백업 파일이 아니에요. 내보내기로 만든 .json 파일을 골라 주세요."); return; }
+    const have = new Set(store.items.map(r => r.createdAt + "|" + r.ts));
+    const clean = list.map(cleanRecord).filter(Boolean), fresh = [];
+    for (const r of clean) { const k = r.createdAt + "|" + r.ts; if (!have.has(k)) { have.add(k); fresh.push(r); } }
+    const skipped = clean.length - fresh.length, bad = list.length - clean.length;
+    if (!fresh.length) { backupMsg(`새로 불러올 기록이 없어요.${skipped ? ` 이미 있는 기록 ${skipped}개는 건너뛰었어요.` : ""}`); return; }
+    backupMsg("불러오는 중…");
+    try {
+      await store.addMany(fresh);
+      backupMsg(`기록 ${fresh.length}개를 불러왔어요.${skipped ? ` 이미 있는 ${skipped}개는 건너뛰었어요.` : ""}${bad ? ` 읽을 수 없는 ${bad}개는 뺐어요.` : ""}`);
+    } catch (err) { backupMsg(err.message || "불러오지 못했어요."); }
+  });
+
+  /* ---------- read timer: 3 min wait, read until 5 min ---------- */
+  const READ_FROM = 180, READ_UNTIL = 300, KEEP = 600;
+  let timer = null, tick = null, wake = null;
+  const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+  async function keepAwake() {
+    try { if (navigator.wakeLock && document.visibilityState === "visible" && !wake) { wake = await navigator.wakeLock.request("screen"); wake.addEventListener("release", () => { wake = null; }); } } catch (e) { wake = null; }
+  }
+  function releaseAwake() { try { wake && wake.release(); } catch (e) {} wake = null; }
+  function startTimer(at) {
+    const start = at || Date.now(), el = (Date.now() - start) / 1000;
+    timer = { start, readyBuzzed: el >= READ_FROM, lateBuzzed: el >= READ_UNTIL };
+    lset("hcg-timer", String(start));
+    clearInterval(tick); tick = setInterval(renderTimer, 500);
+    keepAwake(); renderTimer();
+  }
+  function stopTimer() {
+    timer = null; clearInterval(tick); tick = null; lset("hcg-timer", null); releaseAwake(); renderTimer();
+  }
+  function renderTimer() {
+    const card = $("#timerCard"), fg = $("#ringFg"), text = $("#timerText"), clock = $("#timerClock");
+    card.classList.remove("ready", "late");
+    if (!timer) {
+      fg.setAttribute("stroke-dasharray", "0 100"); fg.style.opacity = 0; clock.hidden = true;
+      text.textContent = "테스트기에 소변을 묻힌 직후 눌러 주세요. 3분이 되면 알려 드려요.";
+      $("#timerStart").hidden = false; $("#timerStop").hidden = true; return;
+    }
+    const el = (Date.now() - timer.start) / 1000;
+    if (el >= KEEP) { stopTimer(); return; }
+    $("#timerStart").hidden = true; $("#timerStop").hidden = false; clock.hidden = false;
+    let p;
+    if (el < READ_FROM) {
+      p = el / READ_FROM; clock.textContent = mmss(READ_FROM - el);
+      text.textContent = "기다리는 중이에요. 테스트기를 평평한 곳에 두세요.";
+    } else if (el < READ_UNTIL) {
+      card.classList.add("ready"); p = (el - READ_FROM) / (READ_UNTIL - READ_FROM); clock.textContent = mmss(READ_UNTIL - el);
+      text.innerHTML = "<b>지금 찍어 주세요.</b> 남은 시간 안에 사진을 찍으면 돼요.";
+      if (!timer.readyBuzzed) { timer.readyBuzzed = true; buzz([250, 120, 250]); }
+    } else {
+      card.classList.add("late"); p = 1; clock.textContent = mmss(el);
+      text.textContent = "판독 시간(5분)이 지났어요. 지금부터 생긴 선은 판단하기 어려워요.";
+      if (!timer.lateBuzzed) { timer.lateBuzzed = true; buzz(400); releaseAwake(); }
+    }
+    fg.style.opacity = 1; fg.setAttribute("stroke-dasharray", `${(p * 100).toFixed(1)} 100`);
+  }
+  $("#timerStart").addEventListener("click", () => startTimer());
+  $("#timerStop").addEventListener("click", stopTimer);
+  document.addEventListener("visibilitychange", () => { if (timer && document.visibilityState === "visible") { renderTimer(); if ((Date.now() - timer.start) / 1000 < READ_UNTIL) keepAwake(); } });
 
   /* ---------- tabs ---------- */
   const SUB = { measure: "오늘의 테스트기를 천천히 들여다봐요", records: "지나온 날들을 한눈에 봐요" };
@@ -942,13 +1260,12 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       $("#tab-" + t).setAttribute("aria-selected", String(t === name));
     }
     $("#tabSub").textContent = SUB[name];
-    try { localStorage.setItem("hcg-tab", name); } catch (e) {}
+    lset("hcg-tab", name);
     window.scrollTo({ top: 0 });
-    if (name === "records" && store.items.length) renderTrend(store.items);
-    if (name === "records") $("#toast").hidden = true;
+    if (name === "records") { $("#toast").hidden = true; if (visible().length) renderTrend(visible()); }
   }
   let resizeTimer = null;
-  addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("#panel-records").hidden && store.items.length) renderTrend(store.items); }, 200); });
+  addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (!$("#panel-records").hidden && visible().length) renderTrend(visible()); }, 200); });
   document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
   document.addEventListener("click", e => { const g = e.target.closest("[data-go]"); if (g) showTab(g.dataset.go); });
   let toastTimer = null;
@@ -963,9 +1280,12 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
   const s = makeSample();
   setWork(s, s.width, s.height, { isSample: true, fileTime: Date.now() });
   $("#when").value = nowLocal(Date.now());
+  $("#product").value = lget("hcg-last-product", "");
   run();
   store.init();
-  try { if (localStorage.getItem("hcg-tab") === "records") showTab("records"); } catch (e) {}
+  const savedTimer = Number(lget("hcg-timer"));
+  if (savedTimer && Date.now() - savedTimer < KEEP * 1000) startTimer(savedTimer); else { lset("hcg-timer", null); renderTimer(); }
+  if (lget("hcg-tab") === "records") showTab("records");
 })();
 </script>
 
@@ -983,7 +1303,7 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
 .update-actions { display: flex; gap: 8px; }
 </style>
 <script>
-window.APP_VERSION = "3f0a7778";
+window.APP_VERSION = "9a774e4e";
 (() => {
   const foot = document.querySelector("footer");
   if (foot) { const p = document.createElement("p"); p.textContent = "앱 버전 " + window.APP_VERSION; foot.appendChild(p); }
