@@ -4,4 +4,5 @@
     <string name="title_activity_main">노포 지도</string>
     <string name="package_name">io.github.yosebchoi.nopo</string>
     <string name="custom_url_scheme">io.github.yosebchoi.nopo</string>
+    <string name="asset_statements" translatable="false">[{"relation": ["delegate_permission/common.handle_all_urls"], "target": {"namespace": "web", "site": "https://yosebchoi.github.io"}}]</string>
 </resources>

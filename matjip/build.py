@@ -517,6 +517,9 @@ MANIFEST = {
         {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
         {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
     ],
+    # lets Chrome tell the page that the Android app is installed (the app's asset statement names this site)
+    "related_applications": [{"platform": "play", "id": "io.github.yosebchoi.nopo"}],
+    "prefer_related_applications": False,
 }
 
 SW = """// 노포 지도 service worker: the app shell is served from cache; the store list
