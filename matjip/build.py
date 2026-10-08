@@ -637,7 +637,7 @@ def main():
     (OUT / "stores.json").write_text(data, encoding="utf-8")
     page = (SRC / "index.html").read_text(encoding="utf-8")
     manifest = json.loads(json.dumps(MANIFEST))
-    # the signboard icons in matjip/assets (drawn by assets/draw_icons.py; the plain drawing is a fallback).
+    # the signboard icons in matjip/assets (rendered from assets/icon.svg by assets/render_icon.mjs; the plain drawing is a fallback).
     # Each is also published under a name carrying its content hash, which the manifest and the page point
     # to, so no cache anywhere (HTTP, service worker, the phone's installer) can hand out an old icon.
     for old in OUT.glob("icon-*.*.png"):

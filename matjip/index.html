@@ -635,6 +635,16 @@ dialog .btn { width: 100%; }
   </div>
 </dialog>
 
+<dialog id="appUpdate" class="update-dialog" aria-labelledby="appUpdateTitle">
+  <div class="update-sign" aria-hidden="true">새 앱</div>
+  <h2 id="appUpdateTitle">앱 새 버전이 나왔어요</h2>
+  <p id="appUpdateText">지금 업데이트하면 새 앱을 내려받아 설치 화면을 열어요. 「설치」를 누르면 끝나요. 저장한 곳과 도장은 그대로 남아요.</p>
+  <div class="update-actions">
+    <button class="btn" type="button" id="appUpdateLater">나중에</button>
+    <button class="btn primary" type="button" id="appUpdateNow">지금 업데이트</button>
+  </div>
+</dialog>
+
 <dialog id="stamps" class="stamps" aria-labelledby="stampsTitle">
   <header class="stamps-head">
     <h2 id="stampsTitle">노포 도장판</h2>
@@ -1446,6 +1456,36 @@ dialog .btn { width: 100%; }
     });
   }
 
+  // ---------- the Android app updates itself: the release holds the latest build number ----------
+  async function checkAppUpdate() {
+    if (!native) return;
+    let info;
+    try { info = await call("Updater", "check"); } catch { return; }   // offline, or an older app without the updater
+    if (!info || !(info.latest > info.current)) return;
+    const skip = store.get("appUpdateSkip", null);
+    if (skip && skip.v === info.latest && skip.until > Date.now()) return;
+    const dlg = $("appUpdate"), now = $("appUpdateNow");
+    $("appUpdateLater").onclick = () => { store.set("appUpdateSkip", { v: info.latest, until: Date.now() + 864e5 }); dlg.close(); };
+    let progress;
+    now.onclick = async () => {
+      now.disabled = true; now.textContent = "내려받는 중…";
+      try { progress = progress || listen("Updater", "progress", p => { if (p && p.percent >= 0) now.textContent = `내려받는 중 ${p.percent}%`; }); } catch {}
+      try {
+        const r = await call("Updater", "install", { url: info.url });
+        if (r && r.needsPermission) {
+          $("appUpdateText").textContent = "설정에서 「이 출처 허용」을 켜고 돌아와서 「지금 업데이트」를 한 번 더 눌러 주세요. 처음 한 번만 하면 돼요.";
+          now.disabled = false; now.textContent = "지금 업데이트";
+          return;
+        }
+        dlg.close();
+      } catch {
+        toast("새 버전을 내려받지 못했어요. 인터넷 연결을 확인해 주세요.");
+        now.disabled = false; now.textContent = "다시 시도";
+      }
+    };
+    dlg.showModal();
+  }
+
   // ---------- shared links: open the place, in the Android app when it is installed ----------
   function openShared(k) {
     const target = k && stores.find(s => s.k === k);
@@ -1486,6 +1526,7 @@ dialog .btn { width: 100%; }
     const shared = new URLSearchParams(location.search).get("p");
     offerApp(shared);
     if (native) call("App", "getLaunchUrl").then(r => r && r.url && openFromUrl(r.url)).catch(() => {});
+    setTimeout(checkAppUpdate, 5000);   // after the launch scene
     if (openShared(shared)) { history.replaceState(null, "", location.pathname); return; }
     // a first visit starts from where you are, if the browser already allows it
     if (!store.get("view", null) && navigator.permissions) {

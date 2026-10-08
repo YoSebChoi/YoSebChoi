@@ -5,6 +5,7 @@
 # android-app/ changes.
 # Signing: a repository secret ANDROID_SIGNING = "<password> <base64 of the PKCS12 keystore>" (alias "nopo").
 # Without it the APK is signed with a throwaway debug key and cannot install over an earlier one.
+# The installed app updates itself from the release: nopo-map.json holds the build number.
 name: 노포 지도 APK
 
 on:
@@ -65,6 +66,8 @@ jobs:
           chmod +x gradlew
           ./gradlew --no-daemon assembleRelease
           cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/nopo-map.apk"
+          # the installed app compares its own build number with this to offer updates
+          echo '{"versionCode": ${{ github.run_number }}}' > "$GITHUB_WORKSPACE/nopo-map.json"
           "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner verify --print-certs "$GITHUB_WORKSPACE/nopo-map.apk" | head -3
       - uses: actions/upload-artifact@v4
         with:
@@ -81,4 +84,6 @@ jobs:
           else
             gh release create nopo-apk --title "노포 지도 앱" --notes "$notes" --target "$GITHUB_SHA"
           fi
+          # the APK first: an app that sees the new number must find the new APK
           gh release upload nopo-apk nopo-map.apk --clobber
+          gh release upload nopo-apk nopo-map.json --clobber

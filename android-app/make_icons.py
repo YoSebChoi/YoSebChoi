@@ -1,4 +1,4 @@
-"""Draws the Android launcher icons from the web app's icons (run after matjip/assets/draw_icons.py).
+"""Draws the Android launcher icons from the web app's icons (run after matjip/assets/render_icon.mjs).
 
 python3 android-app/make_icons.py
 """

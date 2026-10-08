@@ -26,12 +26,13 @@
 
 `android-app/`은 이 웹앱을 그대로 띄우는 Android 앱(Capacitor)이에요. 웹을 고치면 앱에도 바로 반영되니, APK는 `android-app/`을 바꿀 때만 새로 만들어요.
 
-- 받기: https://github.com/YoSebChoi/YoSebChoi/releases/download/nopo-apk/nopo-map.apk (폰에서 받고 "출처를 알 수 없는 앱" 설치 허용)
+- 받기: https://github.com/YoSebChoi/YoSebChoi/releases/download/nopo-apk/nopo-map.apk (폰에서 받고 "출처를 알 수 없는 앱" 설치 허용. 처음 한 번만 받으면 다음부터는 앱이 알아서 업데이트를 물어봐요)
 - 공유 링크: 앱이 깔린 폰의 Chrome에서 노포 지도 링크를 열면 「앱에서 열기」가 떠요. 링크를 늘 앱으로 바로 열려면 휴대폰 설정 → 애플리케이션 → 노포 지도 → 기본으로 열기 → 지원되는 링크 추가.
 - 앱에서만 되는 것: 빨간 간판 전체 화면 시작, 뒤로가기(검색 → 창 → 식당 → 지역 → 종료), 공유 시트, 저장·별점 진동, 길찾기·네이버 지도 버튼이 지도 앱을 바로 열기
 - 빌드: GitHub Actions **노포 지도 APK** (`main`에 올라가면 릴리스 `nopo-apk`에 올려요)
 - 서명: 저장소 Secret `ANDROID_SIGNING` = `<비밀번호> <PKCS12 키 파일 base64>` (별칭 `nopo`). 이 키를 잃어버리면 다음 APK를 덮어 설치할 수 없으니 따로 보관하세요. 저장소가 공개라 키 파일은 절대 커밋하지 않아요.
-- 아이콘: `matjip/assets/draw_icons.py`로 웹 아이콘을 그린 뒤 `python3 android-app/make_icons.py` (빌드 때도 자동으로 다시 그려요)
+- 아이콘: 뚝배기 그림 `matjip/assets/icon.svg`를 고친 뒤 `node matjip/assets/render_icon.mjs`로 PNG를 만들고 `python3 android-app/make_icons.py` (APK 빌드 때도 자동으로 다시 그려요)
+- 업데이트: 앱을 열면 릴리스의 `nopo-map.json` 빌드 번호와 비교해서, 새 버전이 있으면 앱 안에서 내려받아 설치 화면을 열어요
 
 ## 데이터
 
