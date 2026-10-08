@@ -118,8 +118,10 @@ self.addEventListener("activate", e => {
     .then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
-  const req = e.request;
+  const req = e.request, url = new URL(req.url), base = new URL("./", self.registration.scope);
   if (req.method !== "GET") return;
+  // other apps live in sub-folders of this site (matjip/ …): leave their pages and files alone
+  if (url.origin === base.origin && url.pathname.slice(base.pathname.length).includes("/")) return;
   if (req.mode === "navigate") {
     e.respondWith(caches.open(CACHE).then(c => c.match("./index.html")).then(hit => hit || fetch(req)));
     return;
