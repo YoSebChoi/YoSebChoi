@@ -307,6 +307,15 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
   *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
 }
 
+/* boot: the launch screen continued edge to edge, the whole screen a red 간판 with the name painted on */
+.boot { position: fixed; inset: 0; z-index: 4000; background: #c4231b; display: grid; place-items: center; transition: opacity .45s ease; }
+.boot.out { opacity: 0; pointer-events: none; }
+.boot-sign { display: flex; flex-direction: column; align-items: center; gap: .02em; font-family: var(--font-sign); color: #f7eede; line-height: 1;
+  font-size: min(34vw, 30vh); letter-spacing: .04em; text-shadow: .03em .045em 0 #7a100c; opacity: 0; }
+/* the lettering waits for the signboard face, so a fallback font never flashes */
+.boot.ready .boot-sign { animation: boot-in .7s cubic-bezier(.2, .9, .3, 1.2) both; }
+@keyframes boot-in { from { transform: scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
+
 /* update prompt */
 .update-dialog { max-width: min(360px, calc(100% - 40px)); text-align: center; padding: 24px 22px 20px; }
 .update-sign { display: inline-block; margin: 0 auto 12px; padding: 6px 16px; border-radius: 6px; background: var(--sign); color: #fff6ec;
@@ -329,6 +338,19 @@ dialog .btn { width: 100%; }
 </style>
 </head>
 <body>
+<div class="boot" id="boot" aria-hidden="true"><div class="boot-sign"><span>노포</span><span>지도</span></div></div>
+<script>
+  // the installed app (home-screen PWA or the Android APK) opens on the full-screen signboard; a browser tab does not
+  (() => {
+    const app = matchMedia("(display-mode: standalone)").matches || !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    const boot = document.getElementById("boot");
+    if (!app) { boot.remove(); return; }
+    const ready = () => { boot.dataset.t = performance.now(); boot.classList.add("ready"); };
+    if (document.fonts && document.fonts.load) {
+      Promise.race([document.fonts.load('1em "Black Han Sans"', "노포지도"), new Promise(r => setTimeout(r, 1200))]).then(ready, ready);
+    } else ready();
+  })();
+</script>
 <div id="map" aria-label="지도"></div>
 
 <section class="intro" id="intro" role="dialog" aria-modal="true" aria-label="노포 지도 첫 화면" hidden>
@@ -448,10 +470,20 @@ dialog .btn { width: 100%; }
     set(k, v) { try { localStorage.setItem("nopo:" + k, JSON.stringify(v)); } catch {} },
   };
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // inside the Android app (Capacitor) the native bridge gives back button, share sheet, haptics and app links
+  // (the page does not bundle @capacitor/core, so plugins are called through the injected bridge itself)
+  const C = window.Capacitor;
+  const native = !!(C && C.isNativePlatform && C.isNativePlatform());
+  const call = (p, m, o = {}) => C.Plugins?.[p]?.[m] ? C.Plugins[p][m](o) : C.nativePromise(p, m, o);
+  const listen = (p, ev, cb) => C.Plugins?.[p]?.addListener ? C.Plugins[p].addListener(ev, cb) : C.nativeCallback(p, "addListener", { eventName: ev }, cb);
+  const buzz = () => { if (native) Promise.resolve().then(() => call("Haptics", "impact", { style: "LIGHT" })).catch(() => {}); };
   const toast = (msg, ms = 2600) => { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, ms); };
 
   // ---------- app updates (installed copy) — registered first, so the app installs even when the map library fails to load ----------
-  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  if (native && "serviceWorker" in navigator) {
+    // the Android app always loads the live page (fresh every launch), so it needs no offline copy or update prompt
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+  } else if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
     addEventListener("load", async () => {
       try {
         const reg = await navigator.serviceWorker.register("sw.js");
@@ -486,6 +518,7 @@ dialog .btn { width: 100%; }
 
   if (!window.L) {
     $("sheetSub").textContent = "지도를 불러오지 못했어요. 인터넷 연결을 확인한 뒤 다시 열어 주세요.";
+    $("boot")?.remove();
     return;
   }
 
@@ -718,16 +751,27 @@ dialog .btn { width: 100%; }
       (s.x ? `<p class="warn">정확한 번지를 찾지 못해 길 위치로 표시했어요. 실제 위치는 지도 앱에서 확인하세요.</p>` : "") +
       `<div class="facts">${facts.join("")}</div>` +
       `<div class="actions">` +
-      `<a class="btn primary" href="https://map.kakao.com/link/to/${name},${lat},${lng}" target="_blank" rel="noopener">길찾기</a>` +
+      `<a class="btn primary" id="routeBtn" href="https://map.kakao.com/link/to/${name},${lat},${lng}" target="_blank" rel="noopener">길찾기</a>` +
       `<a class="btn" href="${kakaoPlace ? esc(s.u.replace(/^http:/, "https:")) + "#review" : `https://map.kakao.com/link/search/${q}`}" target="_blank" rel="noopener">${kakaoPlace ? "카카오맵 후기" : "카카오맵"}</a>` +
-      `<a class="btn" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버 지도</a>` +
+      `<a class="btn" id="naverBtn" href="https://map.naver.com/p/search/${q}" target="_blank" rel="noopener">네이버 지도</a>` +
       `</div>`;
     $("list").hidden = true;
     $("detail").hidden = false;
     $("grab").querySelector(".sheet-head").hidden = true;
     $("sheetSub").hidden = true;
     $("back").onclick = closeDetail;
+    if (native) {
+      // open the map apps themselves when they are installed, the web pages otherwise
+      // on Android, canOpenUrl takes the app's package name
+      const launch = async (pkg, appUrl, webUrl) => {
+        try { if ((await call("AppLauncher", "canOpenUrl", { url: pkg })).value) { await call("AppLauncher", "openUrl", { url: appUrl }); return; } } catch {}
+        location.href = webUrl;
+      };
+      $("routeBtn").onclick = e => { e.preventDefault(); launch("net.daum.android.map", `kakaomap://route?ep=${lat},${lng}&by=CAR`, e.currentTarget.href); };
+      $("naverBtn").onclick = e => { e.preventDefault(); launch("com.nhn.android.nmap", `nmap://search?query=${q}&appname=io.github.yosebchoi.nopo`, e.currentTarget.href); };
+    }
     $("detail").querySelectorAll("[data-m]").forEach(b => b.onclick = () => {
+      buzz();
       const m = b.dataset.m;
       if (marks[s.k] === m) delete marks[s.k]; else marks[s.k] = m;
       store.set("marks", marks);
@@ -741,6 +785,7 @@ dialog .btn { width: 100%; }
       store.set("notes", notes);
     };
     $("detail").querySelectorAll(".stars button").forEach(b => b.onclick = () => {
+      buzz();
       const n = notes[s.k] || (notes[s.k] = {});
       const r = +b.dataset.r;
       n.r = n.r === r ? 0 : r;   // tapping the same star again clears it
@@ -763,7 +808,8 @@ dialog .btn { width: 100%; }
       url.searchParams.set("p", s.k);
       const data = { title: s.n, text: `${s.n}, ${s.a}`, url: url.href };
       try {
-        if (navigator.share) await navigator.share(data);
+        if (native) await call("Share", "share", { ...data, dialogTitle: "노포 공유하기" });
+        else if (navigator.share) await navigator.share(data);
         else { await navigator.clipboard.writeText(url.href); toast("링크를 복사했어요."); }
       } catch (e) { if (e.name !== "AbortError") toast("공유하지 못했어요."); }
     };
@@ -1023,7 +1069,7 @@ dialog .btn { width: 100%; }
     const c = meta.counts || {};
     $("aboutData").textContent = `지도에 ${stores.length.toLocaleString()}곳 (백년가게 ${(c.bn || 0).toLocaleString()} · 백반기행 ${(c.bb || 0).toLocaleString()})` +
       (unplaced.length ? `, 주소로 위치를 찾지 못한 ${unplaced.length}곳은 빠져 있어요.` : ".") + (meta.updated ? ` 자료 갱신 ${meta.updated}.` : "");
-    $("aboutVersion").textContent = "앱 버전 48e22f26";
+    $("aboutVersion").textContent = "앱 버전 7aaa9672";
     $("about").showModal();
   });
 
@@ -1109,9 +1155,35 @@ dialog .btn { width: 100%; }
   $("showIntro").checked = !store.get("skipIntro", false);
   $("showIntro").addEventListener("change", e => store.set("skipIntro", !e.target.checked));
 
+  // ---------- the boot screen leaves once the map has its places (and after a beat, so it does not flash) ----------
+  const leaveBoot = () => {
+    const boot = $("boot");
+    if (!boot || boot.classList.contains("out")) return;
+    // let the lettering show for a moment once it is painted
+    if (!boot.classList.contains("ready")) { setTimeout(leaveBoot, 100); return; }
+    setTimeout(() => { boot.classList.add("out"); setTimeout(() => boot.remove(), 500); }, Math.max(0, 800 - (performance.now() - +boot.dataset.t)));
+  };
+  setTimeout(leaveBoot, 6000);   // never hold the app hostage to a slow network
+
+  // ---------- Android back button: step back through the app before leaving it ----------
+  if (native) {
+    const exit = () => call("App", "exitApp").catch(() => {});
+    listen("App", "backButton", () => {
+      const open = [...document.querySelectorAll("dialog[open]")];
+      if (open.length) { open.at(-1).close(); return; }
+      if (!results.hidden) { results.hidden = true; $("q").blur(); return; }
+      if (selected) { closeDetail(); return; }
+      if (!$("intro").hidden) { exit(); return; }
+      if (region) { $("regionClear").click(); return; }
+      if (sheetH() > 300) { setSheet(236); return; }
+      exit();
+    });
+  }
+
   // ---------- go ----------
   fetch("stores.json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
     meta = d; stores = d.stores || []; unplaced = d.unplaced || [];
+    leaveBoot();
     countChips();
     drawMarkers();
     centerLabel = guessArea();
