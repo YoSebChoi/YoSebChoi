@@ -22,6 +22,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- shared recipes and shopping lists (https://…/fridge/#r=…): open here once
+                 「지원되는 링크」 is allowed in the app's settings, otherwise in the browser -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="yosebchoi.github.io" android:pathPrefix="/YoSebChoi/fridge" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -39,6 +48,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- 요리 타이머: the alert arrives on time even with the screen off. USE_EXACT_ALARM is granted
+         on install for an app with a timer (Android 13+); SCHEDULE_EXACT_ALARM covers Android 12. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
     <!-- in-app update: the new APK from the GitHub release is handed to Android's installer -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- 사진 찍기 opens the camera inside the app (the page's getUserMedia), so Android never closes
