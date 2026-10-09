@@ -1,5 +1,5 @@
 // 냉장고 셰프 service worker: the app shell from cache, refreshed in the background.
-const CACHE = "fridge-chef-c33fcef6";
+const CACHE = "fridge-chef-f16be9bc";
 const SHELL = ["./", "./index.html", "./recipes.js", "./vendor/anthropic-sdk.mjs"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener("activate", e => {
