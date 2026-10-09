@@ -5,40 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>냉장고 셰프</title>
 <meta name="description" content="냉장고 사진이나 재료를 알려 주면 오늘 해 먹을 메뉴와 출처가 있는 레시피를 찾아 주는 앱">
-<meta name="theme-color" content="#f7f3ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#fffaf3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1413" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap">
 <style>
-/* Mood: a warm kitchen in the morning. Oat-coloured ground, paper-white cards, the icon's teal for
-   what you press, butter and tomato for little highlights. Two rooms (추천 · 저장) from a soft tab bar. */
+/* Mood: a bright kitchen in the morning sun. Near-white ground with a warm glow at the top, white
+   cards, the icon's teal (a shade fresher) for what you press, tomato and butter for highlights.
+   Lettering as in 노포 지도: Pretendard for reading, Black Han Sans for the titles. */
 :root {
-  --bg: #f7f3ea;
-  --surface: #fffdf8;
-  --surface-2: #f1ebdd;
-  --ink: #2b2824;
-  --muted: #776f64;
-  --rule: #e6dece;
-  --accent: #1f6f62;
+  --bg: #fffaf3;
+  --glow: #fff0d9;
+  --surface: #ffffff;
+  --surface-2: #f6f1e8;
+  --ink: #26231f;
+  --muted: #7b7368;
+  --rule: #ece5d8;
+  --accent: #1b8270;
   --accent-ink: #ffffff;
-  --accent-soft: #dcece6;
-  --tomato: #d9573b;
-  --tomato-soft: #f8e1d8;
-  --butter: #f2a541;
-  --butter-soft: #f8ead0;
-  --shadow: 0 1px 2px rgba(43, 40, 36, .05), 0 10px 28px rgba(43, 40, 36, .07);
+  --accent-soft: #e2f4ee;
+  --tomato: #e4583a;
+  --tomato-soft: #ffe8df;
+  --butter: #f5a524;
+  --butter-soft: #fff1d6;
+  --shadow: 0 1px 2px rgba(60, 45, 20, .04), 0 8px 24px rgba(60, 45, 20, .06);
   --edge: rgba(43, 40, 36, 0);   /* hairline around cards; only visible in dark, where shadows vanish */
-  --font-display: "Gowun Batang", "Noto Serif KR", "AppleMyungjo", serif;
-  --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-display: "Black Han Sans", "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", sans-serif;
+  --font-body: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
   --tabbar-h: 64px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0f1413; --surface: #1d2523; --surface-2: #29322f; --ink: #ece7dd; --muted: #a59d90; --rule: #36403c;
+    --bg: #0f1413; --glow: #14201d; --surface: #1d2523; --surface-2: #29322f; --ink: #ece7dd; --muted: #a59d90; --rule: #36403c;
     --accent: #6cc3b0; --accent-ink: #0f1413; --accent-soft: #1f3a34;
     --tomato: #f08a70; --tomato-soft: #3d2620; --butter: #f2b960; --butter-soft: #3a2f1c;
     --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .28);
@@ -47,7 +50,7 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0f1413; --surface: #1d2523; --surface-2: #29322f; --ink: #ece7dd; --muted: #a59d90; --rule: #36403c;
+  --bg: #0f1413; --glow: #14201d; --surface: #1d2523; --surface-2: #29322f; --ink: #ece7dd; --muted: #a59d90; --rule: #36403c;
   --accent: #6cc3b0; --accent-ink: #0f1413; --accent-soft: #1f3a34;
   --tomato: #f08a70; --tomato-soft: #3d2620; --butter: #f2b960; --butter-soft: #3a2f1c;
   --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .28);
@@ -56,14 +59,14 @@
 }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.7;
+body { margin: 0; background: var(--bg) radial-gradient(130% 380px at 50% -60px, var(--glow), transparent 70%) no-repeat; color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.65; letter-spacing: -0.01em;
   -webkit-tap-highlight-color: transparent; overscroll-behavior-y: contain; }
 .app { max-width: 640px; margin: 0 auto; padding-inline: 16px; padding-block: calc(26px + env(safe-area-inset-top, 0px)) calc(var(--tabbar-h) + 40px + env(safe-area-inset-bottom, 0px));
   display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
-h1, h2, h3 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; line-height: 1.35; }
-h1 { font-size: 26px; }
-h2 { font-size: 19px; }
-h3 { font-size: 16.5px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 400; text-wrap: balance; margin: 0; line-height: 1.3; letter-spacing: .01em; }
+h1 { font-size: 27px; }
+h2 { font-size: 20px; }
+h3 { font-family: var(--font-body); font-weight: 700; font-size: 16.5px; letter-spacing: -0.01em; }
 p { margin: 0; }
 .muted { color: var(--muted); }
 .small { font-size: 13.5px; }
@@ -77,7 +80,7 @@ a { color: var(--accent); }
 .top .logo { width: 46px; height: 46px; border-radius: 14px; flex: none; background: #1f6f62; display: grid; place-items: center; overflow: hidden; }
 .top .logo svg { width: 46px; height: 46px; }
 .top .titles { flex: 1; min-width: 0; }
-.eyebrow { font-size: 12.5px; color: var(--accent); letter-spacing: .04em; }
+.eyebrow { font-size: 12.5px; color: var(--accent); font-weight: 600; letter-spacing: 0; }
 .icon-btn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--surface); color: var(--ink); box-shadow: var(--shadow);
   outline: 1px solid var(--edge); display: grid; place-items: center; cursor: pointer; flex: none; touch-action: manipulation; }
 .icon-btn svg { width: 22px; height: 22px; }
@@ -93,7 +96,8 @@ a { color: var(--accent); }
   justify-content: center; gap: 7px; background: var(--surface-2); color: var(--ink); touch-action: manipulation; text-decoration: none; transition: transform .12s ease, background-color .2s; }
 .btn:active { transform: scale(.97); }
 .btn svg { width: 19px; height: 19px; flex: none; }
-.btn.primary { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.btn { font-weight: 600; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); font-weight: 700; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 28%, transparent); }
 .btn.ghost { background: transparent; color: var(--muted); }
 .btn.big { min-height: 54px; font-size: 16.5px; width: 100%; }
 .btn[disabled] { opacity: .55; cursor: default; transform: none; }
@@ -144,7 +148,7 @@ a { color: var(--accent); }
   box-shadow: var(--shadow); outline: 1px solid var(--edge); display: grid; gap: 6px; animation: rise .35s ease both; touch-action: manipulation; }
 .menu:active { transform: scale(.99); }
 .menu-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.menu-name { font-family: var(--font-display); font-weight: 700; font-size: 17.5px; line-height: 1.35; }
+.menu-name { font-family: var(--font-display); font-weight: 400; font-size: 18px; line-height: 1.3; letter-spacing: .01em; }
 .menu-meta { font-size: 13px; color: var(--muted); flex: none; }
 .menu-why { font-size: 14.5px; }
 .have-list { font-size: 13.5px; color: var(--muted); }
@@ -157,6 +161,7 @@ a { color: var(--accent); }
 .shop { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
 .shop li { display: grid; grid-template-columns: minmax(64px, auto) 1fr; gap: 12px; padding: 9px 0; border-top: 1px dashed var(--rule); font-size: 14.5px; }
 .shop-name { font-weight: 700; color: var(--tomato); }
+.seg button[aria-pressed="true"] { font-weight: 700; }
 .shop-what { color: var(--ink); }
 .need { border-radius: 14px; padding: 11px 14px; background: var(--tomato-soft); font-size: 14.5px; }
 .need.ok { background: var(--accent-soft); color: var(--ink); }
@@ -201,7 +206,7 @@ a { color: var(--accent); }
 .sheet-bar .grow { flex: 1; }
 .recipe { max-width: 640px; margin: 0 auto; padding: 4px 16px calc(40px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 16px; }
 .recipe-head { display: grid; gap: 6px; }
-.recipe-head h2 { font-size: 25px; }
+.recipe-head h2 { font-size: 28px; }
 .facts { display: flex; flex-wrap: wrap; gap: 6px; }
 .fact { font-size: 13px; border-radius: 999px; padding: 3px 11px; background: var(--surface-2); color: var(--muted); }
 .ing { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
@@ -266,7 +271,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
 .splash-fridge .sprig { transform-origin: 300px 130px; animation: wiggle .5s ease-in-out .5s 2 both; }
 .splash-fridge .pop { opacity: 0; animation: pop-out .55s cubic-bezier(.2, 1.4, .4, 1) both; }
 .splash-text { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 80vw; text-align: center; color: #fff6e6; }
-.splash-name { font-family: var(--font-display); font-size: 30px; font-weight: 700; opacity: 0; animation: fade-in .5s ease .75s both; }
+.splash-name { font-family: var(--font-display); font-size: 34px; font-weight: 400; letter-spacing: .06em; opacity: 0; animation: fade-in .5s ease .75s both; }
 .splash-tag { font-size: 15px; opacity: 0; animation: fade-in .5s ease 1s both; color: #cfe6df; }
 @keyframes hop { 0% { transform: none; } 35% { transform: translateY(-14px) scale(1.02, .98); } 70% { transform: translateY(0) scale(1.03, .96); } 100% { transform: none; } }
 @keyframes wiggle { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(14deg); } }
