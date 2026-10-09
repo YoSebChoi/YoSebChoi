@@ -385,6 +385,10 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
 
     <div class="card">
       <h2><span class="step-no">2</span>어떻게 먹을까요</h2>
+      <div class="opt"><span class="opt-label" id="lblCuisine">스타일</span>
+        <div class="seg" role="group" aria-labelledby="lblCuisine" data-opt="cuisine">
+          <button type="button" data-v="">아무거나</button><button type="button" data-v="한식">한식</button><button type="button" data-v="중식">중식</button><button type="button" data-v="일식">일식</button><button type="button" data-v="양식">양식</button><button type="button" data-v="세계">세계 요리</button>
+        </div></div>
       <div class="opt"><span class="opt-label" id="lblTime">시간</span>
         <div class="seg" role="group" aria-labelledby="lblTime" data-opt="time">
           <button type="button" data-v="0">상관없어요</button><button type="button" data-v="15">15분 안에</button><button type="button" data-v="30">30분 안에</button>
@@ -554,7 +558,8 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     "버섯": ["버섯", "표고", "느타리", "새송이", "팽이", "양송이"], "떡": ["떡", "떡볶이떡", "가래떡", "떡국떡"], "파스타": ["파스타", "스파게티", "펜네", "링귀니"],
     "밥": ["밥", "즉석밥", "햇반", "쌀", "찬밥"], "참치": ["참치", "참치캔"], "부침가루": ["부침가루", "밀가루", "튀김가루"], "청양고추": ["청양고추", "고추", "풋고추", "페페론치노"],
     "카레가루": ["카레", "카레가루"], "라면사리": ["라면", "라면사리"], "애호박": ["애호박", "호박", "주키니"], "파프리카": ["파프리카", "피망"], "순두부": ["순두부"],
-    "두부": ["두부"], "미역": ["미역"], "토마토": ["토마토", "방울토마토"], "마늘": ["마늘", "통마늘"], "양배추": ["양배추"], "시금치": ["시금치"], "콩나물": ["콩나물"],
+    "두부": ["두부"], "국수": ["국수", "소면", "중면"], "쌀국수": ["쌀국수", "라이스누들"], "메밀면": ["메밀면", "메밀국수", "소바"],
+    "칼국수면": ["칼국수", "칼국수면"], "동태": ["동태", "명태", "동태포"], "또띠아": ["또띠아", "토르티야", "또르띠아"], "주꾸미": ["주꾸미", "쭈꾸미"], "미역": ["미역"], "토마토": ["토마토", "방울토마토"], "마늘": ["마늘", "통마늘"], "양배추": ["양배추"], "시금치": ["시금치"], "콩나물": ["콩나물"],
   };
   const SYN_INDEX = {};
   for (const [k, list] of Object.entries(SYN)) for (const w of list) SYN_INDEX[w] = k;
@@ -621,13 +626,15 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
 
   /* ===================== the fridge, shelf by shelf (no typing needed) ===================== */
   const SHELVES = [
-    ["채소", ["양파", "대파", "마늘", "감자", "고구마", "당근", "애호박", "호박", "오이", "가지", "무", "배추", "양배추", "상추", "깻잎", "시금치", "콩나물", "숙주", "부추", "브로콜리", "파프리카", "토마토", "청양고추", "버섯", "생강"]],
-    ["고기·해산물", ["돼지고기", "소고기", "닭고기", "다진 고기", "베이컨", "새우", "오징어", "고등어", "연어", "조개", "멸치", "미역", "김"]],
-    ["달걀·유제품·콩", ["계란", "두부", "순두부", "우유", "치즈", "버터", "요거트", "콩"]],
-    ["가공식품", ["햄", "소시지", "참치", "어묵", "맛살", "떡", "만두", "라면", "카레가루", "부침가루"]],
-    ["밥·면", ["밥", "쌀", "국수", "파스타", "우동", "당면", "식빵"]],
+    ["채소", ["양파", "대파", "쪽파", "마늘", "생강", "감자", "고구마", "단호박", "당근", "애호박", "가지", "오이", "무", "배추", "양배추", "상추", "양상추", "깻잎", "시금치", "콩나물", "숙주", "부추", "미나리", "쑥갓", "청경채", "브로콜리", "파프리카", "피망", "토마토", "청양고추", "꽈리고추", "버섯", "옥수수", "연근", "우엉", "고사리", "도라지", "셀러리", "아보카도", "바질", "고수"]],
+    ["고기", ["돼지고기", "소고기", "닭고기", "다진 고기", "베이컨", "오리고기"]],
+    ["해산물", ["새우", "오징어", "낙지", "주꾸미", "바지락", "홍합", "조개", "굴", "고등어", "갈치", "동태", "코다리", "황태", "연어", "회", "명란", "전복", "멸치", "건새우", "미역", "김"]],
+    ["달걀·유제품·콩", ["계란", "메추리알", "두부", "순두부", "우유", "생크림", "치즈", "버터", "요거트", "콩", "콩 통조림"]],
+    ["가공식품", ["햄", "소시지", "참치", "어묵", "맛살", "떡", "만두", "돈가스", "유부", "오징어채", "카레가루", "부침가루", "튀김가루", "빵가루", "감자전분"]],
+    ["밥·면·빵", ["밥", "쌀", "국수", "쌀국수", "칼국수면", "메밀면", "냉면", "우동", "라면", "당면", "파스타", "마카로니", "식빵", "바게트", "햄버거빵", "또띠아", "라이스페이퍼"]],
+    ["소스·양념", ["토마토소스", "춘장", "굴소스", "피시소스", "코코넛밀크", "카레 페이스트", "마라 소스", "쯔유", "땅콩버터", "칠리소스"]],
     ["김치·반찬", ["김치", "깍두기", "단무지"]],
-    ["과일", ["사과", "바나나", "레몬", "배"]],
+    ["과일·견과", ["사과", "배", "바나나", "레몬", "라임", "파인애플", "견과류", "땅콩"]],
   ];
   function renderPicker() {
     $("#pickerBody").innerHTML = SHELVES.map(([title, list]) => `<section><h3>${esc(title)}</h3><div class="chips">${list.map(n => `<button type="button" data-pick="${esc(n)}" aria-pressed="${has(n)}">${esc(n)}</button>`).join("")}</div></section>`).join("");
@@ -644,13 +651,14 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   $("#pickerDone").addEventListener("click", () => $("#picker").close());
 
   /* ===================== options ===================== */
-  const opts = Object.assign({ time: "0", kind: "", serves: "2", model: "claude-opus-5-5" }, lget("fc-opts", {}));
+  const opts = Object.assign({ time: "0", kind: "", cuisine: "", serves: "2", model: "claude-opus-5-5" }, lget("fc-opts", {}));
   function renderOpts() {
     document.querySelectorAll("[data-opt]").forEach(g => g.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === opts[g.dataset.opt]))));
   }
   document.querySelectorAll("[data-opt]").forEach(g => g.addEventListener("click", e => {
     const b = e.target.closest("button[data-v]"); if (!b) return;
     opts[g.dataset.opt] = b.dataset.v; lset("fc-opts", opts); renderOpts(); buzz();
+    if (g.dataset.opt !== "model" && g.dataset.opt !== "serves" && !$("#results").hidden) { shown = 12; renderLocal(); }
   }));
 
   /* ===================== photos ===================== */
@@ -835,9 +843,26 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   // one shape for both: { id, name, cat, time, level, img, kcal, na, ings: [{ name, amount, sec, opt }], steps: [{ t, img }], tips, src }
   const OPT_SEC = /양념|소스|드레싱|고명|토핑|장식|장$|국물/;
   const NOODLE = /국수|면$|면\s|파스타|스파게티|우동|라면|냉면|쫄면|칼국수/;
+  // the 식약처 DB has no cooking style: tell it from the dish name, then from telltale ingredients
+  const STYLE_NAME = [
+    ["중식", /짜장|짬뽕|탕수|마파|깐풍|깐쇼|유린기|팔보|양장피|고추잡채|동파|마라|춘권|딤섬|꿔바로우|라조|유산슬|경장육슬|중국식|중화|멘보샤|칠리새우|크림새우|마늘쫑|어향/],
+    ["일식", /초밥|스시|마키|우동|라멘|소바|돈부리|규동|오야코|가츠|카츠|돈가스|돈까스|데리야|덴뿌라|덴푸라|튀김덮밥|오코노미|타코야끼|미소|가라아게|샤브|스키야키|일본식|일식|낫토|낫또|유부초밥|사케동|오니기리|야키|챠슈|차슈/],
+    ["세계", /팟타이|똠얌|쌀국수|월남쌈|분짜|반미|나시고렝|미고렝|타코|부리또|부리토|퀘사디아|나쵸|나초|케밥|후무스|커리|탄두리|카오팟|팟씨유|사테|락사|포케|로코모코|파에야|샥슈카|난$|또띠아|토르티야|베트남|태국|인도|멕시칸|멕시코|스페인/],
+    ["양식", /파스타|스파게티|리조또|스테이크|샐러드|그라탕|그라탱|피자|샌드위치|수프|스프|오믈렛|토스트|버거|라따뚜이|카프레제|크림|키쉬|브루스케타|머핀|쿠키|케이크|타르트|파이|푸딩|프리타타|폭찹|미트볼|바비큐|폭립|브런치|라자냐|뇨끼|마카로니|카나페|베네딕트|무스|와플|팬케이크|크로켓|커틀릿|감바스|아히요|스무디|요거트|마리네|롤빵|바게트|치아바타|포카치아/],
+  ];
+  // only what Korean home cooking rarely uses (올리브유, 버터, 굴소스, 가쓰오 육수 show up in 한식 too)
+  const STYLE_ING = [["중식", /두반장|춘장|화자오/], ["일식", /와사비|우메보시|쯔유|미림/], ["양식", /바질|로즈마리|오레가노|타임|모차렐라|파르메산|파마산|발사믹|케이퍼/]];
+  function styleOf(name, ings) {
+    for (const [st, re] of STYLE_NAME) if (re.test(name)) return st;
+    // a Korean dish name wins over a western ingredient: 「시금치비트무침」, 「장어구이」
+    if (/(무침|구이|조림|찜|국|탕|전|볶음|나물|김치|겉절이|장아찌|죽|밥|떡|쌈|부침|강정|잡채|냉채|숙채|비빔)$/.test(name.replace(/\s+/g, ""))) return "한식";
+    const all = ings.join(" ");
+    for (const [st, re] of STYLE_ING) if (re.test(all)) return st;
+    return "한식";
+  }
   let RECIPES = window.FRIDGE_RECIPES.map(r => ({ id: "local:" + r.id, name: r.name, cat: r.cat === "간식·안주" ? "간식" : r.cat, time: r.time, level: r.level, src: "builtin",
     ings: [...r.main.map(m => ({ name: m[0], amount: m[1] + (m[2] ? " (있으면)" : ""), opt: !!m[2] })), ...r.sauce.map(x => ({ name: x[0], amount: x[1], sec: "양념", opt: true }))],
-    steps: r.steps.map(t => ({ t })), tips: r.tip ? [r.tip] : [] }));
+    steps: r.steps.map(t => ({ t })), tips: r.tip ? [r.tip] : [], cu: r.cu || "한식" }));
   let dbInfo = null;
   async function loadDB() {
     try {
@@ -849,7 +874,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       for (const r of d.recipes) {
         if (seen.has(clean(r.n))) continue;
         RECIPES.push({ id: r.id, name: r.n, cat: NOODLE.test(r.n) ? "면" : r.k, time: r.steps.length <= 3 ? 15 : r.steps.length <= 5 ? 30 : 45, timeGuess: true, src: "fs",
-          img: r.img, kcal: r.kcal, na: r.na, pro: r.pro, way: r.w,
+          img: r.img, kcal: r.kcal, na: r.na, pro: r.pro, way: r.w, cu: styleOf(r.n, r.ing.map(i => i[0])),
           ings: r.ing.map(([name, amount, sec]) => ({ name, amount, sec, opt: OPT_SEC.test(sec || "") })), steps: r.steps.map(([t, img]) => ({ t, img })), tips: r.tip ? [r.tip] : [] });
       }
       if (!$("#results").hidden) renderLocal();
@@ -859,14 +884,15 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   const strip = n => clean(n).replace(/^(다진|저염|무염|냉동|생|손질한|삶은|데친|볶은|건|말린)/, "");
   function hasLoose(name) {
     if (has(name)) return true;
+    if (/\s또는\s/.test(name)) return name.split(/\s*또는\s*/).some(hasLoose);
     const b = strip(name);
     return items.some(i => { const a = strip(i.name), ca = canon(i.name); return (a.length >= 2 && b.includes(a)) || (b.length >= 2 && a.includes(b)) || (ca.length >= 2 && b.includes(ca)); });
   }
   const mains = r => r.ings.filter(i => !i.opt && !isPantry(i.name));
   function localMatches() {
-    const t = +opts.time, kind = opts.kind, out = [];
+    const t = +opts.time, kind = opts.kind, cu = opts.cuisine, out = [];
     for (const r of RECIPES) {
-      if ((t && r.time > t) || (kind && r.cat !== kind)) continue;
+      if ((t && r.time > t) || (kind && r.cat !== kind) || (cu && r.cu !== cu)) continue;
       const m = mains(r);
       if (!m.length) continue;
       const have = m.filter(i => hasLoose(i.name)).map(i => i.name), missing = m.filter(i => !hasLoose(i.name)).map(i => i.name);
@@ -883,7 +909,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     if (!list.length) { box.innerHTML = `<p class="muted small">담긴 재료로 만들 수 있는 레시피가 아직 없어요. 재료를 더 담거나 종류·시간 조건을 풀어 보세요.</p>`; renderShopping(); return; }
     box.innerHTML = list.slice(0, shown).map((x, i) => `<button class="menu${x.r.img ? " with-img" : ""}" type="button" data-local="${esc(x.r.id)}" style="animation-delay:${Math.min(i, 8) * 40}ms">
       ${x.r.img ? `<img src="${esc(x.r.img)}" alt="" loading="lazy" onerror="this.remove();this.parentNode&&this.parentNode.classList.remove('with-img')">` : ""}
-      <span class="menu-top"><span class="menu-name">${esc(x.r.name)}</span><span class="menu-meta num">${x.r.timeGuess ? esc(x.r.cat) : `${x.r.time}분 · ${esc(x.r.level)}`}</span></span>
+      <span class="menu-top"><span class="menu-name">${esc(x.r.name)}</span><span class="menu-meta num">${esc(x.r.cu)} · ${x.r.timeGuess ? esc(x.r.cat) : `${x.r.time}분 · ${esc(x.r.level)}`}</span></span>
       <span class="have-list">${x.missing.length ? `<span class="miss">${x.missing.map(esc).join(", ")}만 있으면 돼요</span>${subHint(x.missing)} · ` : "<b>지금 바로 만들 수 있어요</b> · "}${x.have.map(esc).join(", ")}</span>
       <span class="have-list">${x.r.src === "fs" ? `<span class="src-badge">식약처 레시피</span>${x.r.kcal ? ` <span class="num">${x.r.kcal}kcal</span>` : ""}` : `<span class="src-badge">기본 집밥</span>`}</span></button>`).join("");
     renderShopping();
@@ -914,7 +940,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
           "소금, 설탕, 간장, 고추장, 된장, 고춧가루, 식용유, 참기름, 다진 마늘, 후추, 깨, 식초 같은 기본 양념은 있다고 봐요. " +
           "더 있어야 하는 재료에는 없을 때 대신 쓸 수 있는 재료를 알려 줘요(가진 재료 중에서 고르면 더 좋아요). " +
           "실제로 널리 알려진 요리(검색하면 믿을 만한 레시피가 나오는 이름)만 고르고, 서로 겹치지 않게 다양하게 골라요. '(짐작)'이 붙은 재료는 없을 수도 있어요.",
-        messages: [{ role: "user", content: `가진 재료: ${names.join(", ")}\n원하는 조건: ${+opts.time ? `${opts.time}분 안에` : "시간 상관없음"}, ${opts.kind || "종류 상관없음"}, ${opts.serves}인분` }],
+        messages: [{ role: "user", content: `가진 재료: ${names.join(", ")}\n원하는 조건: ${opts.cuisine || "한식·중식·일식·양식 상관없음"}, ${+opts.time ? `${opts.time}분 안에` : "시간 상관없음"}, ${opts.kind || "종류 상관없음"}, ${opts.serves}인분` }],
       });
       if (msg.stop_reason === "refusal") throw Object.assign(new Error("refusal"), { refusal: true });
       aiMenus = JSON.parse(textOf(msg)).menus || [];
@@ -985,7 +1011,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
         <p class="eyebrow">${r.src === "fs" ? "식품의약품안전처 레시피" : r.builtin ? "앱에 담긴 기본 집밥" : "출처를 비교해 정리한 레시피"}</p>
         <h2 id="recipeTitle">${esc(r.name)}</h2>
         ${r.intro ? `<p class="muted">${esc(r.intro)}</p>` : ""}
-        <div class="facts">${r.minutes ? `<span class="fact num">${r.minutes}분</span>` : ""}${r.serves ? `<span class="fact num">${r.serves}인분</span>` : ""}${r.level ? `<span class="fact">${esc(r.level)}</span>` : ""}${r.kind && r.src === "fs" ? `<span class="fact">${esc(r.kind)}</span>` : ""}${r.kcal ? `<span class="fact num">1인분 ${r.kcal}kcal</span>` : ""}${r.na ? `<span class="fact num">나트륨 ${r.na}mg</span>` : ""}${r.pro ? `<span class="fact num">단백질 ${r.pro}g</span>` : ""}</div>
+        <div class="facts">${r.cu ? `<span class="fact">${esc(r.cu)}</span>` : ""}${r.minutes ? `<span class="fact num">${r.minutes}분</span>` : ""}${r.serves ? `<span class="fact num">${r.serves}인분</span>` : ""}${r.level ? `<span class="fact">${esc(r.level)}</span>` : ""}${r.kind && r.src === "fs" ? `<span class="fact">${esc(r.kind)}</span>` : ""}${r.kcal ? `<span class="fact num">1인분 ${r.kcal}kcal</span>` : ""}${r.na ? `<span class="fact num">나트륨 ${r.na}mg</span>` : ""}${r.pro ? `<span class="fact num">단백질 ${r.pro}g</span>` : ""}</div>
       </div>
       <div class="card">
         <h3>재료</h3>
@@ -1035,7 +1061,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     const r = RECIPES.find(x => x.id === id);
     if (!r) return;
     renderRecipe({ key: r.id, builtin: true, src: r.src, name: r.name, minutes: r.timeGuess ? null : r.time, level: r.level, serves: r.src === "builtin" ? 2 : null,
-      img: r.img, kcal: r.kcal, na: r.na, pro: r.pro, kind: r.cat,
+      img: r.img, kcal: r.kcal, na: r.na, pro: r.pro, kind: r.cat, cu: r.cu,
       ingredients: r.ings.map(i => ({ name: i.name, amount: (i.amount || "") + (i.sec && r.src === "fs" && i.opt ? ` · ${i.sec}` : ""), opt: i.opt })),
       steps: r.steps.map(x => x.t), stepImgs: r.steps.map(x => x.img || ""), tips: r.tips });
     showSheet();
