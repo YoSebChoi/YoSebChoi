@@ -152,7 +152,11 @@ def main():
         if not key:
             print("FOODSAFETY_KEY is not set: keeping the recipes already in fridge/data/")
             return
-        rows = fetch_all(key)
+        try:
+            rows = fetch_all(key)
+        except Exception as e:   # the API is down now and then: keep what we have, try again next time
+            print(f"::warning::식품안전나라 API를 받지 못했어요 ({e}). 지금 있는 레시피를 그대로 써요.")
+            return
     recipes = convert(rows)
     if len(recipes) < 0.8 * len(rows) or not recipes:
         raise SystemExit(f"only {len(recipes)} of {len(rows)} recipes could be read: not replacing the data")
