@@ -62,14 +62,16 @@ AMOUNT = re.compile(r"^(.*?[가-힣A-Za-z\)])\s*([\d½⅓¼⅔¾][\s\S]*|약간|
 def parse_parts(text, name):
     """「재료 연두부 75g(3/4모), 달걀 30g(1/2개)\n양념 간장 5g(1작은술)」 → [[이름, 분량, 구분]]"""
     out, section = [], ""
-    for line in re.split(r"[\n\r]+", text or ""):
+    text = re.sub(r"<br\s*/?>", "\n", text or "", flags=re.I)
+    text = re.sub(r"\[([가-힣 ]{1,10})\]", r"\n\1: ", text)   # 「적당량[조림장]간장 1g」
+    for line in re.split(r"[\n\r]+", text):
         line = line.strip()
         if not line or line == name:
             continue
         m = SECTION.match(line)
         if m:
             section, line = m.group(1).strip(), line[m.end():]
-        elif "," not in line and not re.search(r"\d", line) and len(line) <= 12:
+        elif "," not in line and not re.search(r"\d", line) and len(line) <= 12 and not AMOUNT.match(line):
             section = line.strip("●•·[]() ")   # a heading line such as 「고명」 or 「양념장」
             continue
         # a section that starts mid-line: 「베이비채소 5 소스: 마요네즈 4」
@@ -88,13 +90,18 @@ def parse_parts(text, name):
             m = re.fullmatch(r"(.+?)\s*\(([\d½⅓¼⅔¾][^()]*|약간|적당량|조금)\)", nm)
             if m and not amt:
                 nm, amt = m.group(1), m.group(2)
+            # 「돼지고기(통삼겹살, 200g)」, 「갈치(70g(1토막))」: whatever has a number in the brackets is the amount
+            m = re.fullmatch(r"([^()]+?)\s*\((.*\d.*)\)\.?", nm)
+            if m and not amt:
+                nm, amt = m.group(1), m.group(2)
+            nm = nm.rstrip(". ")
             # 「대구살 60」: grams without the unit
             if re.fullmatch(r"[\d.]+", amt):
                 amt += "g"
             nm = re.sub(r"^\[[^\]]*\]\s*|^\(?\d+\s*인분\)?\s*(기준)?\s*", "", nm)   # 「[2인분] 밥」
             nm = re.sub(r"^(재료|주재료|부재료|양념|소스|고명)\s+", "", nm).strip()
             if 0 < len(nm) <= 20:
-                out.append([nm, amt.strip(), section if section not in ("재료", "주재료") else ""])
+                out.append([nm, amt.strip(), section if section not in ("재료", "주재료", "필수재료", "기본재료") else ""])
     return out
 
 
