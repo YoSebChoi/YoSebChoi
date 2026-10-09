@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/chef_teal</item>
+        <item name="colorPrimaryDark">@color/chef_ground</item>
+        <item name="colorAccent">@color/chef_teal</item>
+    </style>
+
+    <!-- the app after launch: the page's ground colour behind the web view until it paints -->
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+        <item name="android:windowBackground">@color/chef_ground</item>
+        <item name="android:statusBarColor">@color/chef_ground</item>
+        <item name="android:navigationBarColor">@color/chef_ground</item>
+        <item name="android:windowLightStatusBar">@bool/chef_light_bars</item>
+        <item name="android:windowLightNavigationBar">@bool/chef_light_bars</item>
+    </style>
+
+    <!-- launch: the fridge in its chef's hat on teal; the page's splash opens on this same picture
+         and lets the ingredients hop out, so the two read as one scene -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/chef_teal</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_fridge</item>
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <item name="android:statusBarColor">@color/chef_teal</item>
+        <item name="android:navigationBarColor">@color/chef_teal</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

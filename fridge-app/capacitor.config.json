@@ -1,0 +1,14 @@
+{
+  "appId": "io.github.yosebchoi.fridgechef",
+  "appName": "냉장고 셰프",
+  "webDir": "www",
+  "backgroundColor": "#f7f3ea",
+  "appendUserAgent": "FridgeChefApp",
+  "server": {
+    "url": "https://yosebchoi.github.io/YoSebChoi/fridge/index.html",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
