@@ -72,13 +72,25 @@ def parse_parts(text, name):
         elif "," not in line and not re.search(r"\d", line) and len(line) <= 12:
             section = line.strip("●•·[]() ")   # a heading line such as 「고명」 or 「양념장」
             continue
+        # a section that starts mid-line: 「베이비채소 5 소스: 마요네즈 4」
+        line = re.sub(r"\s+([가-힣]{1,6})\s*[:：]\s*", r", \1: ", line)
         # commas inside parentheses belong to the amount: 「두부 100g(1/3모, 부침용)」
         for item in re.split(r",(?![^()]*\))", line):
             item = item.strip(" ●•·\t")
+            m = SECTION.match(item)
+            if m:
+                section, item = m.group(1).strip(), item[m.end():].strip()
             if not item:
                 continue
             m = AMOUNT.match(item)
             nm, amt = (m.group(1), m.group(2)) if m else (item, "")
+            # 「양파(20g)」: the amount in brackets after the name
+            m = re.fullmatch(r"(.+?)\s*\(([\d½⅓¼⅔¾][^()]*|약간|적당량|조금)\)", nm)
+            if m and not amt:
+                nm, amt = m.group(1), m.group(2)
+            # 「대구살 60」: grams without the unit
+            if re.fullmatch(r"[\d.]+", amt):
+                amt += "g"
             nm = re.sub(r"^\[[^\]]*\]\s*|^\(?\d+\s*인분\)?\s*(기준)?\s*", "", nm)   # 「[2인분] 밥」
             nm = re.sub(r"^(재료|주재료|부재료|양념|소스|고명)\s+", "", nm).strip()
             if 0 < len(nm) <= 20:
@@ -87,7 +99,9 @@ def parse_parts(text, name):
 
 
 def clean_step(s):
-    s = re.sub(r"^\s*\d+\s*[.)]\s*", "", s or "").strip()
+    s = re.sub(r"\s*\n\s*", " ", s or "")   # the DB wraps lines inside a step
+    s = re.sub(r"^\s*\d+\s*[.)]\s*", "", s).strip()
+    s = re.sub(r"\s*\([a-z]\)\s*$", "", s)   # 「…굽는다. (c)」
     return re.sub(r"(?<=[가-힣.)])\s*[a-z]$", "", s).strip()   # the DB ends many steps with a stray letter
 
 

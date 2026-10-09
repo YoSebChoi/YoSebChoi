@@ -45,7 +45,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/fridge fridge/data
+          git add docs/fridge $(ls -d fridge/data 2>/dev/null)
           if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
           git commit -m "fridge: refresh the recipe DB"
           git pull --rebase origin "${GITHUB_REF_NAME}"
