@@ -161,6 +161,15 @@ a { color: var(--accent); }
 .need { border-radius: 14px; padding: 11px 14px; background: var(--tomato-soft); font-size: 14.5px; }
 .need.ok { background: var(--accent-soft); color: var(--ink); }
 .need ul { margin: 4px 0 0; padding-left: 18px; }
+.picker { display: grid; gap: 14px; }
+.picker h3 { font-size: 14.5px; margin-bottom: 6px; color: var(--muted); font-family: var(--font-body); font-weight: 400; }
+.picker .chips button { font: inherit; font-size: 14.5px; border: 1.5px solid var(--rule); background: transparent; color: var(--ink); border-radius: 999px; padding: 5px 12px; min-height: 38px; cursor: pointer; touch-action: manipulation; }
+.picker .chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.menu.with-img { grid-template-columns: 68px minmax(0, 1fr); column-gap: 13px; align-items: start; }
+.menu.with-img > img { grid-row: span 3; width: 68px; height: 68px; border-radius: 14px; object-fit: cover; background: var(--surface-2); }
+.recipe-hero { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 22px; background: var(--surface-2); display: block; }
+.steps li img { grid-column: 2; width: 100%; max-width: 360px; border-radius: 14px; margin-top: 6px; background: var(--surface-2); }
+.src-badge { display: inline-block; font-size: 12px; border-radius: 999px; padding: 1px 9px; background: var(--accent-soft); color: var(--accent); }
 .note { border-radius: 16px; padding: 13px 15px; background: var(--surface-2); font-size: 14.5px; display: grid; gap: 8px; }
 .note.warn { background: var(--tomato-soft); }
 .loading { display: flex; align-items: center; gap: 12px; padding: 14px 4px; color: var(--muted); font-size: 14.5px; }
@@ -341,8 +350,12 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   <section id="panel-cook" aria-label="추천" style="display:grid;grid-template-columns:minmax(0,1fr);gap:18px">
     <div class="card">
       <div class="card-head"><h2><span class="step-no">1</span>재료 담기</h2><button class="btn ghost small" id="clearAll" type="button" hidden>모두 지우기</button></div>
-      <p class="muted small">냉장고 안이나 장 본 재료를 찍거나, 있는 재료를 적어 주세요.</p>
-      <div class="row split">
+      <p class="muted small">냉장고에 있는 재료를 목록에서 고르거나 적어 주세요.</p>
+      <button class="btn" id="pickerBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2.5" width="14" height="19" rx="3"/><path d="M5 9.5h14M16 5v2.5M16 12v4"/></svg>
+        냉장고 열어 재료 고르기
+      </button>
+      <div class="row split" id="photoArea" hidden>
         <label class="btn" id="cameraBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
           사진 찍기
@@ -360,6 +373,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
         <span>사진 속 재료 찾기</span>
       </button>
       <div id="scanStatus" hidden></div>
+      <p class="small muted" id="photoHint">사진을 찍어 재료를 찾는 기능은 설정에서 켤 수 있어요 (선택).</p>
       <form class="add-row" id="addForm" autocomplete="off">
         <label for="addInput" class="visually-hidden">재료 이름</label>
         <input class="field" id="addInput" enterkeyhint="done" placeholder="예: 계란, 양파, 김치…">
@@ -378,7 +392,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       <div class="opt"><span class="opt-label" id="lblKind">종류</span>
         <div class="seg" role="group" aria-labelledby="lblKind" data-opt="kind">
           <button type="button" data-v="">아무거나</button><button type="button" data-v="밥">밥</button><button type="button" data-v="국·찌개">국·찌개</button>
-          <button type="button" data-v="반찬">반찬</button><button type="button" data-v="메인">메인 요리</button><button type="button" data-v="면">면</button><button type="button" data-v="간식·안주">간식·안주</button>
+          <button type="button" data-v="반찬">반찬</button><button type="button" data-v="메인">메인 요리</button><button type="button" data-v="면">면</button><button type="button" data-v="간식">간식</button>
         </div></div>
       <div class="opt"><span class="opt-label" id="lblServe">몇 인분</span>
         <div class="seg" role="group" aria-labelledby="lblServe" data-opt="serves">
@@ -392,10 +406,13 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
 
     <section id="results" hidden style="display:grid;grid-template-columns:minmax(0,1fr);gap:12px" aria-live="polite">
       <div class="card" id="shopping" hidden></div>
-      <div class="section-title"><h2>셰프의 추천</h2><span class="badge">출처를 찾아 정리해요</span></div>
-      <div id="aiMenus" class="menus"></div>
-      <div class="section-title" style="margin-top:6px"><h2>바로 만들 수 있는 집밥</h2><span class="badge">앱에 담긴 기본 레시피</span></div>
+      <div class="section-title"><h2>만들 수 있는 레시피</h2><span class="badge" id="dbBadge"></span></div>
       <div id="localMenus" class="menus"></div>
+      <button class="btn" id="moreBtn" type="button" hidden>더 보기</button>
+      <div id="aiBlock" hidden style="display:grid;gap:12px">
+        <div class="section-title" style="margin-top:6px"><h2>AI 셰프의 추천</h2><span class="badge">웹에서 출처를 찾아 정리해요</span></div>
+        <div id="aiMenus" class="menus"></div>
+      </div>
     </section>
   </section>
 
@@ -436,11 +453,21 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   <div class="recipe" id="recipe"></div>
 </div>
 
+<!-- ingredient picker -->
+<dialog id="picker" aria-labelledby="pickerTitle">
+  <div class="dlg">
+    <div class="card-head"><h2 id="pickerTitle">냉장고에 뭐가 있나요?</h2><span class="small muted" id="pickerCount"></span></div>
+    <p class="small muted">있는 재료를 눌러 담아요. 다시 누르면 빠져요.</p>
+    <div id="pickerBody" class="picker"></div>
+    <div class="actions"><button class="btn primary" type="button" id="pickerDone">다 골랐어요</button></div>
+  </div>
+</dialog>
+
 <!-- settings -->
 <dialog id="settings" aria-labelledby="settingsTitle">
   <form class="dlg" method="dialog" id="settingsForm">
-    <h2 id="settingsTitle">AI 셰프 설정</h2>
-    <p class="small">사진 속 재료 찾기, 메뉴 추천, 출처 있는 레시피 찾기는 Anthropic의 Claude를 써요. 내 API 키를 한 번 넣어 두면 돼요. 키 없이도 직접 적은 재료로 앱에 담긴 기본 레시피는 볼 수 있어요.</p>
+    <h2 id="settingsTitle">AI 기능 (선택)</h2>
+    <p class="small">레시피 추천은 키 없이 앱에 담긴 레시피 DB로 돼요. 여기에 Anthropic API 키를 넣으면 <b>사진으로 재료 찾기</b>, <b>AI 셰프의 메뉴 추천</b>, <b>웹에서 출처 있는 레시피 찾기</b>가 더해져요. 안 넣어도 괜찮아요.</p>
     <label>API 키
       <input class="field" id="keyInput" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
     </label>
@@ -592,6 +619,30 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     items = []; photos = []; lset("fc-items", items); renderPhotos(); renderChips(); $("#results").hidden = true; $("#scanStatus").hidden = true;
   });
 
+  /* ===================== the fridge, shelf by shelf (no typing needed) ===================== */
+  const SHELVES = [
+    ["채소", ["양파", "대파", "마늘", "감자", "고구마", "당근", "애호박", "호박", "오이", "가지", "무", "배추", "양배추", "상추", "깻잎", "시금치", "콩나물", "숙주", "부추", "브로콜리", "파프리카", "토마토", "청양고추", "버섯", "생강"]],
+    ["고기·해산물", ["돼지고기", "소고기", "닭고기", "다진 고기", "베이컨", "새우", "오징어", "고등어", "연어", "조개", "멸치", "미역", "김"]],
+    ["달걀·유제품·콩", ["계란", "두부", "순두부", "우유", "치즈", "버터", "요거트", "콩"]],
+    ["가공식품", ["햄", "소시지", "참치", "어묵", "맛살", "떡", "만두", "라면", "카레가루", "부침가루"]],
+    ["밥·면", ["밥", "쌀", "국수", "파스타", "우동", "당면", "식빵"]],
+    ["김치·반찬", ["김치", "깍두기", "단무지"]],
+    ["과일", ["사과", "바나나", "레몬", "배"]],
+  ];
+  function renderPicker() {
+    $("#pickerBody").innerHTML = SHELVES.map(([title, list]) => `<section><h3>${esc(title)}</h3><div class="chips">${list.map(n => `<button type="button" data-pick="${esc(n)}" aria-pressed="${has(n)}">${esc(n)}</button>`).join("")}</div></section>`).join("");
+    $("#pickerCount").textContent = items.length ? `${items.length}가지 담았어요` : "";
+  }
+  $("#pickerBtn").addEventListener("click", () => { renderPicker(); $("#picker").showModal(); });
+  $("#pickerBody").addEventListener("click", e => {
+    const b = e.target.closest("[data-pick]"); if (!b) return;
+    const n = b.dataset.pick, k = canon(n), i = items.findIndex(x => canon(x.name) === k);
+    if (i >= 0) items.splice(i, 1); else items.push({ name: n, from: "picked", sure: true });
+    lset("fc-items", items); renderChips(); buzz();
+    b.setAttribute("aria-pressed", String(i < 0)); $("#pickerCount").textContent = items.length ? `${items.length}가지 담았어요` : "";
+  });
+  $("#pickerDone").addEventListener("click", () => $("#picker").close());
+
   /* ===================== options ===================== */
   const opts = Object.assign({ time: "0", kind: "", serves: "2", model: "claude-opus-5-5" }, lget("fc-opts", {}));
   function renderOpts() {
@@ -705,7 +756,6 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   }
   const textOf = msg => (msg.content || []).filter(b => b.type === "text").map(b => b.text).join("");
   function needKey(where) {
-    if (where.id === "aiMenus") setTimeout(renderShopping);
     where.innerHTML = `<div class="note"><p>AI 셰프를 쓰려면 Anthropic API 키가 필요해요. 키는 이 폰에만 저장돼요.</p><p><button class="btn primary" type="button" data-open-settings>키 넣으러 가기</button></p></div>`;
   }
   document.addEventListener("click", e => { if (e.target.closest("[data-open-settings]")) openSettings(); });
@@ -752,7 +802,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   };
   const subsFor = name => SUBS[canon(name)] || [];
   // " (대파로 대신)" when a swap is already in the fridge, nothing otherwise
-  const subOnHand = name => subsFor(name).find(s => has(s));
+  const subOnHand = name => subsFor(name).find(s => hasLoose(s));
   const subHint = names => { const h = names.map(n => [n, subOnHand(n)]).filter(x => x[1]); return h.length ? ` <span class="sub">${h.map(([n, s]) => `${esc(n)} 대신 ${esc(s)}도 돼요`).join(", ")}</span>` : ""; };
   const missName = m => typeof m === "string" ? m : m.name;
 
@@ -767,8 +817,8 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       if (!w.menus.includes(menu)) w.menus.push(menu);
       if (extra && !w.extra) w.extra = extra;
     };
-    for (const x of localMatches()) { if (!x.missing.length) now.push(x.r.name); else x.missing.forEach(n => add(n, x.r.name)); }
-    for (const m of aiMenus) { const miss = (m.missing || []).filter(n => !has(missName(n))); if (!miss.length) { if (!now.includes(m.name)) now.push(m.name); } else miss.forEach(n => add(missName(n), m.name, n.substitute || "")); }
+    for (const x of localMatches().slice(0, 60)) { if (!x.missing.length) now.push(x.r.name); else x.missing.forEach(n => add(n, x.r.name)); }
+    for (const m of aiMenus) { const miss = (m.missing || []).filter(n => !hasLoose(missName(n))); if (!miss.length) { if (!now.includes(m.name)) now.push(m.name); } else miss.forEach(n => add(missName(n), m.name, n.substitute || "")); }
     // a dish that can already be made needs nothing more, even if another version of it asks for more
     for (const w of want.values()) w.menus = w.menus.filter(m => !now.includes(m));
     const top = [...want.values()].filter(w => w.menus.length).sort((a, b) => b.menus.length - a.menus.length).slice(0, 5);
@@ -781,25 +831,64 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     if (sh) sh.addEventListener("click", () => shareText("장보기 목록", ["장보기 목록", ...top.map(w => `- ${w.name} (${w.menus.slice(0, 3).join(", ")})`), "", "냉장고 셰프에서 보냈어요"].join("\n")));
   }
 
-  /* ===================== recommend ===================== */
-  function localMatches() {
-    const t = +opts.time, kind = opts.kind;
-    return window.FRIDGE_RECIPES.map(r => {
-      const need = r.main.filter(m => !m[2]);
-      const haveNeed = need.filter(m => has(m[0]));
-      const haveOpt = r.main.filter(m => m[2] && has(m[0]));
-      return { r, missing: need.filter(m => !has(m[0])).map(m => m[0]), have: [...haveNeed, ...haveOpt].map(m => m[0]), score: haveNeed.length / need.length + haveOpt.length * 0.05 };
-    }).filter(x => x.have.length && x.missing.length <= 2 && x.missing.length < x.have.length + 1 && (!t || x.r.time <= t) && (!kind || x.r.cat === kind))
-      .sort((a, b) => a.missing.length - b.missing.length || b.score - a.score).slice(0, 8);
+  /* ===================== recipes: the 식약처 DB plus the built-in home dishes ===================== */
+  // one shape for both: { id, name, cat, time, level, img, kcal, na, ings: [{ name, amount, sec, opt }], steps: [{ t, img }], tips, src }
+  const OPT_SEC = /양념|소스|드레싱|고명|토핑|장식|장$|국물/;
+  const NOODLE = /국수|면$|면\s|파스타|스파게티|우동|라면|냉면|쫄면|칼국수/;
+  let RECIPES = window.FRIDGE_RECIPES.map(r => ({ id: "local:" + r.id, name: r.name, cat: r.cat === "간식·안주" ? "간식" : r.cat, time: r.time, level: r.level, src: "builtin",
+    ings: [...r.main.map(m => ({ name: m[0], amount: m[1] + (m[2] ? " (있으면)" : ""), opt: !!m[2] })), ...r.sauce.map(x => ({ name: x[0], amount: x[1], sec: "양념", opt: true }))],
+    steps: r.steps.map(t => ({ t })), tips: r.tip ? [r.tip] : [] }));
+  let dbInfo = null;
+  async function loadDB() {
+    try {
+      const res = await fetch("recipes-db.json", { cache: "no-cache" });
+      if (!res.ok) return;
+      const d = await res.json();
+      dbInfo = { source: d.source, updated: d.updated, count: d.recipes.length };
+      const seen = new Set(RECIPES.map(r => clean(r.name)));
+      for (const r of d.recipes) {
+        if (seen.has(clean(r.n))) continue;
+        RECIPES.push({ id: r.id, name: r.n, cat: NOODLE.test(r.n) ? "면" : r.k, time: r.steps.length <= 3 ? 15 : r.steps.length <= 5 ? 30 : 45, timeGuess: true, src: "fs",
+          img: r.img, kcal: r.kcal, na: r.na, pro: r.pro, way: r.w,
+          ings: r.ing.map(([name, amount, sec]) => ({ name, amount, sec, opt: OPT_SEC.test(sec || "") })), steps: r.steps.map(([t, img]) => ({ t, img })), tips: r.tip ? [r.tip] : [] });
+      }
+      if (!$("#results").hidden) renderLocal();
+    } catch (e) { /* offline the first time: the built-in recipes still work */ }
   }
+  // 「칵테일새우」 counts as 새우 and 「다진 돼지고기」 as 돼지고기
+  const strip = n => clean(n).replace(/^(다진|저염|무염|냉동|생|손질한|삶은|데친|볶은|건|말린)/, "");
+  function hasLoose(name) {
+    if (has(name)) return true;
+    const b = strip(name);
+    return items.some(i => { const a = strip(i.name), ca = canon(i.name); return (a.length >= 2 && b.includes(a)) || (b.length >= 2 && a.includes(b)) || (ca.length >= 2 && b.includes(ca)); });
+  }
+  const mains = r => r.ings.filter(i => !i.opt && !isPantry(i.name));
+  function localMatches() {
+    const t = +opts.time, kind = opts.kind, out = [];
+    for (const r of RECIPES) {
+      if ((t && r.time > t) || (kind && r.cat !== kind)) continue;
+      const m = mains(r);
+      if (!m.length) continue;
+      const have = m.filter(i => hasLoose(i.name)).map(i => i.name), missing = m.filter(i => !hasLoose(i.name)).map(i => i.name);
+      if (!have.length || missing.length > 2 || have.length < missing.length) continue;
+      out.push({ r, have, missing, score: have.length / m.length + (r.src === "builtin" ? 0.05 : 0) });
+    }
+    return out.sort((a, b) => a.missing.length - b.missing.length || b.score - a.score || b.have.length - a.have.length);
+  }
+  let shown = 12;
   function renderLocal() {
     const list = localMatches(), box = $("#localMenus");
-    if (!list.length) { box.innerHTML = `<p class="muted small">담긴 재료로 만들 수 있는 기본 레시피가 아직 없어요. 재료를 더 담아 보세요.</p>`; return; }
-    box.innerHTML = list.map((x, i) => `<button class="menu" type="button" data-local="${x.r.id}" style="animation-delay:${i * 40}ms">
-      <span class="menu-top"><span class="menu-name">${esc(x.r.name)}</span><span class="menu-meta num">${x.r.time}분 · ${esc(x.r.level)}</span></span>
-      <span class="have-list">${x.missing.length ? `<span class="miss">${x.missing.map(esc).join(", ")}만 있으면 돼요</span>${subHint(x.missing)} · ` : "<b>지금 바로 만들 수 있어요</b> · "}${x.have.map(esc).join(", ")}</span></button>`).join("");
+    $("#dbBadge").textContent = `${RECIPES.length.toLocaleString()}가지 레시피 중 ${list.length.toLocaleString()}가지`;
+    $("#moreBtn").hidden = list.length <= shown;
+    if (!list.length) { box.innerHTML = `<p class="muted small">담긴 재료로 만들 수 있는 레시피가 아직 없어요. 재료를 더 담거나 종류·시간 조건을 풀어 보세요.</p>`; renderShopping(); return; }
+    box.innerHTML = list.slice(0, shown).map((x, i) => `<button class="menu${x.r.img ? " with-img" : ""}" type="button" data-local="${esc(x.r.id)}" style="animation-delay:${Math.min(i, 8) * 40}ms">
+      ${x.r.img ? `<img src="${esc(x.r.img)}" alt="" loading="lazy" onerror="this.remove();this.parentNode&&this.parentNode.classList.remove('with-img')">` : ""}
+      <span class="menu-top"><span class="menu-name">${esc(x.r.name)}</span><span class="menu-meta num">${x.r.timeGuess ? esc(x.r.cat) : `${x.r.time}분 · ${esc(x.r.level)}`}</span></span>
+      <span class="have-list">${x.missing.length ? `<span class="miss">${x.missing.map(esc).join(", ")}만 있으면 돼요</span>${subHint(x.missing)} · ` : "<b>지금 바로 만들 수 있어요</b> · "}${x.have.map(esc).join(", ")}</span>
+      <span class="have-list">${x.r.src === "fs" ? `<span class="src-badge">식약처 레시피</span>${x.r.kcal ? ` <span class="num">${x.r.kcal}kcal</span>` : ""}` : `<span class="src-badge">기본 집밥</span>`}</span></button>`).join("");
     renderShopping();
   }
+  $("#moreBtn").addEventListener("click", () => { shown += 12; renderLocal(); });
   $("#localMenus").addEventListener("click", e => { const b = e.target.closest("[data-local]"); if (b) openLocal(b.dataset.local); });
 
   const MENU_SCHEMA = { type: "object", additionalProperties: false, required: ["menus"], properties: {
@@ -810,7 +899,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       uses: { type: "array", items: { type: "string" }, description: "가진 재료 중 쓰는 것" },
       missing: { type: "array", description: "더 있어야 하는 재료 (기본 양념 제외)", items: { type: "object", additionalProperties: false, required: ["name", "substitute"], properties: {
         name: { type: "string" }, substitute: { type: "string", description: "없을 때 대신 쓸 수 있는 재료, 가진 재료 중에서 고르면 더 좋아요. 마땅한 게 없으면 빈 문자열" } } } },
-      kind: { type: "string", enum: ["밥", "국·찌개", "반찬", "메인", "면", "간식·안주", "기타"] } } } } } };
+      kind: { type: "string", enum: ["밥", "국·찌개", "반찬", "메인", "면", "간식", "기타"] } } } } } };
   let aiMenus = [];
   async function recommendAI() {
     const box = $("#aiMenus");
@@ -856,7 +945,9 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     if (!items.length) { toast(photos.length ? "먼저 「사진 속 재료 찾기」를 눌러 주세요." : "재료를 하나 이상 담아 주세요."); $("#addInput").focus(); return; }
     buzz("MEDIUM");
     $("#results").hidden = false;
-    renderLocal(); recommendAI();
+    shown = 12; renderLocal();
+    $("#aiBlock").hidden = !apiKey;
+    if (apiKey) recommendAI();
     setTimeout(() => $("#results").scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   });
 
@@ -867,11 +958,11 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   const keyOf = (name, serves) => `${clean(name)}|${serves}`;
   const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return ""; } };
 
-  const optional = i => /있으면|선택|생략/.test(i.amount || "");
-  const lacking = r => r.ingredients.filter(i => !has(i.name) && !isPantry(i.name) && !optional(i));
+  const optional = i => i.opt || /있으면|선택|생략/.test(i.amount || "");
+  const lacking = r => r.ingredients.filter(i => !hasLoose(i.name) && !isPantry(i.name) && !optional(i));
   function swapOf(i) { const own = subOnHand(i.name); return own ? `갖고 있는 ${own}로 대신해도 돼요` : i.substitute ? `없으면 ${i.substitute}` : subsFor(i.name).length ? `없으면 ${subsFor(i.name).join(" 또는 ")}` : ""; }
   function ingRow(i) {
-    const miss = !has(i.name) && !isPantry(i.name), cls = has(i.name) ? "" : isPantry(i.name) ? " pantry" : " miss", sw = miss ? swapOf(i) : "";
+    const own = hasLoose(i.name), miss = !own && !isPantry(i.name) && !optional(i), cls = own ? "" : miss ? " miss" : " pantry", sw = miss ? swapOf(i) : "";
     return `<li><span><span class="mark${cls}"></span>${esc(i.name)}${sw ? `<br><span class="sub">${esc(sw)}</span>` : ""}</span><span class="amt">${esc(i.amount || "")}</span></li>`;
   }
   function needBox(r) {
@@ -890,10 +981,11 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       : "";
     $("#recipe").innerHTML = `
       <div class="recipe-head">
-        <p class="eyebrow">${r.builtin ? "앱에 담긴 기본 레시피" : "출처를 비교해 정리한 레시피"}</p>
+        ${r.img ? `<img class="recipe-hero" src="${esc(r.img)}" alt="${esc(r.name)} 완성 사진" onerror="this.remove()">` : ""}
+        <p class="eyebrow">${r.src === "fs" ? "식품의약품안전처 레시피" : r.builtin ? "앱에 담긴 기본 집밥" : "출처를 비교해 정리한 레시피"}</p>
         <h2 id="recipeTitle">${esc(r.name)}</h2>
         ${r.intro ? `<p class="muted">${esc(r.intro)}</p>` : ""}
-        <div class="facts">${r.minutes ? `<span class="fact num">${r.minutes}분</span>` : ""}${r.serves ? `<span class="fact num">${r.serves}인분</span>` : ""}${r.level ? `<span class="fact">${esc(r.level)}</span>` : ""}</div>
+        <div class="facts">${r.minutes ? `<span class="fact num">${r.minutes}분</span>` : ""}${r.serves ? `<span class="fact num">${r.serves}인분</span>` : ""}${r.level ? `<span class="fact">${esc(r.level)}</span>` : ""}${r.kind && r.src === "fs" ? `<span class="fact">${esc(r.kind)}</span>` : ""}${r.kcal ? `<span class="fact num">1인분 ${r.kcal}kcal</span>` : ""}${r.na ? `<span class="fact num">나트륨 ${r.na}mg</span>` : ""}${r.pro ? `<span class="fact num">단백질 ${r.pro}g</span>` : ""}</div>
       </div>
       <div class="card">
         <h3>재료</h3>
@@ -903,15 +995,19 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       </div>
       <div class="card">
         <div class="card-head"><h3>만드는 법</h3><span class="small muted">끝낸 단계는 눌러서 표시해요</span></div>
-        <ol class="steps" id="steps">${r.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>
+        <ol class="steps" id="steps">${r.steps.map((s, i) => `<li><span>${esc(s)}</span>${r.stepImgs && r.stepImgs[i] ? `<img src="${esc(r.stepImgs[i])}" alt="" loading="lazy" onerror="this.remove()">` : ""}</li>`).join("")}</ol>
       </div>
       ${r.tips && r.tips.length ? `<div class="card"><h3>셰프의 팁</h3><ul class="tips">${r.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
       <div class="card">
         <h3>출처</h3>
-        ${r.builtin
+        ${r.src === "fs"
+          ? `<p class="small">식품의약품안전처 식품안전나라 「조리식품의 레시피 DB」</p>
+             <p class="small muted">나트륨을 줄인 건강 레시피 위주로 정부가 공개한 자료예요. 공공누리 제1유형으로 출처를 밝히고 써요.</p>
+             <div class="row"><a class="btn" href="https://www.foodsafetykorea.go.kr/" target="_blank" rel="noopener">식품안전나라</a>${apiKey ? `<button class="btn" type="button" id="findSourced">다른 레시피도 찾기 (AI)</button>` : ""}</div>`
+          : r.builtin
           ? `<p class="small muted">널리 쓰이는 가정식 비율로 정리한 레시피예요. 다른 사람들의 레시피와 후기도 함께 보세요.</p>
              <div class="row"><a class="btn" href="https://www.10000recipe.com/recipe/list.html?q=${encodeURIComponent(r.name)}" target="_blank" rel="noopener">만개의레시피에서 보기</a>
-             <button class="btn primary" type="button" id="findSourced">출처 있는 레시피 찾기</button></div>`
+             ${apiKey ? `<button class="btn primary" type="button" id="findSourced">출처 있는 레시피 찾기 (AI)</button>` : ""}</div>`
           : `<p class="small muted">아래 레시피들을 비교해 공통된 재료 비율과 순서로 정리했어요. 정확한 내용은 원문에서 확인해 주세요.</p>${src}`}
       </div>
       <label class="switch card" style="display:flex"><span>요리하는 동안 화면 켜 두기</span><input type="checkbox" id="awake" ${lget("fc-awake", true) ? "checked" : ""}></label>
@@ -921,6 +1017,9 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     if (lget("fc-awake", true)) keepAwake();
   }
   $("#recipe").addEventListener("click", e => { const li = e.target.closest("#steps li"); if (li) { li.classList.toggle("done"); buzz(); } });
+  const stepCss = document.createElement("style");
+  stepCss.textContent = ".steps li > span { min-width: 0; }";
+  document.head.appendChild(stepCss);
 
   function showSheet() {
     const s = $("#sheet");
@@ -933,11 +1032,12 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   $("#sheetClose").addEventListener("click", closeSheet);
 
   function openLocal(id) {
-    const r = window.FRIDGE_RECIPES.find(x => x.id === id);
+    const r = RECIPES.find(x => x.id === id);
     if (!r) return;
-    renderRecipe({ key: "local:" + r.id, builtin: true, name: r.name, minutes: r.time, level: r.level, serves: 2,
-      ingredients: [...r.main.map(m => ({ name: m[0], amount: m[1] + (m[2] ? " (있으면)" : "") })), ...r.sauce.map(s => ({ name: s[0], amount: s[1] }))],
-      steps: r.steps, tips: r.tip ? [r.tip] : [] });
+    renderRecipe({ key: r.id, builtin: true, src: r.src, name: r.name, minutes: r.timeGuess ? null : r.time, level: r.level, serves: r.src === "builtin" ? 2 : null,
+      img: r.img, kcal: r.kcal, na: r.na, pro: r.pro, kind: r.cat,
+      ingredients: r.ings.map(i => ({ name: i.name, amount: (i.amount || "") + (i.sec && r.src === "fs" && i.opt ? ` · ${i.sec}` : ""), opt: i.opt })),
+      steps: r.steps.map(x => x.t), stepImgs: r.steps.map(x => x.img || ""), tips: r.tips });
     showSheet();
   }
 
@@ -1077,11 +1177,16 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     renderOpts(); $("#settings").showModal();
   }
   $("#settingsBtn").addEventListener("click", openSettings);
+  function renderAIParts() {
+    $("#photoArea").hidden = !apiKey; $("#photoHint").hidden = !!apiKey;
+    if (!apiKey) { photos = []; renderPhotos(); }
+  }
   $("#keySave").addEventListener("click", () => {
-    apiKey = $("#keyInput").value.trim(); lset("fc-key", apiKey || null);
-    if (apiKey) toast("키를 저장했어요. 이제 AI 셰프를 쓸 수 있어요.");
+    apiKey = $("#keyInput").value.trim(); lset("fc-key", apiKey || null); renderAIParts();
+    if (apiKey) toast("키를 저장했어요. 사진으로 재료 찾기와 AI 셰프를 쓸 수 있어요.");
   });
-  $("#keyRemove").addEventListener("click", () => { $("#keyInput").value = ""; apiKey = ""; lset("fc-key", null); $("#keyStatus").textContent = "키를 지웠어요."; });
+  $("#keyRemove").addEventListener("click", () => { $("#keyInput").value = ""; apiKey = ""; lset("fc-key", null); $("#keyStatus").textContent = "키를 지웠어요."; renderAIParts(); });
+  $("#photoHint").addEventListener("click", openSettings);
   $("#keyTest").addEventListener("click", async () => {
     const k = $("#keyInput").value.trim(), st = $("#keyStatus");
     if (!k) { st.textContent = "키를 먼저 붙여 넣어 주세요."; return; }
@@ -1165,15 +1270,16 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     const meal = h < 10 ? "아침" : h < 15 ? "점심" : h < 21 ? "저녁" : "야식";
     $("#today").textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 ${"일월화수목금토"[d.getDay()]}요일 · 오늘 ${meal} 뭐 먹지?`;
   })();
-  renderOpts(); renderChips(); renderPhotos(); renderSaved();
+  renderOpts(); renderChips(); renderPhotos(); renderSaved(); renderAIParts();
+  loadDB();
   const last = lget("fc-last-menus", null);
   // the last recommendation stays for a day, if the ingredients have not changed since
   if (last && Date.now() - last.at < 864e5 && last.items.join() === items.map(i => i.name).join() && last.menus.length) {
-    aiMenus = last.menus; $("#results").hidden = false; renderAI(); renderLocal();
+    aiMenus = last.menus; $("#results").hidden = false; $("#aiBlock").hidden = !apiKey; renderAI(); renderLocal();
   }
-  $("#versionLine").textContent = "화면 버전 c33fcef6";
-  $("#aboutVersion").textContent = "화면 버전 c33fcef6";
-  if (native) ncall("App", "getInfo").then(i => { if (i && i.version) { $("#aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 c33fcef6`; } }).catch(() => {});
+  $("#versionLine").textContent = "화면 버전 d99e00e0";
+  $("#aboutVersion").textContent = "화면 버전 d99e00e0";
+  if (native) ncall("App", "getInfo").then(i => { if (i && i.version) { $("#aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 d99e00e0`; } }).catch(() => {});
   setTimeout(checkAppUpdate, 2600);   // after the splash
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 })();

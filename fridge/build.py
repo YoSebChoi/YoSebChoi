@@ -69,14 +69,21 @@ def main():
         page = page.replace(f'href="{name}"', f'href="{hashed}"')
     manifest_text = json.dumps(manifest, ensure_ascii=False, indent=2)
     sdk = (SRC / "vendor/anthropic-sdk.mjs").read_text(encoding="utf-8")
-    version = hashlib.sha256((page + recipes + sdk + SW + manifest_text).encode()).hexdigest()[:8]
+    # the 식약처 recipe DB (fridge/fetch_recipes.py); without it the app has its built-in recipes only
+    db_src = SRC / "data/foodsafety.json"
+    db = db_src.read_text(encoding="utf-8") if db_src.exists() else ""
+    if db:
+        (OUT / "recipes-db.json").write_text(db, encoding="utf-8")
+    elif (OUT / "recipes-db.json").exists():
+        (OUT / "recipes-db.json").unlink()
+    version = hashlib.sha256((page + recipes + sdk + db + SW + manifest_text).encode()).hexdigest()[:8]
     (OUT / "index.html").write_text(page.replace("__VERSION__", version), encoding="utf-8")
     (OUT / "recipes.js").write_text(recipes, encoding="utf-8")
     (OUT / "vendor").mkdir(exist_ok=True)
     shutil.copyfile(SRC / "vendor/anthropic-sdk.mjs", OUT / "vendor/anthropic-sdk.mjs")
     (OUT / "sw.js").write_text(SW.replace("__VERSION__", version), encoding="utf-8")
     (OUT / "manifest.webmanifest").write_text(manifest_text, encoding="utf-8")
-    print(f"built {version}")
+    print(f"built {version}" + (f" with {len(json.loads(db)['recipes'])} 식약처 recipes" if db else " (no 식약처 recipe DB yet)"))
 
 
 if __name__ == "__main__":
