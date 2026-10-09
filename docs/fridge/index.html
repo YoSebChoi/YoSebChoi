@@ -1277,9 +1277,9 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   if (last && Date.now() - last.at < 864e5 && last.items.join() === items.map(i => i.name).join() && last.menus.length) {
     aiMenus = last.menus; $("#results").hidden = false; $("#aiBlock").hidden = !apiKey; renderAI(); renderLocal();
   }
-  $("#versionLine").textContent = "화면 버전 f16be9bc";
-  $("#aboutVersion").textContent = "화면 버전 f16be9bc";
-  if (native) ncall("App", "getInfo").then(i => { if (i && i.version) { $("#aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 f16be9bc`; } }).catch(() => {});
+  $("#versionLine").textContent = "화면 버전 f9960311";
+  $("#aboutVersion").textContent = "화면 버전 f9960311";
+  if (native) ncall("App", "getInfo").then(i => { if (i && i.version) { $("#aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 f9960311`; } }).catch(() => {});
   setTimeout(checkAppUpdate, 2600);   // after the splash
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 })();
