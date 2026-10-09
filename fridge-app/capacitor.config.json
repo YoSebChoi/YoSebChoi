@@ -10,5 +10,11 @@
   },
   "android": {
     "allowMixedContent": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_fridge",
+      "iconColor": "#1F6F62"
+    }
   }
 }
