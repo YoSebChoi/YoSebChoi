@@ -151,6 +151,16 @@ a { color: var(--accent); }
 .have-list b { color: var(--accent); font-weight: 400; }
 .have-list .miss { color: var(--tomato); }
 @keyframes rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sub { color: var(--muted); font-size: 12.5px; }
+.have-list .sub { font-size: 12.5px; }
+.ok { color: var(--accent); }
+.shop { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.shop li { display: grid; grid-template-columns: minmax(64px, auto) 1fr; gap: 12px; padding: 9px 0; border-top: 1px dashed var(--rule); font-size: 14.5px; }
+.shop-name { font-weight: 700; color: var(--tomato); }
+.shop-what { color: var(--ink); }
+.need { border-radius: 14px; padding: 11px 14px; background: var(--tomato-soft); font-size: 14.5px; }
+.need.ok { background: var(--accent-soft); color: var(--ink); }
+.need ul { margin: 4px 0 0; padding-left: 18px; }
 .note { border-radius: 16px; padding: 13px 15px; background: var(--surface-2); font-size: 14.5px; display: grid; gap: 8px; }
 .note.warn { background: var(--tomato-soft); }
 .loading { display: flex; align-items: center; gap: 12px; padding: 14px 4px; color: var(--muted); font-size: 14.5px; }
@@ -381,6 +391,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     </div>
 
     <section id="results" hidden style="display:grid;grid-template-columns:minmax(0,1fr);gap:12px" aria-live="polite">
+      <div class="card" id="shopping" hidden></div>
       <div class="section-title"><h2>셰프의 추천</h2><span class="badge">출처를 찾아 정리해요</span></div>
       <div id="aiMenus" class="menus"></div>
       <div class="section-title" style="margin-top:6px"><h2>바로 만들 수 있는 집밥</h2><span class="badge">앱에 담긴 기본 레시피</span></div>
@@ -694,6 +705,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   }
   const textOf = msg => (msg.content || []).filter(b => b.type === "text").map(b => b.text).join("");
   function needKey(where) {
+    if (where.id === "aiMenus") setTimeout(renderShopping);
     where.innerHTML = `<div class="note"><p>AI 셰프를 쓰려면 Anthropic API 키가 필요해요. 키는 이 폰에만 저장돼요.</p><p><button class="btn primary" type="button" data-open-settings>키 넣으러 가기</button></p></div>`;
   }
   document.addEventListener("click", e => { if (e.target.closest("[data-open-settings]")) openSettings(); });
@@ -730,6 +742,45 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     } finally { btn.disabled = false; }
   });
 
+  /* ===================== what is missing, and what can stand in for it ===================== */
+  // everyday swaps in Korean home cooking; when one of them is already on hand the app says so
+  const SUBS = {
+    "양파": ["대파"], "대파": ["쪽파", "양파"], "돼지고기": ["햄", "참치", "소시지"], "소고기": ["돼지고기"], "닭고기": ["돼지고기"],
+    "두부": ["순두부", "계란"], "순두부": ["두부"], "애호박": ["감자", "양파"], "감자": ["고구마"], "당근": ["파프리카"], "파프리카": ["피망", "당근"],
+    "청양고추": ["고춧가루 약간"], "버섯": ["애호박"], "어묵": ["햄", "소시지"], "햄": ["소시지", "참치"], "소시지": ["햄"], "참치": ["햄"],
+    "콩나물": ["숙주"], "부침가루": ["밀가루와 소금 약간"], "양배추": ["배추"], "마늘": ["다진 마늘"], "토마토": ["방울토마토"], "라면사리": ["떡", "당면"],
+  };
+  const subsFor = name => SUBS[canon(name)] || [];
+  // " (대파로 대신)" when a swap is already in the fridge, nothing otherwise
+  const subOnHand = name => subsFor(name).find(s => has(s));
+  const subHint = names => { const h = names.map(n => [n, subOnHand(n)]).filter(x => x[1]); return h.length ? ` <span class="sub">${h.map(([n, s]) => `${esc(n)} 대신 ${esc(s)}도 돼요`).join(", ")}</span>` : ""; };
+  const missName = m => typeof m === "string" ? m : m.name;
+
+  // 「이것만 있으면 돼요」: which one or two things to buy would open up the most menus
+  function renderShopping() {
+    const box = $("#shopping"), want = new Map(), now = [];
+    const add = (name, menu, extra) => {
+      if (isPantry(name)) return;
+      const k = canon(name);
+      if (!want.has(k)) want.set(k, { name, menus: [], sub: subOnHand(name), extra: "" });
+      const w = want.get(k);
+      if (!w.menus.includes(menu)) w.menus.push(menu);
+      if (extra && !w.extra) w.extra = extra;
+    };
+    for (const x of localMatches()) { if (!x.missing.length) now.push(x.r.name); else x.missing.forEach(n => add(n, x.r.name)); }
+    for (const m of aiMenus) { const miss = (m.missing || []).filter(n => !has(missName(n))); if (!miss.length) { if (!now.includes(m.name)) now.push(m.name); } else miss.forEach(n => add(missName(n), m.name, n.substitute || "")); }
+    // a dish that can already be made needs nothing more, even if another version of it asks for more
+    for (const w of want.values()) w.menus = w.menus.filter(m => !now.includes(m));
+    const top = [...want.values()].filter(w => w.menus.length).sort((a, b) => b.menus.length - a.menus.length).slice(0, 5);
+    if (!top.length && !now.length) { box.hidden = true; return; }
+    box.hidden = false;
+    box.innerHTML = `<div class="card-head"><h3>이것만 있으면 돼요</h3>${top.length ? `<button class="btn ghost small" type="button" id="shopShare">장보기 목록 보내기</button>` : ""}</div>
+      ${now.length ? `<p class="small"><b class="ok">지금 바로 만들 수 있어요</b> ${now.slice(0, 6).map(esc).join(", ")}</p>` : `<p class="small muted">아래 재료 중 하나만 더 있으면 만들 수 있는 메뉴가 생겨요.</p>`}
+      ${top.length ? `<ul class="shop">${top.map(w => `<li><span class="shop-name">${esc(w.name)}</span><span class="shop-what">${w.menus.slice(0, 3).map(esc).join(", ")}${w.menus.length > 3 ? ` 외 ${w.menus.length - 3}가지` : ""} 만들 수 있어요${w.sub ? `<br><span class="sub">없으면 갖고 있는 ${esc(w.sub)}로 대신해도 돼요</span>` : w.extra ? `<br><span class="sub">${esc(w.extra)}</span>` : ""}</span></li>`).join("")}</ul>` : ""}`;
+    const sh = $("#shopShare");
+    if (sh) sh.addEventListener("click", () => shareText("장보기 목록", ["장보기 목록", ...top.map(w => `- ${w.name} (${w.menus.slice(0, 3).join(", ")})`), "", "냉장고 셰프에서 보냈어요"].join("\n")));
+  }
+
   /* ===================== recommend ===================== */
   function localMatches() {
     const t = +opts.time, kind = opts.kind;
@@ -738,7 +789,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       const haveNeed = need.filter(m => has(m[0]));
       const haveOpt = r.main.filter(m => m[2] && has(m[0]));
       return { r, missing: need.filter(m => !has(m[0])).map(m => m[0]), have: [...haveNeed, ...haveOpt].map(m => m[0]), score: haveNeed.length / need.length + haveOpt.length * 0.05 };
-    }).filter(x => x.have.length && x.missing.length <= 1 && (!t || x.r.time <= t) && (!kind || x.r.cat === kind))
+    }).filter(x => x.have.length && x.missing.length <= 2 && x.missing.length < x.have.length + 1 && (!t || x.r.time <= t) && (!kind || x.r.cat === kind))
       .sort((a, b) => a.missing.length - b.missing.length || b.score - a.score).slice(0, 8);
   }
   function renderLocal() {
@@ -746,7 +797,8 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     if (!list.length) { box.innerHTML = `<p class="muted small">담긴 재료로 만들 수 있는 기본 레시피가 아직 없어요. 재료를 더 담아 보세요.</p>`; return; }
     box.innerHTML = list.map((x, i) => `<button class="menu" type="button" data-local="${x.r.id}" style="animation-delay:${i * 40}ms">
       <span class="menu-top"><span class="menu-name">${esc(x.r.name)}</span><span class="menu-meta num">${x.r.time}분 · ${esc(x.r.level)}</span></span>
-      <span class="have-list">${x.missing.length ? `<span class="miss">${esc(x.missing[0])}만 있으면 돼요</span> · ` : "<b>지금 바로 만들 수 있어요</b> · "}${x.have.map(esc).join(", ")}</span></button>`).join("");
+      <span class="have-list">${x.missing.length ? `<span class="miss">${x.missing.map(esc).join(", ")}만 있으면 돼요</span>${subHint(x.missing)} · ` : "<b>지금 바로 만들 수 있어요</b> · "}${x.have.map(esc).join(", ")}</span></button>`).join("");
+    renderShopping();
   }
   $("#localMenus").addEventListener("click", e => { const b = e.target.closest("[data-local]"); if (b) openLocal(b.dataset.local); });
 
@@ -756,7 +808,8 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       why: { type: "string", description: "이 메뉴를 고른 이유 한 문장, 해요체" },
       minutes: { type: "integer" }, level: { type: "string", enum: ["쉬움", "보통", "어려움"] },
       uses: { type: "array", items: { type: "string" }, description: "가진 재료 중 쓰는 것" },
-      missing: { type: "array", items: { type: "string" }, description: "더 필요한 재료 (기본 양념 제외)" },
+      missing: { type: "array", description: "더 있어야 하는 재료 (기본 양념 제외)", items: { type: "object", additionalProperties: false, required: ["name", "substitute"], properties: {
+        name: { type: "string" }, substitute: { type: "string", description: "없을 때 대신 쓸 수 있는 재료, 가진 재료 중에서 고르면 더 좋아요. 마땅한 게 없으면 빈 문자열" } } } },
       kind: { type: "string", enum: ["밥", "국·찌개", "반찬", "메인", "면", "간식·안주", "기타"] } } } } } };
   let aiMenus = [];
   async function recommendAI() {
@@ -770,6 +823,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
         system: "당신은 한국 가정 요리 앱 '냉장고 셰프'의 셰프예요. 사용자가 가진 재료로 오늘 해 먹을 메뉴 5가지를 골라요. " +
           "가진 재료를 최대한 많이 쓰고, 새로 사야 할 재료는 메뉴마다 0~2개, 동네 마트에서 흔히 파는 것만 고르세요. " +
           "소금, 설탕, 간장, 고추장, 된장, 고춧가루, 식용유, 참기름, 다진 마늘, 후추, 깨, 식초 같은 기본 양념은 있다고 봐요. " +
+          "더 있어야 하는 재료에는 없을 때 대신 쓸 수 있는 재료를 알려 줘요(가진 재료 중에서 고르면 더 좋아요). " +
           "실제로 널리 알려진 요리(검색하면 믿을 만한 레시피가 나오는 이름)만 고르고, 서로 겹치지 않게 다양하게 골라요. '(짐작)'이 붙은 재료는 없을 수도 있어요.",
         messages: [{ role: "user", content: `가진 재료: ${names.join(", ")}\n원하는 조건: ${+opts.time ? `${opts.time}분 안에` : "시간 상관없음"}, ${opts.kind || "종류 상관없음"}, ${opts.serves}인분` }],
       });
@@ -778,18 +832,25 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       lset("fc-last-menus", { at: Date.now(), menus: aiMenus, items: items.map(i => i.name) });
       renderAI();
     } catch (e) {
+      renderShopping();
       box.innerHTML = `<div class="note warn"><p>${esc(e && e.refusal ? "이 요청에는 답할 수 없대요. 재료를 바꿔 다시 해 보세요." : aiError(e))}</p><p><button class="btn" type="button" id="retryAI">다시 추천받기</button></p></div>`;
       $("#retryAI").addEventListener("click", recommendAI);
     }
   }
   function renderAI() {
     const box = $("#aiMenus");
-    if (!aiMenus.length) { box.innerHTML = `<p class="muted small">추천할 메뉴를 찾지 못했어요. 재료를 더 담아 보세요.</p>`; return; }
+    if (!aiMenus.length) { box.innerHTML = `<p class="muted small">추천할 메뉴를 찾지 못했어요. 재료를 더 담아 보세요.</p>`; renderShopping(); return; }
     box.innerHTML = aiMenus.map((m, i) => `<button class="menu" type="button" data-ai="${i}" style="animation-delay:${i * 50}ms">
       <span class="menu-top"><span class="menu-name">${esc(m.name)}</span><span class="menu-meta num">${m.minutes}분 · ${esc(m.level)}</span></span>
       <span class="menu-why">${esc(m.why)}</span>
-      <span class="have-list">${m.uses.length ? `<b>${m.uses.map(esc).join(", ")}</b>` : ""}${m.missing.length ? `${m.uses.length ? " · " : ""}<span class="miss">더 필요: ${m.missing.map(esc).join(", ")}</span>` : ""}</span></button>`).join("");
+      <span class="have-list">${m.uses.length ? `<b>${m.uses.map(esc).join(", ")}</b>` : ""}${m.missing.length ? `${m.uses.length ? " · " : ""}<span class="miss">${m.missing.map(n => esc(missName(n))).join(", ")}만 있으면 돼요</span>${aiSubs(m.missing)}` : ""}</span></button>`).join("");
+    renderShopping();
   }
+  // the substitute the model suggested, or one already in the fridge
+  const aiSubs = list => {
+    const t = list.map(n => { const name = missName(n), own = subOnHand(name), s = own || (typeof n === "object" && n.substitute) || ""; return s ? `${esc(name)} 대신 ${esc(s)}${own ? "(있어요)" : ""}` : ""; }).filter(Boolean);
+    return t.length ? ` <span class="sub">${t.join(", ")}</span>` : "";
+  };
   $("#aiMenus").addEventListener("click", e => { const b = e.target.closest("[data-ai]"); if (b) openAI(aiMenus[+b.dataset.ai]); });
   $("#recommendBtn").addEventListener("click", () => {
     if (!items.length) { toast(photos.length ? "먼저 「사진 속 재료 찾기」를 눌러 주세요." : "재료를 하나 이상 담아 주세요."); $("#addInput").focus(); return; }
@@ -806,9 +867,17 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   const keyOf = (name, serves) => `${clean(name)}|${serves}`;
   const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return ""; } };
 
-  function ingRow(name, amount) {
-    const cls = has(name) ? "" : isPantry(name) ? " pantry" : " miss";
-    return `<li><span><span class="mark${cls}"></span>${esc(name)}</span><span class="amt">${esc(amount || "")}</span></li>`;
+  const optional = i => /있으면|선택|생략/.test(i.amount || "");
+  const lacking = r => r.ingredients.filter(i => !has(i.name) && !isPantry(i.name) && !optional(i));
+  function swapOf(i) { const own = subOnHand(i.name); return own ? `갖고 있는 ${own}로 대신해도 돼요` : i.substitute ? `없으면 ${i.substitute}` : subsFor(i.name).length ? `없으면 ${subsFor(i.name).join(" 또는 ")}` : ""; }
+  function ingRow(i) {
+    const miss = !has(i.name) && !isPantry(i.name), cls = has(i.name) ? "" : isPantry(i.name) ? " pantry" : " miss", sw = miss ? swapOf(i) : "";
+    return `<li><span><span class="mark${cls}"></span>${esc(i.name)}${sw ? `<br><span class="sub">${esc(sw)}</span>` : ""}</span><span class="amt">${esc(i.amount || "")}</span></li>`;
+  }
+  function needBox(r) {
+    const l = lacking(r);
+    if (!l.length) return `<p class="need ok">지금 있는 재료로 다 만들 수 있어요.</p>`;
+    return `<div class="need"><b>이것만 있으면 돼요</b><ul>${l.map(i => { const sw = swapOf(i); return `<li>${esc(i.name)} <span class="muted">${esc(i.amount || "")}</span>${sw ? ` <span class="sub">· ${esc(sw)}</span>` : ""}</li>`; }).join("")}</ul></div>`;
   }
   function renderRecipe(r) {
     current = r;
@@ -829,7 +898,8 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       <div class="card">
         <h3>재료</h3>
         <div class="legend"><span><span class="mark" style="background:var(--accent)"></span>있어요</span><span><span class="mark" style="background:var(--tomato)"></span>필요해요</span><span><span class="mark" style="background:var(--rule)"></span>기본 양념</span></div>
-        <ul class="ing">${r.ingredients.map(i => ingRow(i.name, i.amount)).join("")}</ul>
+        ${needBox(r)}
+        <ul class="ing">${r.ingredients.map(ingRow).join("")}</ul>
       </div>
       <div class="card">
         <div class="card-head"><h3>만드는 법</h3><span class="small muted">끝낸 단계는 눌러서 표시해요</span></div>
@@ -909,10 +979,11 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
       "- 믿을 만한 출처를 먼저 찾아요: 농촌진흥청·농식품올바로 같은 공공기관, 식품회사 공식 레시피, 이름난 요리 연구가·셰프의 공식 채널이나 책, 만개의레시피에서 후기와 조회가 많은 레시피, 요리 전문 매체. 개인 블로그는 다른 출처와 내용이 맞을 때만 참고해요.\n" +
       "- 두 곳 이상을 비교해 공통된 재료 비율과 순서를 따르고, 출처에 없는 분량이나 과정을 지어내지 않아요.\n" +
       `- 분량은 ${serves}인분으로 맞추고, 숟가락(밥숟가락)·컵(200ml)·g·개 단위로 적어요.\n` +
+      "- 재료마다, 없을 때 대신 쓸 수 있는 흔한 재료를 substitute에 적어요 (사용자가 가진 재료 중에 있으면 그걸 먼저).\n" +
       "- 만드는 법은 한 단계에 한 동작씩, 불 세기와 시간을 함께 적어요. 해요체로 써요.\n" +
       "- 답은 마지막에 ```json 코드 블록 하나로만 주세요. 형식:\n" +
       '{"name": "요리 이름", "intro": "한 문장 소개", "minutes": 25, "level": "쉬움|보통|어려움", "serves": ' + serves + ', ' +
-      '"ingredients": [{"name": "재료", "amount": "분량"}], "steps": ["단계"], "tips": ["팁"], ' +
+      '"ingredients": [{"name": "재료", "amount": "분량", "substitute": "없을 때 대신 쓸 재료 (마땅한 게 없으면 빈 문자열)"}], "steps": ["단계"], "tips": ["팁"], ' +
       '"sources": [{"title": "출처 제목", "url": "실제로 읽은 페이지 주소", "note": "이 출처에서 참고한 점"}]}';
     const messages = [{ role: "user", content: `요리: ${menu.name}\n내가 가진 재료: ${mine}\n이 재료를 쓰는 방향으로 맞추되, 레시피의 기본은 출처를 따라 주세요.` }];
     const params = { model: opts.model, max_tokens: 16000, output_config: { effort: "medium" }, system,
@@ -942,7 +1013,7 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
     let sources = (r.sources || []).filter(s => s && real.has(norm(s.url))).map(s => ({ url: real.get(norm(s.url)).url, title: s.title || real.get(norm(s.url)).title, note: s.note || "" }));
     if (!sources.length) sources = [...seen].slice(0, 3).map(([url, title]) => ({ url, title, note: "검색에서 찾은 레시피" }));
     return { builtin: false, name: r.name || menu.name, intro: r.intro || "", minutes: r.minutes || menu.minutes, level: r.level || menu.level, serves: r.serves || serves,
-      ingredients: r.ingredients.filter(i => i && i.name).map(i => ({ name: String(i.name), amount: String(i.amount || "") })),
+      ingredients: r.ingredients.filter(i => i && i.name).map(i => ({ name: String(i.name), amount: String(i.amount || ""), substitute: String(i.substitute || "") })),
       steps: r.steps.map(String), tips: (r.tips || []).map(String), sources, at: Date.now() };
   }
 
@@ -973,21 +1044,20 @@ footer { text-align: center; color: var(--muted); font-size: 12.5px; display: gr
   });
   function recipeText(r) {
     return [`[${r.name}] ${r.serves ? r.serves + "인분" : ""}${r.minutes ? " · " + r.minutes + "분" : ""}`, "",
-      "재료", ...r.ingredients.map(i => `- ${i.name} ${i.amount}`), "",
+      "재료", ...r.ingredients.map(i => `- ${i.name} ${i.amount}`), ...(lacking(r).length ? ["", "더 있어야 하는 재료: " + lacking(r).map(i => i.name).join(", ")] : []), "",
       "만드는 법", ...r.steps.map((s, i) => `${i + 1}. ${s}`),
       ...(r.tips && r.tips.length ? ["", "팁", ...r.tips.map(t => `- ${t}`)] : []),
       ...(r.sources && r.sources.length ? ["", "출처", ...r.sources.map(s => `- ${s.title} ${s.url}`)] : []),
       "", "냉장고 셰프에서 보냈어요"].join("\n");
   }
-  $("#shareBtn").addEventListener("click", async () => {
-    if (!current) return;
-    const text = recipeText(current);
+  async function shareText(title, text) {
     try {
-      if (native) await ncall("Share", "share", { title: current.name, text, dialogTitle: "레시피 보내기" });
-      else if (navigator.share) await navigator.share({ title: current.name, text });
-      else { await navigator.clipboard.writeText(text); toast("레시피를 복사했어요."); }
+      if (native) await ncall("Share", "share", { title, text, dialogTitle: title + " 보내기" });
+      else if (navigator.share) await navigator.share({ title, text });
+      else { await navigator.clipboard.writeText(text); toast("복사했어요. 붙여 넣어 보내 주세요."); }
     } catch (e) { /* closed the share sheet */ }
-  });
+  }
+  $("#shareBtn").addEventListener("click", () => { if (current) shareText(current.name, recipeText(current)); });
 
   /* keep the screen on while a recipe is open (Android app) */
   let awake = null;
