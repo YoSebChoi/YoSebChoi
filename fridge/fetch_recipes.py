@@ -79,7 +79,7 @@ def parse_parts(text, name):
         # commas inside parentheses belong to the amount: 「두부 100g(1/3모, 부침용)」
         for item in re.split(r",(?![^()]*\))", line):
             item = item.strip(" ●•·\t")
-            m = SECTION.match(item)
+            m = SECTION.match(item) or re.match(r"^\(([가-힣 ]{1,8})\)\s*", item)   # 「(반죽재료) 강력분」
             if m:
                 section, item = m.group(1).strip(), item[m.end():].strip()
             if not item:
