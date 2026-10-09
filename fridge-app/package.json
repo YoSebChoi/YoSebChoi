@@ -1,0 +1,13 @@
+{
+  "name": "fridge-chef-android",
+  "private": true,
+  "description": "냉장고 셰프 Android app: a Capacitor shell around the live web app (docs/fridge/index.html)",
+  "dependencies": {
+    "@capacitor/android": "6.2.2",
+    "@capacitor/app": "6.0.3",
+    "@capacitor/cli": "6.2.2",
+    "@capacitor/core": "6.2.2",
+    "@capacitor/haptics": "6.0.3",
+    "@capacitor/share": "6.0.4"
+  }
+}

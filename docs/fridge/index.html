@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>냉장고 셰프</title>
+<meta name="description" content="냉장고 사진이나 재료를 알려 주면 오늘 해 먹을 메뉴와 출처가 있는 레시피를 찾아 주는 앱">
+<meta name="theme-color" content="#f7f3ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1413" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.f6578a3f.png">
+<link rel="apple-touch-icon" href="icon-192.f6578a3f.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&display=swap">
+<style>
+/* Mood: a warm kitchen in the morning. Oat-coloured ground, paper-white cards, the icon's teal for
+   what you press, butter and tomato for little highlights. Two rooms (추천 · 저장) from a soft tab bar. */
+:root {
+  --bg: #f7f3ea;
+  --surface: #fffdf8;
+  --surface-2: #f1ebdd;
+  --ink: #2b2824;
+  --muted: #776f64;
+  --rule: #e6dece;
+  --accent: #1f6f62;
+  --accent-ink: #ffffff;
+  --accent-soft: #dcece6;
+  --tomato: #d9573b;
+  --tomato-soft: #f8e1d8;
+  --butter: #f2a541;
+  --butter-soft: #f8ead0;
+  --shadow: 0 1px 2px rgba(43, 40, 36, .05), 0 10px 28px rgba(43, 40, 36, .07);
+  --edge: rgba(43, 40, 36, 0);   /* hairline around cards; only visible in dark, where shadows vanish */
+  --font-display: "Gowun Batang", "Noto Serif KR", "AppleMyungjo", serif;
+  --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --tabbar-h: 64px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1413; --surface: #1d2523; --surface-2: #29322f; --ink: #ece7dd; --muted: #a59d90; --rule: #36403c;
+    --accent: #6cc3b0; --accent-ink: #0f1413; --accent-soft: #1f3a34;
+    --tomato: #f08a70; --tomato-soft: #3d2620; --butter: #f2b960; --butter-soft: #3a2f1c;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .28);
+    --edge: rgba(236, 231, 221, .09);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1413; --surface: #1d2523; --surface-2: #29322f; --ink: #ece7dd; --muted: #a59d90; --rule: #36403c;
+  --accent: #6cc3b0; --accent-ink: #0f1413; --accent-soft: #1f3a34;
+  --tomato: #f08a70; --tomato-soft: #3d2620; --butter: #f2b960; --butter-soft: #3a2f1c;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 10px 28px rgba(0, 0, 0, .28);
+  --edge: rgba(236, 231, 221, .09);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15.5px; line-height: 1.7;
+  -webkit-tap-highlight-color: transparent; overscroll-behavior-y: contain; }
+.app { max-width: 640px; margin: 0 auto; padding-inline: 16px; padding-block: calc(26px + env(safe-area-inset-top, 0px)) calc(var(--tabbar-h) + 40px + env(safe-area-inset-bottom, 0px));
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; text-wrap: balance; margin: 0; line-height: 1.35; }
+h1 { font-size: 26px; }
+h2 { font-size: 19px; }
+h3 { font-size: 16.5px; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 13.5px; }
+.num { font-variant-numeric: tabular-nums; }
+a { color: var(--accent); }
+[hidden] { display: none !important; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* header */
+.top { display: flex; align-items: center; gap: 12px; }
+.top .logo { width: 46px; height: 46px; border-radius: 14px; flex: none; background: #1f6f62; display: grid; place-items: center; overflow: hidden; }
+.top .logo svg { width: 46px; height: 46px; }
+.top .titles { flex: 1; min-width: 0; }
+.eyebrow { font-size: 12.5px; color: var(--accent); letter-spacing: .04em; }
+.icon-btn { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--surface); color: var(--ink); box-shadow: var(--shadow);
+  outline: 1px solid var(--edge); display: grid; place-items: center; cursor: pointer; flex: none; touch-action: manipulation; }
+.icon-btn svg { width: 22px; height: 22px; }
+
+/* cards */
+.card { background: var(--surface); border-radius: 22px; padding: 18px; box-shadow: var(--shadow); outline: 1px solid var(--edge); display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.step-no { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent-soft); color: var(--accent);
+  font-size: 13px; font-weight: 700; margin-right: 6px; vertical-align: 2px; }
+
+/* buttons */
+.btn { font: inherit; border: 0; border-radius: 999px; padding: 10px 16px; min-height: 44px; cursor: pointer; display: inline-flex; align-items: center;
+  justify-content: center; gap: 7px; background: var(--surface-2); color: var(--ink); touch-action: manipulation; text-decoration: none; transition: transform .12s ease, background-color .2s; }
+.btn:active { transform: scale(.97); }
+.btn svg { width: 19px; height: 19px; flex: none; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.btn.ghost { background: transparent; color: var(--muted); }
+.btn.big { min-height: 54px; font-size: 16.5px; width: 100%; }
+.btn[disabled] { opacity: .55; cursor: default; transform: none; }
+@media (hover: hover) { .btn:hover:not([disabled]) { filter: brightness(1.04); } .icon-btn:hover { filter: brightness(1.04); } }
+:focus-visible { outline: 3px solid var(--accent) !important; outline-offset: 2px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row.split > * { flex: 1 1 0; }
+
+/* photos */
+.photos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.photo { position: relative; aspect-ratio: 1; border-radius: 14px; overflow: hidden; background: var(--surface-2); }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo button { position: absolute; top: 4px; right: 4px; width: 30px; height: 30px; border-radius: 50%; border: 0; background: rgba(0, 0, 0, .55); color: #fff;
+  display: grid; place-items: center; cursor: pointer; padding: 0; }
+.photo button svg { width: 15px; height: 15px; }
+
+/* ingredient entry and chips */
+.add-row { display: flex; gap: 8px; }
+.field { font: inherit; flex: 1; min-width: 0; min-height: 46px; border-radius: 14px; border: 1.5px solid var(--rule); background: var(--bg); color: var(--ink); padding: 8px 14px; }
+.field:focus { border-color: var(--accent); outline: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 5px 6px 5px 13px; background: var(--accent-soft); color: var(--ink);
+  font-size: 14.5px; line-height: 1.4; min-height: 36px; animation: pop .22s ease both; }
+.chip.guess { background: var(--butter-soft); }
+.chip .x { width: 28px; height: 28px; border: 0; border-radius: 50%; background: transparent; color: var(--muted); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.chip .x svg { width: 14px; height: 14px; }
+.chip .tag { font-size: 11.5px; color: var(--muted); }
+.quick { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; margin-inline: -18px; padding-inline: 18px; overscroll-behavior-x: contain; }
+.quick::-webkit-scrollbar { display: none; }
+.quick button { flex: none; font: inherit; font-size: 14px; border-radius: 999px; border: 1.5px dashed var(--rule); background: transparent; color: var(--muted);
+  padding: 6px 12px; min-height: 36px; cursor: pointer; touch-action: manipulation; }
+.empty-chips { color: var(--muted); font-size: 14px; padding: 4px 0; }
+@keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* option toggles */
+.opt { display: grid; gap: 7px; }
+.opt-label { font-size: 13.5px; color: var(--muted); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { font: inherit; font-size: 14.5px; border: 0; border-radius: 999px; padding: 6px 13px; min-height: 38px; background: var(--surface-2); color: var(--ink);
+  cursor: pointer; touch-action: manipulation; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+
+/* results */
+.section-title { display: flex; align-items: center; gap: 8px; }
+.section-title .badge { font-size: 12px; font-family: var(--font-body); font-weight: 400; color: var(--muted); }
+.menus { display: grid; gap: 10px; }
+.menu { text-align: left; font: inherit; color: inherit; width: 100%; border: 0; cursor: pointer; background: var(--surface); border-radius: 18px; padding: 15px 16px;
+  box-shadow: var(--shadow); outline: 1px solid var(--edge); display: grid; gap: 6px; animation: rise .35s ease both; touch-action: manipulation; }
+.menu:active { transform: scale(.99); }
+.menu-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.menu-name { font-family: var(--font-display); font-weight: 700; font-size: 17.5px; line-height: 1.35; }
+.menu-meta { font-size: 13px; color: var(--muted); flex: none; }
+.menu-why { font-size: 14.5px; }
+.have-list { font-size: 13.5px; color: var(--muted); }
+.have-list b { color: var(--accent); font-weight: 400; }
+.have-list .miss { color: var(--tomato); }
+@keyframes rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+.note { border-radius: 16px; padding: 13px 15px; background: var(--surface-2); font-size: 14.5px; display: grid; gap: 8px; }
+.note.warn { background: var(--tomato-soft); }
+.loading { display: flex; align-items: center; gap: 12px; padding: 14px 4px; color: var(--muted); font-size: 14.5px; }
+.pot { width: 34px; height: 34px; flex: none; }
+.pot .steam { animation: steam 1.6s ease-in-out infinite; transform-origin: center bottom; }
+.pot .steam:nth-child(2) { animation-delay: .3s; }
+.pot .steam:nth-child(3) { animation-delay: .6s; }
+@keyframes steam { 0% { opacity: 0; transform: translateY(4px); } 40% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+
+/* saved */
+.saved-list { display: grid; gap: 10px; }
+.empty { text-align: center; padding: 36px 12px; color: var(--muted); display: grid; gap: 10px; justify-items: center; }
+.empty svg { width: 96px; height: 96px; }
+
+/* tab bar */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 8px; padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--rule); }
+.tab { font: inherit; flex: 1; max-width: 220px; min-height: 48px; border: 0; border-radius: 16px; background: transparent; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 7px; touch-action: manipulation; }
+.tab svg { width: 21px; height: 21px; }
+.tab[aria-selected="true"] { background: var(--surface); color: var(--accent); font-weight: 700; box-shadow: var(--shadow); outline: 1px solid var(--edge); }
+.tab .count { font-size: 12px; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 0 7px; font-weight: 400; }
+
+/* recipe sheet */
+.sheet-wrap { position: fixed; inset: 0; z-index: 20; background: var(--bg); overflow-y: auto; overscroll-behavior: contain; animation: slide-up .28s ease both; }
+@keyframes slide-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet-bar { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px;
+  background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.sheet-bar .grow { flex: 1; }
+.recipe { max-width: 640px; margin: 0 auto; padding: 4px 16px calc(40px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 16px; }
+.recipe-head { display: grid; gap: 6px; }
+.recipe-head h2 { font-size: 25px; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px; }
+.fact { font-size: 13px; border-radius: 999px; padding: 3px 11px; background: var(--surface-2); color: var(--muted); }
+.ing { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.ing li { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--rule); font-size: 15px; }
+.ing li:last-child { border-bottom: 0; }
+.ing .amt { color: var(--muted); text-align: right; flex: none; max-width: 50%; }
+.ing .mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 2px; background: var(--accent); }
+.ing .mark.miss { background: var(--tomato); }
+.ing .mark.pantry { background: var(--rule); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 12.5px; color: var(--muted); }
+.legend .mark { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.steps { margin: 0; padding: 0; list-style: none; counter-reset: s; display: grid; gap: 12px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 10px; font-size: 15.5px; }
+.steps li::before { content: counter(s); width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center;
+  font-size: 14px; font-weight: 700; margin-top: 1px; }
+.steps li.done { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--rule); }
+.steps li.done::before { background: var(--rule); }
+.tips { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 15px; }
+.sources { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.sources a { display: grid; gap: 1px; padding: 11px 14px; border-radius: 14px; background: var(--surface-2); color: var(--ink); text-decoration: none; }
+.sources .src-title { font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.sources .src-host { font-size: 12.5px; color: var(--accent); }
+.sources .src-note { font-size: 13px; color: var(--muted); }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14.5px; cursor: pointer; }
+.switch input { appearance: none; width: 46px; height: 28px; border-radius: 999px; background: var(--rule); position: relative; cursor: pointer; flex: none; margin: 0; transition: background-color .2s; }
+.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .2s; box-shadow: 0 1px 3px rgba(0, 0, 0, .25); }
+.switch input:checked { background: var(--accent); }
+.switch input:checked::after { transform: translateX(18px); }
+
+/* dialogs */
+dialog { border: 0; padding: 0; background: transparent; color: var(--ink); max-width: min(520px, calc(100vw - 32px)); width: 100%; }
+dialog::backdrop { background: rgba(15, 20, 19, .45); }
+.dlg { background: var(--surface); border-radius: 24px; padding: 20px; display: grid; gap: 14px; outline: 1px solid var(--edge); max-height: calc(100dvh - 48px); overflow-y: auto; overscroll-behavior: contain; }
+.dlg .actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.dlg label { display: grid; gap: 6px; font-size: 14px; }
+.dlg ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 14.5px; }
+.bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.toast { position: fixed; left: 16px; right: 16px; bottom: calc(var(--tabbar-h) + 18px + env(safe-area-inset-bottom, 0px)); z-index: 30; max-width: 560px; margin: 0 auto;
+  background: var(--ink); color: var(--bg); border-radius: 16px; padding: 12px 16px; font-size: 14.5px; box-shadow: var(--shadow); animation: rise .25s ease both; }
+
+/* in-app camera */
+.cam { position: fixed; inset: 0; z-index: 40; background: #000; display: grid; grid-template-rows: 1fr auto; }
+.cam video { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 0; }
+.cam-hint { position: absolute; left: 0; right: 0; top: calc(16px + env(safe-area-inset-top, 0px)); text-align: center; color: #fff; font-size: 14px; text-shadow: 0 1px 4px rgba(0, 0, 0, .7); }
+.cam-count { position: absolute; left: 50%; bottom: 130px; transform: translateX(-50%); color: #fff; font-size: 14px; background: rgba(0, 0, 0, .45); border-radius: 999px; padding: 4px 12px; }
+.cam-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 18px 22px calc(18px + env(safe-area-inset-bottom, 0px)); background: #000; }
+.cam-bar .btn { background: transparent; color: #fff; justify-self: start; }
+.cam-bar .btn:last-child { justify-self: end; }
+.cam-bar .btn[aria-pressed="true"] { background: rgba(255, 255, 255, .18); }
+.cam-shutter { width: 74px; height: 74px; border-radius: 50%; border: 4px solid #fff; background: rgba(255, 255, 255, .92); box-shadow: inset 0 0 0 4px #000; cursor: pointer; }
+.cam-shutter:active { transform: scale(.94); }
+
+footer { text-align: center; color: var(--muted); font-size: 12.5px; display: grid; gap: 2px; padding-top: 6px; }
+
+/* launch splash: continues Android's launch screen (the fridge on teal) as one scene */
+.splash { position: fixed; inset: 0; z-index: 100; background: #1f6f62; display: grid; place-items: center; transition: opacity .35s ease; cursor: pointer; }
+.splash.out { opacity: 0; pointer-events: none; }
+.splash-inner { position: relative; display: grid; justify-items: center; }
+.splash-fridge { width: 240px; height: 240px; display: block; overflow: visible; }
+.splash-fridge .body { transform-origin: 256px 400px; animation: hop .7s cubic-bezier(.3, 1.5, .5, 1) .15s both; }
+.splash-fridge .sprig { transform-origin: 300px 130px; animation: wiggle .5s ease-in-out .5s 2 both; }
+.splash-fridge .pop { opacity: 0; animation: pop-out .55s cubic-bezier(.2, 1.4, .4, 1) both; }
+.splash-text { position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 80vw; text-align: center; color: #fff6e6; }
+.splash-name { font-family: var(--font-display); font-size: 30px; font-weight: 700; opacity: 0; animation: fade-in .5s ease .75s both; }
+.splash-tag { font-size: 15px; opacity: 0; animation: fade-in .5s ease 1s both; color: #cfe6df; }
+@keyframes hop { 0% { transform: none; } 35% { transform: translateY(-14px) scale(1.02, .98); } 70% { transform: translateY(0) scale(1.03, .96); } 100% { transform: none; } }
+@keyframes wiggle { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(14deg); } }
+@keyframes pop-out { from { opacity: 0; transform: translate(var(--fx), var(--fy)) scale(.3); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0s !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash-inner">
+    <!-- the app icon's drawing (fridge/assets/icon.svg) without its teal square, 240px wide like Android's launch icon -->
+    <svg class="splash-fridge" viewBox="0 0 512 512">
+      <g class="body">
+        <ellipse cx="256" cy="408" rx="96" ry="12" fill="#17574d"/>
+        <rect x="196" y="388" width="18" height="20" rx="5" fill="#d9cdb6"/>
+        <rect x="298" y="388" width="18" height="20" rx="5" fill="#d9cdb6"/>
+        <rect x="172" y="146" width="168" height="250" rx="30" fill="#fff6e6" stroke="#e9dcc3" stroke-width="4"/>
+        <path d="M172 228 H340" stroke="#e3d4b8" stroke-width="5"/>
+        <rect x="306" y="172" width="11" height="38" rx="5.5" fill="#f2a541"/>
+        <rect x="306" y="248" width="11" height="58" rx="5.5" fill="#f2a541"/>
+        <circle cx="226" cy="300" r="9" fill="#24302d"/><circle cx="276" cy="300" r="9" fill="#24302d"/>
+        <circle cx="229" cy="297" r="3" fill="#fff6e6"/><circle cx="279" cy="297" r="3" fill="#fff6e6"/>
+        <path d="M236 322 Q251 336 266 322" fill="none" stroke="#24302d" stroke-width="6" stroke-linecap="round"/>
+        <ellipse cx="208" cy="324" rx="11" ry="7" fill="#f28b74" opacity=".75"/><ellipse cx="294" cy="324" rx="11" ry="7" fill="#f28b74" opacity=".75"/>
+        <rect x="204" y="118" width="104" height="36" rx="8" fill="#fff"/>
+        <path d="M222 118 V150 M244 118 V150 M268 118 V150 M290 118 V150" stroke="#e6ece9" stroke-width="3"/>
+        <circle cx="216" cy="100" r="30" fill="#fff"/><circle cx="296" cy="100" r="30" fill="#fff"/><circle cx="256" cy="84" r="38" fill="#fff"/>
+        <rect x="204" y="96" width="104" height="30" fill="#fff"/>
+        <g class="sprig"><path d="M300 130 L326 84" stroke="#6fbf5a" stroke-width="7" stroke-linecap="round"/><path d="M300 130 L336 98" stroke="#8bd174" stroke-width="6" stroke-linecap="round"/></g>
+      </g>
+      <!-- ingredients hop out around it -->
+      <g class="pop" style="--fx:80px;--fy:60px;animation-delay:.55s"><ellipse cx="112" cy="250" rx="30" ry="38" fill="#fffaf0"/><circle cx="112" cy="258" r="15" fill="#f5b82e"/></g>
+      <g class="pop" style="--fx:70px;--fy:-40px;animation-delay:.68s"><circle cx="118" cy="368" r="32" fill="#e8553d"/><path d="M104 340 Q118 330 132 340 L118 348 Z" fill="#5aa84a"/></g>
+      <g class="pop" style="--fx:-80px;--fy:60px;animation-delay:.81s"><path d="M372 230 L432 214 L388 270 Z" fill="#f08a3c"/><path d="M428 214 l14 -16 M430 216 l20 -6" stroke="#5aa84a" stroke-width="6" stroke-linecap="round"/></g>
+      <g class="pop" style="--fx:-70px;--fy:-40px;animation-delay:.94s"><path d="M370 372 q0 -36 34 -36 q34 0 34 36 Z" fill="#c98b5a"/><rect x="392" y="370" width="24" height="26" rx="8" fill="#f3e3cc"/></g>
+    </svg>
+    <div class="splash-text">
+      <p class="splash-name">냉장고 셰프</p>
+      <p class="splash-tag" id="splashTag">있는 재료로, 오늘 한 끼</p>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const el = document.getElementById("splash");
+  let seen = false;
+  try { seen = sessionStorage.getItem("fc-splash") === "1"; sessionStorage.setItem("fc-splash", "1"); } catch (e) {}
+  // inside a frame (a preview) or on a reload in the same visit, skip it
+  if (window.top !== window || seen) { el.remove(); return; }
+  const lines = ["있는 재료로, 오늘 한 끼", "남은 재료도 맛있는 한 끼가 돼요", "냉장고 문, 같이 열어 볼까요", "오늘 뭐 먹을지 제가 골라 볼게요", "천천히, 맛있게 만들어 봐요"];
+  document.getElementById("splashTag").textContent = lines[Math.floor(Math.random() * lines.length)];
+  const done = () => { if (!el.isConnected) return; el.classList.add("out"); setTimeout(() => el.remove(), 380); };
+  el.addEventListener("click", done);
+  setTimeout(done, 2200);
+})();
+</script>
+
+<main class="app" id="app">
+  <header class="top">
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="150 50 212 380"><rect x="172" y="146" width="168" height="250" rx="30" fill="#fff6e6"/><path d="M172 228 H340" stroke="#e3d4b8" stroke-width="6"/>
+        <rect x="306" y="172" width="12" height="38" rx="6" fill="#f2a541"/><rect x="306" y="248" width="12" height="58" rx="6" fill="#f2a541"/>
+        <circle cx="226" cy="300" r="11" fill="#24302d"/><circle cx="276" cy="300" r="11" fill="#24302d"/>
+        <path d="M236 324 Q251 338 266 324" fill="none" stroke="#24302d" stroke-width="7" stroke-linecap="round"/>
+        <rect x="204" y="118" width="104" height="36" rx="8" fill="#fff"/><circle cx="216" cy="100" r="30" fill="#fff"/><circle cx="296" cy="100" r="30" fill="#fff"/><circle cx="256" cy="84" r="38" fill="#fff"/><rect x="204" y="96" width="104" height="30" fill="#fff"/></svg>
+    </span>
+    <div class="titles">
+      <p class="eyebrow" id="today">오늘</p>
+      <h1>냉장고 셰프</h1>
+    </div>
+    <button class="icon-btn" id="settingsBtn" type="button" aria-label="설정">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <!-- 추천 -->
+  <section id="panel-cook" aria-label="추천" style="display:grid;grid-template-columns:minmax(0,1fr);gap:18px">
+    <div class="card">
+      <div class="card-head"><h2><span class="step-no">1</span>재료 담기</h2><button class="btn ghost small" id="clearAll" type="button" hidden>모두 지우기</button></div>
+      <p class="muted small">냉장고 안이나 장 본 재료를 찍거나, 있는 재료를 적어 주세요.</p>
+      <div class="row split">
+        <label class="btn" id="cameraBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+          사진 찍기
+          <input type="file" accept="image/*" capture="environment" id="cameraInput" class="visually-hidden">
+        </label>
+        <label class="btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>
+          앨범에서 고르기
+          <input type="file" accept="image/*" multiple id="albumInput" class="visually-hidden">
+        </label>
+      </div>
+      <div class="photos" id="photos" hidden></div>
+      <button class="btn primary" id="scanBtn" type="button" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <span>사진 속 재료 찾기</span>
+      </button>
+      <div id="scanStatus" hidden></div>
+      <form class="add-row" id="addForm" autocomplete="off">
+        <label for="addInput" class="visually-hidden">재료 이름</label>
+        <input class="field" id="addInput" enterkeyhint="done" placeholder="예: 계란, 양파, 김치…">
+        <button class="btn primary" type="submit">담기</button>
+      </form>
+      <div class="quick" id="quick" aria-label="자주 쓰는 재료"></div>
+      <div class="chips" id="chips" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="step-no">2</span>어떻게 먹을까요</h2>
+      <div class="opt"><span class="opt-label" id="lblTime">시간</span>
+        <div class="seg" role="group" aria-labelledby="lblTime" data-opt="time">
+          <button type="button" data-v="0">상관없어요</button><button type="button" data-v="15">15분 안에</button><button type="button" data-v="30">30분 안에</button>
+        </div></div>
+      <div class="opt"><span class="opt-label" id="lblKind">종류</span>
+        <div class="seg" role="group" aria-labelledby="lblKind" data-opt="kind">
+          <button type="button" data-v="">아무거나</button><button type="button" data-v="밥">밥</button><button type="button" data-v="국·찌개">국·찌개</button>
+          <button type="button" data-v="반찬">반찬</button><button type="button" data-v="메인">메인 요리</button><button type="button" data-v="면">면</button><button type="button" data-v="간식·안주">간식·안주</button>
+        </div></div>
+      <div class="opt"><span class="opt-label" id="lblServe">몇 인분</span>
+        <div class="seg" role="group" aria-labelledby="lblServe" data-opt="serves">
+          <button type="button" data-v="1">1인분</button><button type="button" data-v="2">2인분</button><button type="button" data-v="3">3인분</button><button type="button" data-v="4">4인분</button>
+        </div></div>
+      <button class="btn primary big" id="recommendBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 13.9A4 4 0 0 1 7.5 6a5 5 0 0 1 9 0A4 4 0 0 1 18 13.9V20H6z"/><path d="M6 17h12"/></svg>
+        오늘 뭐 해 먹을지 추천받기
+      </button>
+    </div>
+
+    <section id="results" hidden style="display:grid;grid-template-columns:minmax(0,1fr);gap:12px" aria-live="polite">
+      <div class="section-title"><h2>셰프의 추천</h2><span class="badge">출처를 찾아 정리해요</span></div>
+      <div id="aiMenus" class="menus"></div>
+      <div class="section-title" style="margin-top:6px"><h2>바로 만들 수 있는 집밥</h2><span class="badge">앱에 담긴 기본 레시피</span></div>
+      <div id="localMenus" class="menus"></div>
+    </section>
+  </section>
+
+  <!-- 저장 -->
+  <section id="panel-saved" aria-label="저장한 레시피" hidden style="display:grid;grid-template-columns:minmax(0,1fr);gap:14px">
+    <h2>저장한 레시피</h2>
+    <div class="saved-list" id="savedList"></div>
+  </section>
+
+  <footer><p>레시피는 출처를 확인하고, 알레르기와 익힘 정도는 직접 살펴 주세요.</p><p id="versionLine"></p></footer>
+</main>
+
+<nav class="tabbar" role="tablist" aria-label="화면">
+  <button class="tab" role="tab" id="tab-cook" data-tab="cook" aria-selected="true" aria-controls="panel-cook" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 13.9A4 4 0 0 1 7.5 6a5 5 0 0 1 9 0A4 4 0 0 1 18 13.9V20H6z"/><path d="M6 17h12"/></svg>
+    추천
+  </button>
+  <button class="tab" role="tab" id="tab-saved" data-tab="saved" aria-selected="false" aria-controls="panel-saved" type="button">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    저장 <span class="count num" id="savedCount" hidden>0</span>
+  </button>
+</nav>
+
+<!-- recipe -->
+<div class="sheet-wrap" id="sheet" role="dialog" aria-modal="true" aria-labelledby="recipeTitle" hidden>
+  <div class="sheet-bar">
+    <button class="icon-btn" id="sheetClose" type="button" aria-label="닫기">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <span class="grow"></span>
+    <button class="icon-btn" id="shareBtn" type="button" aria-label="공유" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+    </button>
+    <button class="icon-btn" id="saveBtn" type="button" aria-label="저장" aria-pressed="false" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+    </button>
+  </div>
+  <div class="recipe" id="recipe"></div>
+</div>
+
+<!-- settings -->
+<dialog id="settings" aria-labelledby="settingsTitle">
+  <form class="dlg" method="dialog" id="settingsForm">
+    <h2 id="settingsTitle">AI 셰프 설정</h2>
+    <p class="small">사진 속 재료 찾기, 메뉴 추천, 출처 있는 레시피 찾기는 Anthropic의 Claude를 써요. 내 API 키를 한 번 넣어 두면 돼요. 키 없이도 직접 적은 재료로 앱에 담긴 기본 레시피는 볼 수 있어요.</p>
+    <label>API 키
+      <input class="field" id="keyInput" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-…">
+    </label>
+    <div class="row"><button class="btn" id="keyTest" type="button">키 확인</button><button class="btn ghost" id="keyRemove" type="button">키 지우기</button></div>
+    <p class="small muted" id="keyStatus" role="status"></p>
+    <div class="opt"><span class="opt-label" id="lblModel">AI 모델</span>
+      <div class="seg" role="group" aria-labelledby="lblModel" data-opt="model">
+        <button type="button" data-v="claude-opus-5-5">더 정확하게 (Opus)</button><button type="button" data-v="claude-sonnet-5-5">더 저렴하게 (Sonnet)</button>
+      </div></div>
+    <div class="note small">
+      <b>키 만드는 법</b>
+      <ol>
+        <li><a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>에 가입하고 결제 수단을 등록해요.</li>
+        <li>API Keys에서 「Create Key」를 눌러 만든 키를 복사해요.</li>
+        <li>위 칸에 붙여 넣고 「저장」을 눌러요.</li>
+      </ol>
+      <p class="muted">키는 이 폰에만 저장되고 Anthropic 말고는 어디에도 보내지 않아요. 요금은 내 계정에 쓴 만큼 나와요. 대략 사진으로 재료 찾기 40원, 메뉴 추천 50원, 레시피 찾기(웹 검색 포함) 200~500원 정도예요 (Opus 기준, Sonnet은 절반쯤). 한 번 찾은 레시피는 다시 열어도 요금이 들지 않아요.</p>
+    </div>
+    <p class="small muted" id="aboutVersion"></p>
+    <div class="actions"><button class="btn ghost" value="cancel" type="submit">닫기</button><button class="btn primary" id="keySave" value="save" type="submit">저장</button></div>
+  </form>
+</dialog>
+
+<!-- app update (Android app) -->
+<dialog id="appUpdate" aria-labelledby="appUpdateTitle">
+  <div class="dlg">
+    <h2 id="appUpdateTitle">새 버전이 나왔어요</h2>
+    <p class="muted" id="appUpdateText">업데이트해도 저장한 레시피와 설정은 그대로 남아요.</p>
+    <div class="bar" id="appUpdateBar" hidden><span></span></div>
+    <div class="actions">
+      <button class="btn ghost" id="appUpdateLater" type="button">나중에</button>
+      <button class="btn primary" id="appUpdateGo" type="button">지금 업데이트</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- in-app camera (Android app) -->
+<div class="cam" id="cam" hidden>
+  <video id="camVideo" playsinline muted></video>
+  <p class="cam-hint">재료가 잘 보이게 찍어 주세요. 여러 장 찍어도 돼요.</p>
+  <p class="cam-count num" id="camCount" hidden></p>
+  <div class="cam-bar">
+    <button class="btn" id="camClose" type="button">완료</button>
+    <button class="cam-shutter" id="camShutter" type="button" aria-label="찍기"></button>
+    <button class="btn" id="camTorch" type="button" aria-pressed="false" hidden>플래시</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="recipes.js"></script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const lget = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const lset = (k, v) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+  // inside the Android app (fridge-app/, Capacitor) the injected native bridge adds the back button,
+  // the share sheet, haptics, keep-screen-on while cooking and in-app updates. The page does not
+  // bundle @capacitor/core, so plugins are called through the bridge itself.
+  const Cap = window.Capacitor;
+  const native = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+  const ncall = (p, m, o = {}) => Cap.Plugins?.[p]?.[m] ? Cap.Plugins[p][m](o) : Cap.nativePromise(p, m, o);
+  const nlisten = (p, ev, cb) => Cap.Plugins?.[p]?.addListener ? Cap.Plugins[p].addListener(ev, cb) : Cap.nativeCallback(p, "addListener", { eventName: ev }, cb);
+  const buzz = (style = "LIGHT") => { if (native) ncall("Haptics", "impact", { style }).catch(() => {}); else if (navigator.vibrate) navigator.vibrate(12); };
+
+  let toastTimer = null;
+  function toast(text) {
+    const t = $("#toast"); t.textContent = text; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+  }
+  const POT = `<svg class="pot" viewBox="0 0 34 34" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+    <path class="steam" d="M11 9 q-2 -3 0 -6"/><path class="steam" d="M17 9 q-2 -3 0 -6"/><path class="steam" d="M23 9 q-2 -3 0 -6"/></g>
+    <path d="M5 14 h24 v9 a7 7 0 0 1 -7 7 h-10 a7 7 0 0 1 -7 -7 z" fill="currentColor" opacity=".85"/><path d="M2 16 h3 M29 16 h3" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
+  const loading = text => `<div class="loading">${POT}<span>${esc(text)}</span></div>`;
+
+  /* ===================== ingredients ===================== */
+  // names people use for the same thing → one name, so 「달걀」 finds recipes that ask for 「계란」
+  const SYN = {
+    "계란": ["달걀", "계란", "에그", "egg"], "대파": ["대파", "쪽파", "실파", "파"], "돼지고기": ["돼지고기", "돼지", "삼겹살", "목살", "앞다리", "뒷다리", "대패", "항정"],
+    "소고기": ["소고기", "쇠고기", "차돌", "양지", "불고기감", "우둔", "등심", "안심"], "닭고기": ["닭고기", "닭", "닭다리", "닭가슴살", "닭봉", "닭날개", "닭안심"],
+    "햄": ["햄", "스팸", "런천미트"], "소시지": ["소시지", "소세지", "비엔나", "프랑크"], "어묵": ["어묵", "오뎅"], "김치": ["김치", "묵은지", "배추김치"],
+    "버섯": ["버섯", "표고", "느타리", "새송이", "팽이", "양송이"], "떡": ["떡", "떡볶이떡", "가래떡", "떡국떡"], "파스타": ["파스타", "스파게티", "펜네", "링귀니"],
+    "밥": ["밥", "즉석밥", "햇반", "쌀", "찬밥"], "참치": ["참치", "참치캔"], "부침가루": ["부침가루", "밀가루", "튀김가루"], "청양고추": ["청양고추", "고추", "풋고추", "페페론치노"],
+    "카레가루": ["카레", "카레가루"], "라면사리": ["라면", "라면사리"], "애호박": ["애호박", "호박", "주키니"], "파프리카": ["파프리카", "피망"], "순두부": ["순두부"],
+    "두부": ["두부"], "미역": ["미역"], "토마토": ["토마토", "방울토마토"], "마늘": ["마늘", "통마늘"], "양배추": ["양배추"], "시금치": ["시금치"], "콩나물": ["콩나물"],
+  };
+  const SYN_INDEX = {};
+  for (const [k, list] of Object.entries(SYN)) for (const w of list) SYN_INDEX[w] = k;
+  const clean = s => String(s).replace(/\(.*?\)/g, "").replace(/\s+/g, "").toLowerCase();
+  function canon(name) {
+    const c = clean(name);
+    if (SYN_INDEX[c]) return SYN_INDEX[c];
+    // 「새송이버섯」, 「돼지고기목살」: the longest known word inside the name
+    let best = null;
+    for (const w of Object.keys(SYN_INDEX)) if (w.length >= 2 && c.includes(w) && (!best || w.length > best.length)) best = w;
+    if (best && !(SYN_INDEX[best] === "두부" && c.includes("순두부"))) return SYN_INDEX[best];
+    return c;
+  }
+  // basic seasonings most kitchens have: shown as 기본 양념, never as something to buy
+  const PANTRY = ["소금", "설탕", "간장", "국간장", "진간장", "식용유", "올리브유", "참기름", "들기름", "다진마늘", "고춧가루", "후추", "깨", "참깨", "물", "식초",
+    "올리고당", "물엿", "맛술", "미림", "고추장", "된장", "케첩", "마요네즈", "굴소스", "쌀뜨물", "육수", "멸치육수", "면수", "새우젓", "김칫국물", "버터", "우유", "꿀"];
+  const isPantry = name => clean(name).split(/또는|,/).some(p => PANTRY.some(w => p === w || (w.length >= 2 && (p.startsWith(w) || p.endsWith(w)))));
+
+  let items = lget("fc-items", []);   // [{ name, from: "photo" | "typed", sure: bool }]
+  const has = name => {
+    const alts = String(name).split(/\s*또는\s*/);
+    return alts.some(a => { const k = canon(a); return items.some(i => canon(i.name) === k); });
+  };
+  function addItems(names, from = "typed", sure = true) {
+    let added = 0;
+    for (let n of names) {
+      n = String(n).trim().replace(/^[,·\s]+|[,·\s]+$/g, "");
+      if (!n || n.length > 30) continue;
+      const k = canon(n);
+      const ex = items.find(i => canon(i.name) === k);
+      if (ex) { if (sure && !ex.sure) { ex.sure = true; added++; } continue; }
+      items.push({ name: n, from, sure }); added++;
+    }
+    lset("fc-items", items); renderChips();
+    return added;
+  }
+  function renderChips() {
+    const box = $("#chips");
+    $("#clearAll").hidden = !items.length && !photos.length;
+    if (!items.length) { box.innerHTML = `<p class="empty-chips">아직 담긴 재료가 없어요.</p>`; renderQuick(); return; }
+    box.innerHTML = items.map((it, i) => `<span class="chip${it.sure ? "" : " guess"}">${esc(it.name)}${it.sure ? "" : ` <span class="tag">확인해 주세요</span>`}<button class="x" type="button" data-del="${i}" aria-label="${esc(it.name)} 빼기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>`).join("");
+    renderQuick();
+  }
+  $("#chips").addEventListener("click", e => {
+    const b = e.target.closest("[data-del]"); if (!b) return;
+    items.splice(+b.dataset.del, 1); lset("fc-items", items); renderChips(); buzz();
+  });
+  const QUICK = ["계란", "양파", "대파", "김치", "두부", "감자", "돼지고기", "애호박", "당근", "밥", "참치", "버섯", "햄", "소고기", "콩나물", "어묵", "토마토", "닭고기"];
+  function renderQuick() {
+    const left = QUICK.filter(q => !has(q)).slice(0, 12);
+    $("#quick").innerHTML = left.map(q => `<button type="button" data-q="${esc(q)}">+ ${esc(q)}</button>`).join("");
+  }
+  $("#quick").addEventListener("click", e => { const b = e.target.closest("[data-q]"); if (b) { addItems([b.dataset.q]); buzz(); } });
+  $("#addForm").addEventListener("submit", e => {
+    e.preventDefault();
+    const v = $("#addInput").value;
+    if (!v.trim()) return;
+    addItems(v.split(/[,，、\n]+/));
+    $("#addInput").value = ""; buzz();
+  });
+  $("#clearAll").addEventListener("click", () => {
+    items = []; photos = []; lset("fc-items", items); renderPhotos(); renderChips(); $("#results").hidden = true; $("#scanStatus").hidden = true;
+  });
+
+  /* ===================== options ===================== */
+  const opts = Object.assign({ time: "0", kind: "", serves: "2", model: "claude-opus-5-5" }, lget("fc-opts", {}));
+  function renderOpts() {
+    document.querySelectorAll("[data-opt]").forEach(g => g.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === opts[g.dataset.opt]))));
+  }
+  document.querySelectorAll("[data-opt]").forEach(g => g.addEventListener("click", e => {
+    const b = e.target.closest("button[data-v]"); if (!b) return;
+    opts[g.dataset.opt] = b.dataset.v; lset("fc-opts", opts); renderOpts(); buzz();
+  }));
+
+  /* ===================== photos ===================== */
+  const MAX_PHOTOS = 4, MAXDIM = 1568;
+  let photos = [];   // [{ url (object URL for the thumbnail), b64 (jpeg) }]
+  function addPhotoCanvas(src, w, h) {
+    const s = Math.min(1, MAXDIM / Math.max(w, h));
+    const c = document.createElement("canvas");
+    c.width = Math.round(w * s); c.height = Math.round(h * s);
+    c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
+    const dataUrl = c.toDataURL("image/jpeg", 0.85);
+    if (photos.length >= MAX_PHOTOS) photos.shift();
+    photos.push({ url: dataUrl, b64: dataUrl.split(",")[1] });
+    renderPhotos();
+  }
+  async function addFiles(files) {
+    for (const f of files) {
+      if (!f.type.startsWith("image/")) continue;
+      try {
+        const bmp = await createImageBitmap(f, { imageOrientation: "from-image" });
+        addPhotoCanvas(bmp, bmp.width, bmp.height); bmp.close && bmp.close();
+      } catch (e) {
+        await new Promise(res => { const img = new Image(); img.onload = () => { addPhotoCanvas(img, img.naturalWidth, img.naturalHeight); URL.revokeObjectURL(img.src); res(); };
+          img.onerror = () => { toast("사진을 열 수 없어요."); res(); }; img.src = URL.createObjectURL(f); });
+      }
+    }
+  }
+  function renderPhotos() {
+    const box = $("#photos");
+    box.hidden = !photos.length; $("#scanBtn").hidden = !photos.length;
+    $("#clearAll").hidden = !items.length && !photos.length;
+    box.innerHTML = photos.map((p, i) => `<div class="photo"><img src="${p.url}" alt="담은 사진 ${i + 1}"><button type="button" data-pdel="${i}" aria-label="사진 ${i + 1} 빼기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>`).join("");
+  }
+  $("#photos").addEventListener("click", e => { const b = e.target.closest("[data-pdel]"); if (b) { photos.splice(+b.dataset.pdel, 1); renderPhotos(); } });
+  $("#cameraInput").addEventListener("change", async e => { await addFiles(e.target.files); e.target.value = ""; });
+  $("#albumInput").addEventListener("change", async e => {
+    if (e.target.files.length > MAX_PHOTOS) toast(`사진은 ${MAX_PHOTOS}장까지 담겨요. 마지막 ${MAX_PHOTOS}장을 쓸게요.`);
+    await addFiles([...e.target.files].slice(-MAX_PHOTOS)); e.target.value = "";
+  });
+
+  /* in-app camera (Android app): opening the camera app often made Android close this one */
+  let camStream = null, camShots = 0;
+  async function openCamera() {
+    try {
+      camStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1440 } } });
+    } catch (e) { toast("카메라를 열 수 없어요. 설정에서 카메라 권한을 허용해 주세요."); return; }
+    const v = $("#camVideo"); v.srcObject = camStream; $("#cam").hidden = false; camShots = 0; $("#camCount").hidden = true;
+    await v.play().catch(() => {});
+    const track = camStream.getVideoTracks()[0], caps = (track.getCapabilities && track.getCapabilities()) || {};
+    $("#camTorch").hidden = !caps.torch; $("#camTorch").setAttribute("aria-pressed", "false");
+  }
+  function closeCamera() {
+    if (camStream) camStream.getTracks().forEach(t => t.stop());
+    camStream = null; $("#camVideo").srcObject = null; $("#cam").hidden = true;
+  }
+  $("#camClose").addEventListener("click", closeCamera);
+  $("#camTorch").addEventListener("click", async e => {
+    const b = e.currentTarget, on = b.getAttribute("aria-pressed") !== "true";
+    try { await camStream.getVideoTracks()[0].applyConstraints({ advanced: [{ torch: on }] }); b.setAttribute("aria-pressed", String(on)); } catch (err) {}
+  });
+  $("#camShutter").addEventListener("click", () => {
+    const v = $("#camVideo"); if (!v.videoWidth) return;
+    addPhotoCanvas(v, v.videoWidth, v.videoHeight); buzz("MEDIUM");
+    camShots++; $("#camCount").hidden = false; $("#camCount").textContent = `${camShots}장 찍었어요`;
+    if (photos.length >= MAX_PHOTOS && camShots >= MAX_PHOTOS) closeCamera();
+  });
+  if (native && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    const btn = $("#cameraBtn");
+    $("#cameraInput").remove();
+    btn.setAttribute("role", "button"); btn.tabIndex = 0;
+    btn.addEventListener("click", openCamera);
+    btn.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openCamera(); } });
+  }
+
+  /* ===================== Claude ===================== */
+  // the official SDK, bundled with the page (fridge/vendor/), so the AI never depends on a CDN
+  const SDK_URL = new URL("vendor/anthropic-sdk.mjs", location.href).href;
+  // a declined request is re-run server-side on Anthropic's recommended model instead of coming back as a refusal
+  const FALLBACK_BETA = "server-side-fallback-2026-07-01";
+  let apiKey = lget("fc-key", "");
+  let sdk = null;
+  async function client(key = apiKey) {
+    if (!sdk) sdk = (await import(SDK_URL)).default;
+    return new sdk({ apiKey: key, dangerouslyAllowBrowser: true, maxRetries: 2, timeout: 180000 });
+  }
+  let fallbackOk = true;
+  async function ask(params, key) {
+    const c = await client(key);
+    if (fallbackOk) {
+      try { return await c.beta.messages.create({ ...params, betas: [FALLBACK_BETA], fallbacks: "default" }); }
+      catch (e) { if (!(e && e.status === 400 && /fallback|beta/i.test(String(e.message)))) throw e; fallbackOk = false; }
+    }
+    return c.messages.create(params);
+  }
+  function aiError(e) {
+    const s = e && e.status, m = String((e && e.message) || e);
+    if (s === 401 || s === 403) return "API 키가 맞지 않아요. 설정에서 키를 다시 확인해 주세요.";
+    if (s === 400 && /credit|balance|billing/i.test(m)) return "Anthropic 계정의 크레딧이 부족해요. console.anthropic.com에서 충전해 주세요.";
+    if (s === 429) return "요청이 몰렸어요. 잠시 뒤에 다시 눌러 주세요.";
+    if (s >= 500) return "AI 서버가 바빠요. 잠시 뒤에 다시 눌러 주세요.";
+    if (/fetch|network|Failed to/i.test(m)) return "인터넷 연결을 확인하고 다시 눌러 주세요.";
+    return "AI가 답하지 못했어요. 다시 눌러 주세요.";
+  }
+  const textOf = msg => (msg.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+  function needKey(where) {
+    where.innerHTML = `<div class="note"><p>AI 셰프를 쓰려면 Anthropic API 키가 필요해요. 키는 이 폰에만 저장돼요.</p><p><button class="btn primary" type="button" data-open-settings>키 넣으러 가기</button></p></div>`;
+  }
+  document.addEventListener("click", e => { if (e.target.closest("[data-open-settings]")) openSettings(); });
+
+  /* photo → ingredients */
+  const SCAN_SCHEMA = { type: "object", additionalProperties: false, required: ["items"], properties: {
+    items: { type: "array", items: { type: "object", additionalProperties: false, required: ["name", "sure"], properties: {
+      name: { type: "string", description: "한국어로 흔히 부르는 짧은 재료 이름 (예: 계란, 대파, 돼지고기, 김치)" },
+      sure: { type: "boolean", description: "사진에서 분명히 보이면 true, 짐작이면 false" } } } } } };
+  $("#scanBtn").addEventListener("click", async () => {
+    const st = $("#scanStatus"); st.hidden = false;
+    if (!apiKey) { needKey(st); return; }
+    const btn = $("#scanBtn"); btn.disabled = true;
+    st.innerHTML = loading("사진 속 재료를 살펴보는 중이에요…");
+    try {
+      const msg = await ask({
+        model: opts.model, max_tokens: 4000, output_config: { effort: "low", format: { type: "json_schema", schema: SCAN_SCHEMA } },
+        system: "You look at photos of a fridge, a kitchen counter or groceries for a Korean home-cooking app and list the food ingredients you can see. " +
+          "Name each in short everyday Korean (계란, 양파, 대파, 돼지고기, 김치, 두부...), one entry per ingredient. Read labels on packages and jars when legible. " +
+          "Skip drinks, sauces and seasonings unless they are a main ingredient (e.g. 김치, 두부, 우유 are fine; 간장, 케첩 are not). Mark guesses with sure=false. Do not invent things you cannot see.",
+        messages: [{ role: "user", content: [
+          ...photos.map(p => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: p.b64 } })),
+          { type: "text", text: "이 사진들에 보이는 요리 재료를 알려 주세요." } ] }],
+      });
+      if (msg.stop_reason === "refusal") throw Object.assign(new Error("refusal"), { refusal: true });
+      const found = (JSON.parse(textOf(msg)).items || []);
+      const n = addItems(found.filter(f => f.sure).map(f => f.name), "photo", true) + addItems(found.filter(f => !f.sure).map(f => f.name), "photo", false);
+      buzz("MEDIUM");
+      st.innerHTML = found.length
+        ? `<p class="small muted">${n ? `${n}가지 재료를 담았어요.` : "이미 담긴 재료들이에요."} 노란 재료는 짐작이니 아니면 빼 주세요.</p>`
+        : `<p class="small muted">재료를 찾지 못했어요. 더 가까이, 밝은 곳에서 찍어 보거나 직접 적어 주세요.</p>`;
+    } catch (e) {
+      st.innerHTML = `<div class="note warn">${esc(e && e.refusal ? "이 사진으로는 재료를 찾을 수 없대요. 다른 사진으로 해 보세요." : aiError(e))}</div>`;
+    } finally { btn.disabled = false; }
+  });
+
+  /* ===================== recommend ===================== */
+  function localMatches() {
+    const t = +opts.time, kind = opts.kind;
+    return window.FRIDGE_RECIPES.map(r => {
+      const need = r.main.filter(m => !m[2]);
+      const haveNeed = need.filter(m => has(m[0]));
+      const haveOpt = r.main.filter(m => m[2] && has(m[0]));
+      return { r, missing: need.filter(m => !has(m[0])).map(m => m[0]), have: [...haveNeed, ...haveOpt].map(m => m[0]), score: haveNeed.length / need.length + haveOpt.length * 0.05 };
+    }).filter(x => x.have.length && x.missing.length <= 1 && (!t || x.r.time <= t) && (!kind || x.r.cat === kind))
+      .sort((a, b) => a.missing.length - b.missing.length || b.score - a.score).slice(0, 8);
+  }
+  function renderLocal() {
+    const list = localMatches(), box = $("#localMenus");
+    if (!list.length) { box.innerHTML = `<p class="muted small">담긴 재료로 만들 수 있는 기본 레시피가 아직 없어요. 재료를 더 담아 보세요.</p>`; return; }
+    box.innerHTML = list.map((x, i) => `<button class="menu" type="button" data-local="${x.r.id}" style="animation-delay:${i * 40}ms">
+      <span class="menu-top"><span class="menu-name">${esc(x.r.name)}</span><span class="menu-meta num">${x.r.time}분 · ${esc(x.r.level)}</span></span>
+      <span class="have-list">${x.missing.length ? `<span class="miss">${esc(x.missing[0])}만 있으면 돼요</span> · ` : "<b>지금 바로 만들 수 있어요</b> · "}${x.have.map(esc).join(", ")}</span></button>`).join("");
+  }
+  $("#localMenus").addEventListener("click", e => { const b = e.target.closest("[data-local]"); if (b) openLocal(b.dataset.local); });
+
+  const MENU_SCHEMA = { type: "object", additionalProperties: false, required: ["menus"], properties: {
+    menus: { type: "array", items: { type: "object", additionalProperties: false, required: ["name", "why", "minutes", "level", "uses", "missing", "kind"], properties: {
+      name: { type: "string", description: "널리 알려진 요리 이름 (검색하면 레시피가 나오는 이름)" },
+      why: { type: "string", description: "이 메뉴를 고른 이유 한 문장, 해요체" },
+      minutes: { type: "integer" }, level: { type: "string", enum: ["쉬움", "보통", "어려움"] },
+      uses: { type: "array", items: { type: "string" }, description: "가진 재료 중 쓰는 것" },
+      missing: { type: "array", items: { type: "string" }, description: "더 필요한 재료 (기본 양념 제외)" },
+      kind: { type: "string", enum: ["밥", "국·찌개", "반찬", "메인", "면", "간식·안주", "기타"] } } } } } };
+  let aiMenus = [];
+  async function recommendAI() {
+    const box = $("#aiMenus");
+    if (!apiKey) { needKey(box); return; }
+    const names = items.map(i => i.name + (i.sure ? "" : "(짐작)"));
+    box.innerHTML = loading("셰프가 메뉴를 고르는 중이에요…");
+    try {
+      const msg = await ask({
+        model: opts.model, max_tokens: 6000, output_config: { effort: "low", format: { type: "json_schema", schema: MENU_SCHEMA } },
+        system: "당신은 한국 가정 요리 앱 '냉장고 셰프'의 셰프예요. 사용자가 가진 재료로 오늘 해 먹을 메뉴 5가지를 골라요. " +
+          "가진 재료를 최대한 많이 쓰고, 새로 사야 할 재료는 메뉴마다 0~2개, 동네 마트에서 흔히 파는 것만 고르세요. " +
+          "소금, 설탕, 간장, 고추장, 된장, 고춧가루, 식용유, 참기름, 다진 마늘, 후추, 깨, 식초 같은 기본 양념은 있다고 봐요. " +
+          "실제로 널리 알려진 요리(검색하면 믿을 만한 레시피가 나오는 이름)만 고르고, 서로 겹치지 않게 다양하게 골라요. '(짐작)'이 붙은 재료는 없을 수도 있어요.",
+        messages: [{ role: "user", content: `가진 재료: ${names.join(", ")}\n원하는 조건: ${+opts.time ? `${opts.time}분 안에` : "시간 상관없음"}, ${opts.kind || "종류 상관없음"}, ${opts.serves}인분` }],
+      });
+      if (msg.stop_reason === "refusal") throw Object.assign(new Error("refusal"), { refusal: true });
+      aiMenus = JSON.parse(textOf(msg)).menus || [];
+      lset("fc-last-menus", { at: Date.now(), menus: aiMenus, items: items.map(i => i.name) });
+      renderAI();
+    } catch (e) {
+      box.innerHTML = `<div class="note warn"><p>${esc(e && e.refusal ? "이 요청에는 답할 수 없대요. 재료를 바꿔 다시 해 보세요." : aiError(e))}</p><p><button class="btn" type="button" id="retryAI">다시 추천받기</button></p></div>`;
+      $("#retryAI").addEventListener("click", recommendAI);
+    }
+  }
+  function renderAI() {
+    const box = $("#aiMenus");
+    if (!aiMenus.length) { box.innerHTML = `<p class="muted small">추천할 메뉴를 찾지 못했어요. 재료를 더 담아 보세요.</p>`; return; }
+    box.innerHTML = aiMenus.map((m, i) => `<button class="menu" type="button" data-ai="${i}" style="animation-delay:${i * 50}ms">
+      <span class="menu-top"><span class="menu-name">${esc(m.name)}</span><span class="menu-meta num">${m.minutes}분 · ${esc(m.level)}</span></span>
+      <span class="menu-why">${esc(m.why)}</span>
+      <span class="have-list">${m.uses.length ? `<b>${m.uses.map(esc).join(", ")}</b>` : ""}${m.missing.length ? `${m.uses.length ? " · " : ""}<span class="miss">더 필요: ${m.missing.map(esc).join(", ")}</span>` : ""}</span></button>`).join("");
+  }
+  $("#aiMenus").addEventListener("click", e => { const b = e.target.closest("[data-ai]"); if (b) openAI(aiMenus[+b.dataset.ai]); });
+  $("#recommendBtn").addEventListener("click", () => {
+    if (!items.length) { toast(photos.length ? "먼저 「사진 속 재료 찾기」를 눌러 주세요." : "재료를 하나 이상 담아 주세요."); $("#addInput").focus(); return; }
+    buzz("MEDIUM");
+    $("#results").hidden = false;
+    renderLocal(); recommendAI();
+    setTimeout(() => $("#results").scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  });
+
+  /* ===================== recipe sheet ===================== */
+  let current = null;   // the recipe on screen (a plain object that can be saved and shared)
+  let saved = lget("fc-saved", []);
+  const cache = lget("fc-cache", {});
+  const keyOf = (name, serves) => `${clean(name)}|${serves}`;
+  const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch (e) { return ""; } };
+
+  function ingRow(name, amount) {
+    const cls = has(name) ? "" : isPantry(name) ? " pantry" : " miss";
+    return `<li><span><span class="mark${cls}"></span>${esc(name)}</span><span class="amt">${esc(amount || "")}</span></li>`;
+  }
+  function renderRecipe(r) {
+    current = r;
+    const savedNow = saved.some(s => s.key === r.key);
+    $("#saveBtn").hidden = false; $("#shareBtn").hidden = false;
+    $("#saveBtn").setAttribute("aria-pressed", String(savedNow)); $("#saveBtn").setAttribute("aria-label", savedNow ? "저장 취소" : "저장");
+    $("#saveBtn").querySelector("path").setAttribute("fill", savedNow ? "currentColor" : "none");
+    const src = r.sources && r.sources.length
+      ? `<ul class="sources">${r.sources.map(s => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener"><span class="src-title">${esc(s.title || s.url)}</span><span class="src-host">${esc(hostOf(s.url))}</span>${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ""}</a></li>`).join("")}</ul>`
+      : "";
+    $("#recipe").innerHTML = `
+      <div class="recipe-head">
+        <p class="eyebrow">${r.builtin ? "앱에 담긴 기본 레시피" : "출처를 비교해 정리한 레시피"}</p>
+        <h2 id="recipeTitle">${esc(r.name)}</h2>
+        ${r.intro ? `<p class="muted">${esc(r.intro)}</p>` : ""}
+        <div class="facts">${r.minutes ? `<span class="fact num">${r.minutes}분</span>` : ""}${r.serves ? `<span class="fact num">${r.serves}인분</span>` : ""}${r.level ? `<span class="fact">${esc(r.level)}</span>` : ""}</div>
+      </div>
+      <div class="card">
+        <h3>재료</h3>
+        <div class="legend"><span><span class="mark" style="background:var(--accent)"></span>있어요</span><span><span class="mark" style="background:var(--tomato)"></span>필요해요</span><span><span class="mark" style="background:var(--rule)"></span>기본 양념</span></div>
+        <ul class="ing">${r.ingredients.map(i => ingRow(i.name, i.amount)).join("")}</ul>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>만드는 법</h3><span class="small muted">끝낸 단계는 눌러서 표시해요</span></div>
+        <ol class="steps" id="steps">${r.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>
+      </div>
+      ${r.tips && r.tips.length ? `<div class="card"><h3>셰프의 팁</h3><ul class="tips">${r.tips.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>` : ""}
+      <div class="card">
+        <h3>출처</h3>
+        ${r.builtin
+          ? `<p class="small muted">널리 쓰이는 가정식 비율로 정리한 레시피예요. 다른 사람들의 레시피와 후기도 함께 보세요.</p>
+             <div class="row"><a class="btn" href="https://www.10000recipe.com/recipe/list.html?q=${encodeURIComponent(r.name)}" target="_blank" rel="noopener">만개의레시피에서 보기</a>
+             <button class="btn primary" type="button" id="findSourced">출처 있는 레시피 찾기</button></div>`
+          : `<p class="small muted">아래 레시피들을 비교해 공통된 재료 비율과 순서로 정리했어요. 정확한 내용은 원문에서 확인해 주세요.</p>${src}`}
+      </div>
+      <label class="switch card" style="display:flex"><span>요리하는 동안 화면 켜 두기</span><input type="checkbox" id="awake" ${lget("fc-awake", true) ? "checked" : ""}></label>
+      <div id="recipeMore"></div>`;
+    const f = $("#findSourced"); if (f) f.addEventListener("click", () => openAI({ name: r.name, missing: [], uses: [] }, true));
+    $("#awake").addEventListener("change", e => { lset("fc-awake", e.target.checked); e.target.checked ? keepAwake() : releaseAwake(); });
+    if (lget("fc-awake", true)) keepAwake();
+  }
+  $("#recipe").addEventListener("click", e => { const li = e.target.closest("#steps li"); if (li) { li.classList.toggle("done"); buzz(); } });
+
+  function showSheet() {
+    const s = $("#sheet");
+    if (s.hidden) { s.hidden = false; document.body.style.overflow = "hidden"; $("#app").inert = true; $(".tabbar").inert = true; }
+    s.scrollTop = 0; $("#sheetClose").focus({ preventScroll: true });
+  }
+  function closeSheet() {
+    $("#sheet").hidden = true; document.body.style.overflow = ""; $("#app").inert = false; $(".tabbar").inert = false; current = null; releaseAwake();
+  }
+  $("#sheetClose").addEventListener("click", closeSheet);
+
+  function openLocal(id) {
+    const r = window.FRIDGE_RECIPES.find(x => x.id === id);
+    if (!r) return;
+    renderRecipe({ key: "local:" + r.id, builtin: true, name: r.name, minutes: r.time, level: r.level, serves: 2,
+      ingredients: [...r.main.map(m => ({ name: m[0], amount: m[1] + (m[2] ? " (있으면)" : "") })), ...r.sauce.map(s => ({ name: s[0], amount: s[1] }))],
+      steps: r.steps, tips: r.tip ? [r.tip] : [] });
+    showSheet();
+  }
+
+  /* recipe with web search: Claude looks up reliable recipes and returns them with their sources */
+  let recipeReq = 0;
+  async function openAI(menu, fromBuiltin = false) {
+    const serves = +opts.serves || 2, key = keyOf(menu.name, serves);
+    const hit = cache[key] || saved.find(s => s.key === key);
+    if (hit) { renderRecipe(hit); if (!fromBuiltin) showSheet(); return; }
+    if (!fromBuiltin) {
+      current = null; $("#saveBtn").hidden = true; $("#shareBtn").hidden = true;
+      $("#recipe").innerHTML = `<div class="recipe-head"><p class="eyebrow">레시피 찾는 중</p><h2 id="recipeTitle">${esc(menu.name)}</h2>${menu.why ? `<p class="muted">${esc(menu.why)}</p>` : ""}</div><div id="recipeMore"></div>`;
+      showSheet();
+    }
+    const more = $("#recipeMore");
+    if (!apiKey) { needKey(more); return; }
+    const my = ++recipeReq;
+    more.innerHTML = loading("믿을 만한 레시피를 찾아 비교하는 중이에요. 30초쯤 걸려요…");
+    more.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    try {
+      const r = await fetchRecipe(menu, serves);
+      if (my !== recipeReq || $("#sheet").hidden) return;
+      r.key = key; cache[key] = r;
+      // keep the 30 most recent lookups so reopening one costs nothing
+      const keys = Object.keys(cache); if (keys.length > 30) delete cache[keys[0]];
+      lset("fc-cache", cache);
+      buzz("MEDIUM");
+      renderRecipe(r);
+      if (fromBuiltin) $("#sheet").scrollTop = 0;
+    } catch (e) {
+      if (my !== recipeReq) return;
+      more.innerHTML = `<div class="note warn"><p>${esc(e && e.refusal ? "이 요리는 레시피를 찾을 수 없대요." : e && e.parse ? "레시피를 정리하지 못했어요. 다시 눌러 주세요." : aiError(e))}</p><p><button class="btn" type="button" id="retryRecipe">다시 찾기</button></p></div>`;
+      $("#retryRecipe").addEventListener("click", () => openAI(menu, true));
+    }
+  }
+  async function fetchRecipe(menu, serves) {
+    const mine = items.map(i => i.name).join(", ") || "(없음)";
+    const system = "당신은 한국 가정 요리 앱 '냉장고 셰프'의 레시피 담당이에요. 웹 검색으로 요청한 요리의 믿을 만한 레시피를 찾아 정리해요.\n" +
+      "- 믿을 만한 출처를 먼저 찾아요: 농촌진흥청·농식품올바로 같은 공공기관, 식품회사 공식 레시피, 이름난 요리 연구가·셰프의 공식 채널이나 책, 만개의레시피에서 후기와 조회가 많은 레시피, 요리 전문 매체. 개인 블로그는 다른 출처와 내용이 맞을 때만 참고해요.\n" +
+      "- 두 곳 이상을 비교해 공통된 재료 비율과 순서를 따르고, 출처에 없는 분량이나 과정을 지어내지 않아요.\n" +
+      `- 분량은 ${serves}인분으로 맞추고, 숟가락(밥숟가락)·컵(200ml)·g·개 단위로 적어요.\n` +
+      "- 만드는 법은 한 단계에 한 동작씩, 불 세기와 시간을 함께 적어요. 해요체로 써요.\n" +
+      "- 답은 마지막에 ```json 코드 블록 하나로만 주세요. 형식:\n" +
+      '{"name": "요리 이름", "intro": "한 문장 소개", "minutes": 25, "level": "쉬움|보통|어려움", "serves": ' + serves + ', ' +
+      '"ingredients": [{"name": "재료", "amount": "분량"}], "steps": ["단계"], "tips": ["팁"], ' +
+      '"sources": [{"title": "출처 제목", "url": "실제로 읽은 페이지 주소", "note": "이 출처에서 참고한 점"}]}';
+    const messages = [{ role: "user", content: `요리: ${menu.name}\n내가 가진 재료: ${mine}\n이 재료를 쓰는 방향으로 맞추되, 레시피의 기본은 출처를 따라 주세요.` }];
+    const params = { model: opts.model, max_tokens: 16000, output_config: { effort: "medium" }, system,
+      tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 5, user_location: { type: "approximate", country: "KR", timezone: "Asia/Seoul" } }] };
+    const seen = new Map();   // url → title, from the search results the model actually got
+    let msg, text = "";
+    for (let turn = 0; turn < 4; turn++) {
+      msg = await ask({ ...params, messages });
+      if (msg.stop_reason === "refusal") throw Object.assign(new Error("refusal"), { refusal: true });
+      for (const b of msg.content || []) {
+        if (b.type === "web_search_tool_result" && Array.isArray(b.content)) for (const s of b.content) if (s.url) seen.set(s.url, s.title || "");
+        if (b.type === "text" && Array.isArray(b.citations)) for (const c of b.citations) if (c.url && !seen.has(c.url)) seen.set(c.url, c.title || "");
+      }
+      text += textOf(msg);
+      if (msg.stop_reason !== "pause_turn") break;
+      // the server paused a long search loop: send its turn back and it carries on
+      messages.push({ role: "assistant", content: msg.content });
+    }
+    const fenced = [...text.matchAll(/```json\s*([\s\S]*?)```/gi)].pop();
+    const m = fenced || /(\{[\s\S]*\})/.exec(text);
+    let r;
+    try { r = JSON.parse(m[1]); } catch (e) { throw Object.assign(new Error("parse"), { parse: true }); }
+    if (!r || !Array.isArray(r.ingredients) || !Array.isArray(r.steps) || !r.steps.length) throw Object.assign(new Error("parse"), { parse: true });
+    // only links that came out of the search: never a page the model made up
+    const norm = u => String(u).replace(/[#?].*$/, "").replace(/\/$/, "");
+    const real = new Map([...seen].map(([u, t]) => [norm(u), { url: u, title: t }]));
+    let sources = (r.sources || []).filter(s => s && real.has(norm(s.url))).map(s => ({ url: real.get(norm(s.url)).url, title: s.title || real.get(norm(s.url)).title, note: s.note || "" }));
+    if (!sources.length) sources = [...seen].slice(0, 3).map(([url, title]) => ({ url, title, note: "검색에서 찾은 레시피" }));
+    return { builtin: false, name: r.name || menu.name, intro: r.intro || "", minutes: r.minutes || menu.minutes, level: r.level || menu.level, serves: r.serves || serves,
+      ingredients: r.ingredients.filter(i => i && i.name).map(i => ({ name: String(i.name), amount: String(i.amount || "") })),
+      steps: r.steps.map(String), tips: (r.tips || []).map(String), sources, at: Date.now() };
+  }
+
+  /* save and share */
+  function renderSaved() {
+    $("#savedCount").hidden = !saved.length; $("#savedCount").textContent = saved.length;
+    const box = $("#savedList");
+    if (!saved.length) {
+      box.innerHTML = `<div class="empty"><svg viewBox="150 50 212 380" aria-hidden="true"><rect x="172" y="146" width="168" height="250" rx="30" fill="var(--surface-2)"/><path d="M172 228 H340" stroke="var(--rule)" stroke-width="6"/><circle cx="226" cy="300" r="10" fill="var(--muted)"/><circle cx="276" cy="300" r="10" fill="var(--muted)"/><path d="M238 330 Q251 322 264 330" fill="none" stroke="var(--muted)" stroke-width="6" stroke-linecap="round"/></svg>
+        <p>아직 저장한 레시피가 없어요.<br>마음에 드는 레시피에서 책갈피를 눌러 보세요.</p></div>`;
+      return;
+    }
+    box.innerHTML = saved.slice().reverse().map(s => `<button class="menu" type="button" data-saved="${esc(s.key)}">
+      <span class="menu-top"><span class="menu-name">${esc(s.name)}</span><span class="menu-meta num">${s.minutes ? s.minutes + "분" : ""}${s.serves ? ` · ${s.serves}인분` : ""}</span></span>
+      <span class="have-list">${s.builtin ? "기본 레시피" : `출처 ${s.sources.length}곳 · ${esc(s.sources.map(x => hostOf(x.url)).filter((h, i, a) => h && a.indexOf(h) === i).slice(0, 2).join(", "))}`}</span></button>`).join("");
+  }
+  $("#savedList").addEventListener("click", e => {
+    const b = e.target.closest("[data-saved]"); if (!b) return;
+    const r = saved.find(s => s.key === b.dataset.saved); if (r) { renderRecipe(r); showSheet(); }
+  });
+  $("#saveBtn").addEventListener("click", () => {
+    if (!current) return;
+    const i = saved.findIndex(s => s.key === current.key);
+    if (i >= 0) { saved.splice(i, 1); toast("저장을 취소했어요."); }
+    else { saved.push(current); toast("저장했어요. 아래 「저장」에서 다시 볼 수 있어요."); }
+    lset("fc-saved", saved); renderSaved(); buzz("MEDIUM");
+    renderRecipe(current);
+  });
+  function recipeText(r) {
+    return [`[${r.name}] ${r.serves ? r.serves + "인분" : ""}${r.minutes ? " · " + r.minutes + "분" : ""}`, "",
+      "재료", ...r.ingredients.map(i => `- ${i.name} ${i.amount}`), "",
+      "만드는 법", ...r.steps.map((s, i) => `${i + 1}. ${s}`),
+      ...(r.tips && r.tips.length ? ["", "팁", ...r.tips.map(t => `- ${t}`)] : []),
+      ...(r.sources && r.sources.length ? ["", "출처", ...r.sources.map(s => `- ${s.title} ${s.url}`)] : []),
+      "", "냉장고 셰프에서 보냈어요"].join("\n");
+  }
+  $("#shareBtn").addEventListener("click", async () => {
+    if (!current) return;
+    const text = recipeText(current);
+    try {
+      if (native) await ncall("Share", "share", { title: current.name, text, dialogTitle: "레시피 보내기" });
+      else if (navigator.share) await navigator.share({ title: current.name, text });
+      else { await navigator.clipboard.writeText(text); toast("레시피를 복사했어요."); }
+    } catch (e) { /* closed the share sheet */ }
+  });
+
+  /* keep the screen on while a recipe is open (Android app) */
+  let awake = null;
+  async function keepAwake() {
+    if (native) { ncall("ChefScreen", "keepOn").catch(() => {}); return; }
+    try { if ("wakeLock" in navigator && !awake) { awake = await navigator.wakeLock.request("screen"); awake.addEventListener("release", () => { awake = null; }); } } catch (e) {}
+  }
+  function releaseAwake() {
+    if (native) { ncall("ChefScreen", "allowOff").catch(() => {}); return; }
+    if (awake) { awake.release().catch(() => {}); awake = null; }
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && current && lget("fc-awake", true)) keepAwake(); });
+
+  /* ===================== settings ===================== */
+  function openSettings() {
+    $("#keyInput").value = apiKey; $("#keyStatus").textContent = apiKey ? "키가 저장되어 있어요." : "";
+    renderOpts(); $("#settings").showModal();
+  }
+  $("#settingsBtn").addEventListener("click", openSettings);
+  $("#keySave").addEventListener("click", () => {
+    apiKey = $("#keyInput").value.trim(); lset("fc-key", apiKey || null);
+    if (apiKey) toast("키를 저장했어요. 이제 AI 셰프를 쓸 수 있어요.");
+  });
+  $("#keyRemove").addEventListener("click", () => { $("#keyInput").value = ""; apiKey = ""; lset("fc-key", null); $("#keyStatus").textContent = "키를 지웠어요."; });
+  $("#keyTest").addEventListener("click", async () => {
+    const k = $("#keyInput").value.trim(), st = $("#keyStatus");
+    if (!k) { st.textContent = "키를 먼저 붙여 넣어 주세요."; return; }
+    st.textContent = "확인하는 중이에요…";
+    try {
+      await ask({ model: opts.model, max_tokens: 64, output_config: { effort: "low" }, messages: [{ role: "user", content: "'좋아요' 한 마디로만 답해 주세요." }] }, k);
+      st.textContent = "키가 잘 작동해요. 「저장」을 눌러 주세요.";
+    } catch (e) { st.textContent = aiError(e); }
+  });
+
+  /* ===================== app update (Android app): a newer APK on the GitHub release → install in place ===================== */
+  const RELEASE_API = "https://api.github.com/repos/YoSebChoi/YoSebChoi/releases/tags/fridge-apk";
+  let lastCheck = 0;
+  async function checkAppUpdate() {
+    if (!native || Date.now() - lastCheck < 10 * 60 * 1000 || $("#appUpdate").open) return;
+    lastCheck = Date.now();
+    try {
+      const info = await ncall("App", "getInfo");
+      const cur = parseInt(info && info.build, 10) || 0;
+      const res = await fetch(RELEASE_API, { cache: "no-store", headers: { Accept: "application/vnd.github+json" } });
+      if (!res.ok) return;
+      const rel = await res.json();
+      const m = /빌드\s*(\d+)/.exec(rel.body || ""), latest = m ? +m[1] : 0;
+      const apk = (rel.assets || []).find(a => a.name === "fridge-chef.apk");
+      if (!apk || latest <= cur) return;
+      showAppUpdate(apk.browser_download_url);
+    } catch (e) { /* offline or rate-limited: try again next time */ }
+  }
+  function showAppUpdate(url) {
+    const dlg = $("#appUpdate"), go = $("#appUpdateGo"), text = $("#appUpdateText"), bar = $("#appUpdateBar");
+    text.textContent = "업데이트해도 저장한 레시피와 설정은 그대로 남아요. 설치 화면이 뜨면 「업데이트」를 눌러 주세요.";
+    bar.hidden = true; go.disabled = false; go.textContent = "지금 업데이트";
+    dlg.showModal();
+    $("#appUpdateLater").onclick = () => dlg.close();
+    go.onclick = async () => {
+      go.disabled = true; go.textContent = "받는 중…"; bar.hidden = false;
+      let sub = null;
+      try {
+        sub = await nlisten("ChefUpdate", "progress", p => {
+          if (p && p.percent >= 0) { bar.firstElementChild.style.width = p.percent + "%"; go.textContent = `받는 중… ${p.percent}%`; }
+        });
+        const r = await ncall("ChefUpdate", "install", { url });
+        if (r && r.needsPermission) {
+          text.textContent = "처음 한 번만, 열린 설정 화면에서 「이 출처 허용」을 켜고 돌아와 다시 눌러 주세요.";
+          bar.hidden = true; go.disabled = false; go.textContent = "지금 업데이트";
+        } else {
+          text.textContent = "설치 화면에서 「업데이트」를 누르면 끝나요. 앱이 잠깐 닫혔다가 새 버전으로 열려요.";
+          go.textContent = "설치 화면 열림";
+        }
+      } catch (e) {
+        text.textContent = "새 버전을 받지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.";
+        bar.hidden = true; go.disabled = false; go.textContent = "다시 시도";
+      } finally { try { sub && sub.remove && sub.remove(); } catch (e) {} }
+    };
+  }
+
+  /* ===================== tabs and back button ===================== */
+  function showTab(name) {
+    for (const t of ["cook", "saved"]) { $("#panel-" + t).hidden = t !== name; $("#tab-" + t).setAttribute("aria-selected", String(t === name)); }
+    window.scrollTo({ top: 0 });
+  }
+  document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => { showTab(b.dataset.tab); buzz(); }));
+  addEventListener("keydown", e => { if (e.key === "Escape" && !$("#sheet").hidden && !document.querySelector("dialog[open]")) closeSheet(); });
+  if (native) {
+    // back: close what is open first, then go back to 추천, then leave the app running in the background
+    nlisten("App", "backButton", () => {
+      if (!$("#toast").hidden) $("#toast").hidden = true;
+      if (!$("#cam").hidden) { closeCamera(); return; }
+      const open = document.querySelector("dialog[open]");
+      if (open) { open.close(); return; }
+      if (!$("#sheet").hidden) { closeSheet(); return; }
+      if (!$("#panel-saved").hidden) { showTab("cook"); return; }
+      ncall("App", "minimizeApp").catch(() => {});
+    });
+    nlisten("App", "resume", () => checkAppUpdate());
+  }
+
+  /* ===================== start ===================== */
+  (() => {
+    const d = new Date(), h = d.getHours();
+    const meal = h < 10 ? "아침" : h < 15 ? "점심" : h < 21 ? "저녁" : "야식";
+    $("#today").textContent = `${d.getMonth() + 1}월 ${d.getDate()}일 ${"일월화수목금토"[d.getDay()]}요일 · 오늘 ${meal} 뭐 먹지?`;
+  })();
+  renderOpts(); renderChips(); renderPhotos(); renderSaved();
+  const last = lget("fc-last-menus", null);
+  // the last recommendation stays for a day, if the ingredients have not changed since
+  if (last && Date.now() - last.at < 864e5 && last.items.join() === items.map(i => i.name).join() && last.menus.length) {
+    aiMenus = last.menus; $("#results").hidden = false; renderAI(); renderLocal();
+  }
+  $("#versionLine").textContent = "화면 버전 10c50aff";
+  $("#aboutVersion").textContent = "화면 버전 10c50aff";
+  if (native) ncall("App", "getInfo").then(i => { if (i && i.version) { $("#aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 10c50aff`; } }).catch(() => {});
+  setTimeout(checkAppUpdate, 2600);   // after the splash
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+})();
+</script>
+
+<script>
+// offline copy for the browser; the Android app (fridge-app/) always loads the live page so the native bridge is injected
+(() => {
+  if (!("serviceWorker" in navigator)) return;
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+    return;
+  }
+  addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+})();
+</script>
+</body>
+</html>
