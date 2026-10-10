@@ -516,6 +516,7 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     <div class="seg" role="group" aria-label="스타일" id="searchCu">
       <button type="button" data-v="" aria-pressed="true">전체</button><button type="button" data-v="한식">한식</button><button type="button" data-v="중식">중식</button><button type="button" data-v="일식">일식</button><button type="button" data-v="양식">양식</button><button type="button" data-v="세계">세계 요리</button>
     </div>
+    <label class="switch only-now"><span><b>지금 있는 재료로만</b><span class="small muted">냉장고 재료로 바로 만들 수 있는 레시피만 찾아요</span></span><input type="checkbox" id="searchNow"></label>
     <p class="small muted" id="searchInfo"></p>
     <div id="searchList" class="menus"></div>
     <button class="btn" id="searchMore" type="button" hidden>더 보기</button>
@@ -1105,13 +1106,16 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   }
   // 「칵테일새우」 counts as 새우 and 「다진 돼지고기」 as 돼지고기
   const strip = n => clean(n).replace(/^(다진|저염|무염|냉동|생|손질한|삶은|데친|볶은|건|말린)/, "");
+  // names that contain another ingredient's name but are not the same thing (두부 is no 순두부)
+  const NOT_SAME = { "순두부": ["두부"], "쌀국수": ["국수"], "토마토소스": ["토마토"], "땅콩버터": ["땅콩", "버터"], "햄버거빵": ["햄"], "오징어채": ["오징어"],
+    "메추리알": ["계란"], "콩나물": ["콩"], "숙주": ["콩나물"], "고추장": ["고추"], "고춧가루": ["고추"], "대파": ["쪽파"], "쪽파": ["대파"], "닭가슴살": [], "카레가루": [], "부침가루": ["밀가루"], "빵가루": ["식빵", "빵"] };
   // the fridge item that covers a recipe ingredient: 「칵테일새우」 → 새우, 「양상추 또는 상추」 → either
   function matchItem(name) {
     if (/\s또는\s/.test(name)) { for (const a of name.split(/\s*또는\s*/)) { const it = matchItem(a); if (it) return it; } return null; }
     const k = canon(name), it = items.find(i => canon(i.name) === k);
     if (it) return it;
-    const b = strip(name);
-    return items.find(i => { const a = strip(i.name), ca = canon(i.name); return (a.length >= 2 && b.includes(a)) || (b.length >= 2 && a.includes(b)) || (ca.length >= 2 && b.includes(ca)); }) || null;
+    const b = strip(name), apart = NOT_SAME[b] || [];
+    return items.find(i => { const a = strip(i.name), ca = canon(i.name); if (apart.includes(a) || apart.includes(ca) || (NOT_SAME[a] || []).includes(b)) return false; return (a.length >= 2 && b.includes(a)) || (b.length >= 2 && a.includes(b)) || (ca.length >= 2 && b.includes(ca)); }) || null;
   }
   function hasLoose(name) { return !!matchItem(name); }
   const mains = r => r.ings.filter(i => !i.opt && !isPantry(i.name));
@@ -1721,7 +1725,7 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   $("#stampCard").addEventListener("click", e => { const b = e.target.closest("[data-cooked]"); if (b) { const c = cooked[+b.dataset.cooked]; renderRecipe(c.r); showSheet(); } });
 
   /* ===================== search ===================== */
-  let sQuery = "", sCu = "", sShown = 20, sTimer = null;
+  let sQuery = "", sCu = "", sShown = 20, sTimer = null, sNow = !!lget("fc-search-now", false);
   function searchResults() {
     const q = clean(sQuery), out = [];
     for (const r of RECIPES) {
@@ -1730,6 +1734,7 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
       let rank = 3;
       if (q) { const n = clean(r.name); rank = n.startsWith(q) ? 0 : n.includes(q) ? 1 : r.ings.some(i => clean(i.name).includes(q)) ? 2 : -1; if (rank < 0) continue; }
       const m = mains(r), have = m.filter(i => hasLoose(i.name)).map(i => i.name), missing = m.filter(i => !hasLoose(i.name)).map(i => i.name);
+      if (sNow && (missing.length || !have.length)) continue;
       out.push({ r, rank, have, missing, oldUsed: [], score: have.length / Math.max(1, m.length) });
     }
     return out.sort((a, b) => a.rank - b.rank || (a.r.src === "builtin" ? 0 : 1) - (b.r.src === "builtin" ? 0 : 1) || a.missing.length - b.missing.length || b.score - a.score);
@@ -1738,14 +1743,19 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     const list = searchResults(), q = sQuery.trim();
     $("#searchCu").querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === sCu)));
     const ex = exLabels();
-    $("#searchInfo").textContent = (q ? `「${q}」 ${list.length.toLocaleString()}가지` : `레시피 ${list.length.toLocaleString()}가지 · 앱에 담긴 레시피, 지금 재료로 만들기 쉬운 순`) + (ex.length ? ` · ${ex.join(", ")} 빼고` : "");
+    $("#searchNow").checked = sNow;
+    $("#searchInfo").textContent = (q ? `「${q}」 ${sNow ? "바로 만들 수 있는 " : ""}${list.length.toLocaleString()}가지` : sNow ? `지금 재료로 바로 만들 수 있는 레시피 ${list.length.toLocaleString()}가지` : `레시피 ${list.length.toLocaleString()}가지 · 앱에 담긴 레시피, 지금 재료로 만들기 쉬운 순`) + (ex.length ? ` · ${ex.join(", ")} 빼고` : "");
     $("#searchMore").hidden = list.length <= sShown;
-    $("#searchList").innerHTML = list.length ? list.slice(0, sShown).map(menuCard).join("") : `<p class="muted small">찾는 레시피가 없어요. 다른 이름이나 재료로 찾아보세요.</p>`;
+    $("#searchList").innerHTML = list.length ? list.slice(0, sShown).map(menuCard).join("")
+      : sNow && !items.length ? `<div class="note"><p>냉장고 탭에서 재료를 담으면 그 재료로 바로 만들 수 있는 레시피를 찾아 드려요.</p><p><button class="btn primary" type="button" data-go="fridge">재료 담으러 가기</button></p></div>`
+      : sNow ? `<p class="muted small">지금 재료만으로 만들 수 있는 레시피가 없어요. 「지금 있는 재료로만」을 끄면 재료가 조금 더 필요한 레시피도 보여요.</p>`
+      : `<p class="muted small">찾는 레시피가 없어요. 다른 이름이나 재료로 찾아보세요.</p>`;
   }
   $("#searchInput").addEventListener("input", e => { sQuery = e.target.value; sShown = 20; clearTimeout(sTimer); sTimer = setTimeout(renderSearch, 180); });
   $("#searchForm").addEventListener("submit", e => { e.preventDefault(); $("#searchInput").blur(); renderSearch(); });
   $("#searchCu").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { sCu = b.dataset.v; sShown = 20; renderSearch(); buzz(); } });
   $("#searchMore").addEventListener("click", () => { sShown += 20; renderSearch(); });
+  $("#searchNow").addEventListener("change", e => { sNow = e.target.checked; lset("fc-search-now", sNow); sShown = 20; renderSearch(); buzz(); });
   $("#searchList").addEventListener("click", e => { const b = e.target.closest("[data-local]"); if (b) openLocal(b.dataset.local); });
 
   /* save and share */
