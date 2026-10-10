@@ -230,6 +230,13 @@ input[type="datetime-local"], input[type="text"] { font: inherit; color: var(--i
   background: var(--surface); color: var(--muted); box-shadow: var(--shadow), inset 0 0 0 1px var(--edge); }
 .fchip[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
 .fchip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.span-help { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 13.5px; color: var(--muted); padding: 2px 4px 0; }
+.span-help .btn { padding: 4px 10px; font-size: 13px; }
+.pick { appearance: none; flex: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--accent); background: transparent;
+  color: var(--surface); font-size: 14px; line-height: 20px; text-align: center; cursor: pointer; padding: 0; }
+.pick[aria-pressed="true"] { background: var(--accent); }
+.pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.rec.unpicked { opacity: .55; }
 .file-btn.plain { padding: 10px 18px; font-size: inherit; }
 
 /* in-app camera (Android app): no hand-off to the camera app, so Android has no reason to close this one */
@@ -420,6 +427,7 @@ footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; padding:
   <!-- 기록 -->
   <section class="tabpanel" id="panel-records" role="tabpanel" aria-labelledby="tab-records" hidden>
     <div class="filters" id="filters" role="group" aria-label="제품별로 보기" hidden></div>
+    <div class="filters" id="spanFilters" role="group" aria-label="보여 줄 기록 고르기" hidden></div>
     <div class="card">
       <div class="card-head">
         <h2>흐름</h2>
@@ -1120,7 +1128,15 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     (r.consistent === undefined && r.ratioArea != null && r.ratioGreen != null && !consistentVals(r.ratio, r.ratioArea, r.ratioGreen));
   let filter = lget("hcg-filter");
   const products = () => [...new Set(store.items.map(r => r.product).filter(Boolean))];
-  const visible = () => filter ? store.items.filter(r => r.product === filter) : store.items;
+  // which records to show: 전체, 오전 (before noon), 오후 (noon on), or 직접 고르기 (the ones ticked in the list)
+  const SPANS = { all: "전체", am: "오전", pm: "오후", pick: "직접 고르기" };
+  let span = SPANS[lget("hcg-span")] ? lget("hcg-span") : "all";
+  let picked = new Set(); try { picked = new Set(JSON.parse(lget("hcg-picked") || "[]")); } catch (e) {}
+  const savePicked = () => lset("hcg-picked", JSON.stringify([...picked]));
+  const isAm = r => new Date(r.ts).getHours() < 12;
+  // the list: product and 오전/오후 filters; the summary, graph and line-up: also only the ticked ones in 직접 고르기
+  const listed = () => store.items.filter(r => (!filter || r.product === filter) && (span === "am" ? isAm(r) : span === "pm" ? !isAm(r) : true));
+  const visible = () => span === "pick" ? listed().filter(r => picked.has(r.id)) : listed();
 
   function renderHistory() {
     $("#storeNote").textContent = store.mode === "db" ? "내 계정에 저장 · 나만 볼 수 있어요"
@@ -1133,7 +1149,15 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     const fbox = $("#filters");
     fbox.hidden = !prods.length;
     fbox.innerHTML = [null, ...prods].map(p => `<button class="fchip" type="button" data-filter="${p === null ? "" : esc(p)}" aria-pressed="${String(filter === p)}">${p === null ? "전체" : esc(p)}</button>`).join("");
-    const items = visible(), list = $("#records");
+    const ids = new Set(all.map(r => r.id));
+    if ([...picked].some(id => !ids.has(id))) { picked = new Set([...picked].filter(id => ids.has(id))); savePicked(); }
+    const sbox = $("#spanFilters");
+    sbox.hidden = !all.length;
+    sbox.innerHTML = Object.entries(SPANS).map(([k, label]) =>
+      `<button class="fchip" type="button" data-span="${k}" aria-pressed="${String(span === k)}">${label}${k === "pick" && picked.size ? ` · ${picked.size}` : ""}</button>`).join("")
+      + (span === "pick" ? `<p class="span-help">목록에서 동그라미를 눌러 그래프에 넣을 기록을 고르세요.
+          <button class="btn ghost" type="button" data-pickall="1">모두 고르기</button><button class="btn ghost" type="button" data-pickall="0">모두 빼기</button></p>` : "");
+    const rows = listed(), items = visible(), list = $("#records");
     if (!all.length) {
       $("#summary").innerHTML = "";
       $("#trend").innerHTML = `<p class="empty">아직 기록이 없어요.<br>측정 탭에서 사진을 재고 <b>기록에 남기기</b>를 누르면<br>여기에 날짜순으로 차곡차곡 쌓여요.<br><button class="btn primary small" type="button" data-go="measure">측정하러 가기</button></p>`;
@@ -1142,17 +1166,25 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
       renderCompare();
       return;
     }
-    const last = items[items.length - 1], prev = items.length > 1 ? items[items.length - 2] : null;
-    const diff = prev ? Math.round((shown(last) - shown(prev)) * 100) : null;
-    $("#summary").innerHTML = `
-      <div><div class="small muted">가장 최근</div><div class="figure">${last.detected ? pct(last.ratio) : "—"}</div></div>
-      <div><div class="small muted">지난번보다</div><div class="figure">${diff === null ? "—" : (diff > 0 ? "+" : "") + diff + "%p"}</div></div>
-      <div><div class="small muted">남긴 기록</div><div class="figure">${items.length}</div></div>`;
-    renderTrend(items);
+    if (items.length) {
+      const last = items[items.length - 1], prev = items.length > 1 ? items[items.length - 2] : null;
+      const diff = prev ? Math.round((shown(last) - shown(prev)) * 100) : null;
+      $("#summary").innerHTML = `
+        <div><div class="small muted">가장 최근</div><div class="figure">${last.detected ? pct(last.ratio) : "—"}</div></div>
+        <div><div class="small muted">${span === "pick" ? "그 전 기록보다" : "지난번보다"}</div><div class="figure">${diff === null ? "—" : (diff > 0 ? "+" : "") + diff + "%p"}</div></div>
+        <div><div class="small muted">${{ all: "남긴 기록", am: "오전 기록", pm: "오후 기록", pick: "고른 기록" }[span]}</div><div class="figure">${items.length}</div></div>`;
+      renderTrend(items);
+    } else {
+      $("#summary").innerHTML = "";
+      $("#trend").innerHTML = `<p class="empty">${span === "pick"
+        ? "아직 고른 기록이 없어요.<br>아래 지난 기록에서 동그라미를 눌러 골라 주세요."
+        : `${SPANS[span]}에 남긴 기록이 없어요.`}</p>`;
+    }
     renderLineup(items);
-    list.innerHTML = items.slice().reverse().map(r => `
-      <li class="rec" data-id="${esc(r.id)}">
+    list.innerHTML = !rows.length ? `<li class="small muted">${SPANS[span]}에 남긴 기록이 없어요.</li>` : rows.slice().reverse().map(r => `
+      <li class="rec${span === "pick" && !picked.has(r.id) ? " unpicked" : ""}" data-id="${esc(r.id)}">
         <div class="meta">
+          ${span === "pick" ? `<button class="pick" type="button" data-pick="${esc(r.id)}" aria-pressed="${String(picked.has(r.id))}" aria-label="${fmt(r.ts)} 기록을 그래프에 ${picked.has(r.id) ? "넣음" : "넣기"}">${picked.has(r.id) ? "✓" : ""}</button>` : ""}
           <span class="pct">${r.detected ? pct(r.ratio) : "—"}</span>
           <span class="chip"><span class="dot"></span>${GRADE[r.grade] || ""}</span>
           <span class="small muted num">${fmt(r.ts)}</span>
@@ -1184,6 +1216,11 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     if (inp && editing.focus) { editing.focus = false; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }
     renderCompare();
   }
+  $("#spanFilters").addEventListener("click", e => {
+    const b = e.target.closest("[data-span]"), all = e.target.closest("[data-pickall]");
+    if (b) { span = b.dataset.span; lset("hcg-span", span); renderHistory(); return; }
+    if (all) { picked = all.dataset.pickall === "1" ? new Set(listed().map(r => r.id)) : new Set(); savePicked(); renderHistory(); }
+  });
   $("#filters").addEventListener("click", e => {
     const b = e.target.closest("[data-filter]");
     if (!b) return;
@@ -1230,6 +1267,8 @@ if (typeof module !== "undefined") module.exports = LineAnalysis;
     catch (err) { editing.error = "저장하지 못했어요. 잠시 뒤 다시 눌러 주세요."; renderHistory(); }
   });
   $("#records").addEventListener("click", async e => {
+    const pk = e.target.closest("[data-pick]");
+    if (pk) { const id = pk.dataset.pick; picked.has(id) ? picked.delete(id) : picked.add(id); savePicked(); renderHistory(); return; }
     const op = e.target.closest("[data-open]");
     if (op) { const id = op.dataset.open; openIds.has(id) ? openIds.delete(id) : openIds.add(id); renderHistory(); return; }
     const ed = e.target.closest("[data-edit]");
