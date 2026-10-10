@@ -351,6 +351,8 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
 .stars button { font-size: 30px; line-height: 1; background: none; border: 0; cursor: pointer; color: var(--rule); padding: 2px; }
 .stars button[aria-checked="true"] { color: var(--butter); }
 .ex-active { color: var(--tomato); }
+.only-now { padding: 12px 14px; border-radius: 16px; background: var(--accent-soft); }
+.only-now > span { display: grid; gap: 1px; }
 </style>
 </head>
 <body>
@@ -470,6 +472,7 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   <section id="panel-cook" class="panel" aria-label="추천" hidden>
     <div class="card">
       <h2>어떻게 먹을까요</h2>
+      <label class="switch only-now"><span><b>지금 있는 재료로만</b><span class="small muted">더 살 것 없이 바로 만들 수 있는 메뉴만 보여요</span></span><input type="checkbox" id="onlyNow"></label>
       <div class="opt"><span class="opt-label" id="lblCuisine">스타일</span>
         <div class="seg" role="group" aria-labelledby="lblCuisine" data-opt="cuisine">
           <button type="button" data-v="">아무거나</button><button type="button" data-v="한식">한식</button><button type="button" data-v="중식">중식</button><button type="button" data-v="일식">일식</button><button type="button" data-v="양식">양식</button><button type="button" data-v="세계">세계 요리</button>
@@ -866,7 +869,7 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   $("#pickerDone").addEventListener("click", () => $("#picker").close());
 
   /* ===================== options ===================== */
-  const opts = Object.assign({ time: "0", kind: "", cuisine: "", serves: "2", model: "claude-opus-5-5", ex: [], exText: "" }, lget("fc-opts", {}));
+  const opts = Object.assign({ time: "0", kind: "", cuisine: "", serves: "2", model: "claude-opus-5-5", ex: [], exText: "", onlyNow: false }, lget("fc-opts", {}));
   function renderOpts() {
     document.querySelectorAll("[data-opt]").forEach(g => g.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === opts[g.dataset.opt]))));
   }
@@ -1040,7 +1043,7 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
       if (!w.menus.includes(menu)) w.menus.push(menu);
       if (extra && !w.extra) w.extra = extra;
     };
-    for (const x of localMatches().slice(0, 60)) { if (!x.missing.length) now.push(x.r.name); else x.missing.forEach(n => add(n, x.r.name)); }
+    for (const x of localMatches(true).slice(0, 60)) { if (!x.missing.length) now.push(x.r.name); else x.missing.forEach(n => add(n, x.r.name)); }
     for (const m of aiMenus) { const miss = (m.missing || []).filter(n => !hasLoose(missName(n))); if (!miss.length) { if (!now.includes(m.name)) now.push(m.name); } else miss.forEach(n => add(missName(n), m.name, n.substitute || "")); }
     // a dish that can already be made needs nothing more, even if another version of it asks for more
     for (const w of want.values()) w.menus = w.menus.filter(m => !now.includes(m));
@@ -1112,7 +1115,7 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   }
   function hasLoose(name) { return !!matchItem(name); }
   const mains = r => r.ings.filter(i => !i.opt && !isPantry(i.name));
-  function localMatches() {
+  function localMatches(all) {
     const t = +opts.time, kind = opts.kind, cu = opts.cuisine, out = [];
     for (const r of RECIPES) {
       if ((t && r.time > t) || (kind && r.cat !== kind) || (cu && r.cu !== cu)) continue;
@@ -1121,6 +1124,7 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
       const have = [], missing = [], oldUsed = [];
       for (const i of m) { const it = matchItem(i.name); if (it) { have.push(i.name); if (ageOf(it) >= 4 && !oldUsed.includes(it.name)) oldUsed.push(it.name); } else missing.push(i.name); }
       if (!have.length || missing.length > 2 || have.length < missing.length) continue;
+      if (opts.onlyNow && !all && missing.length) continue;
       if (excludedBy(r)) continue;
       out.push({ r, have, missing, oldUsed, total: m.length, score: have.length / m.length + oldUsed.length * 0.12 + (r.src === "builtin" ? 0.05 : 0) });
     }
@@ -1129,11 +1133,11 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   let shown = 12;
   function renderLocal() {
     const list = localMatches(), box = $("#localMenus");
-    $("#dbBadge").textContent = `${RECIPES.length.toLocaleString()}가지 레시피 중 ${list.length.toLocaleString()}가지`;
+    $("#dbBadge").textContent = `${RECIPES.length.toLocaleString()}가지 레시피 중 ${opts.onlyNow ? "바로 만들 수 있는 " : ""}${list.length.toLocaleString()}가지`;
     const ex = exLabels();
     $("#exNote").hidden = !ex.length; $("#exNote").innerHTML = ex.length ? `<span class="ex-active">${esc(ex.join(", "))}</span>이(가) 들어간 요리는 빼고 보여 드려요.` : "";
     $("#moreBtn").hidden = list.length <= shown;
-    if (!list.length) { box.innerHTML = `<p class="muted small">담긴 재료로 만들 수 있는 레시피가 아직 없어요. 재료를 더 담거나 종류·시간 조건을 풀어 보세요.</p>`; renderShopping(); return; }
+    if (!list.length) { box.innerHTML = opts.onlyNow ? `<p class="muted small">지금 있는 재료만으로 만들 수 있는 메뉴가 없어요. 「지금 있는 재료로만」을 끄면 한두 가지만 더 있으면 되는 메뉴도 보여요.</p>` : `<p class="muted small">담긴 재료로 만들 수 있는 레시피가 아직 없어요. 재료를 더 담거나 종류·시간 조건을 풀어 보세요.</p>`; renderShopping(); return; }
     box.innerHTML = list.slice(0, shown).map(menuCard).join("");
     renderShopping();
   }
@@ -1173,7 +1177,7 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
           "소금, 설탕, 간장, 고추장, 된장, 고춧가루, 식용유, 참기름, 다진 마늘, 후추, 깨, 식초 같은 기본 양념은 있다고 봐요. " +
           "더 있어야 하는 재료에는 없을 때 대신 쓸 수 있는 재료를 알려 줘요(가진 재료 중에서 고르면 더 좋아요). " +
           "실제로 널리 알려진 요리(검색하면 믿을 만한 레시피가 나오는 이름)만 고르고, 서로 겹치지 않게 다양하게 골라요. '(짐작)'이 붙은 재료는 없을 수도 있어요.",
-        messages: [{ role: "user", content: `가진 재료: ${names.join(", ")}\n원하는 조건: ${opts.cuisine || "한식·중식·일식·양식 상관없음"}, ${+opts.time ? `${opts.time}분 안에` : "시간 상관없음"}, ${opts.kind || "종류 상관없음"}, ${opts.serves}인분${exLabels().length ? `\n빼야 할 것: ${exLabels().join(", ")} (이게 들어간 요리는 고르지 마세요)` : ""}` }],
+        messages: [{ role: "user", content: `가진 재료: ${names.join(", ")}\n원하는 조건: ${opts.cuisine || "한식·중식·일식·양식 상관없음"}, ${+opts.time ? `${opts.time}분 안에` : "시간 상관없음"}, ${opts.kind || "종류 상관없음"}, ${opts.serves}인분${exLabels().length ? `\n빼야 할 것: ${exLabels().join(", ")} (이게 들어간 요리는 고르지 마세요)` : ""}${opts.onlyNow ? "\n새로 살 재료 없이 가진 재료와 기본 양념만으로 만들 수 있는 메뉴만 골라 주세요." : ""}` }],
       });
       if (msg.stop_reason === "refusal") throw Object.assign(new Error("refusal"), { refusal: true });
       aiMenus = JSON.parse(textOf(msg)).menus || []; aiFor = items.map(i => i.name).join();
@@ -1188,7 +1192,9 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   function renderAI() {
     const box = $("#aiMenus");
     if (!aiMenus.length) { box.innerHTML = `<p class="muted small">추천할 메뉴를 찾지 못했어요. 재료를 더 담아 보세요.</p>`; renderShopping(); return; }
-    box.innerHTML = aiMenus.map((m, i) => `<button class="menu" type="button" data-ai="${i}" style="animation-delay:${i * 50}ms">
+    const shownAI = opts.onlyNow ? aiMenus.filter(m => !(m.missing || []).some(n => !hasLoose(missName(n)))) : aiMenus;
+    if (!shownAI.length) { box.innerHTML = `<p class="muted small">AI 셰프가 고른 메뉴는 모두 재료가 조금 더 있어야 해요.</p>`; renderShopping(); return; }
+    box.innerHTML = shownAI.map((m, i) => `<button class="menu" type="button" data-ai="${i}" data-name="${esc(m.name)}" style="animation-delay:${i * 50}ms">
       <span class="menu-top"><span class="menu-name">${esc(m.name)}</span><span class="menu-meta num">${m.minutes}분 · ${esc(m.level)}</span></span>
       <span class="menu-why">${esc(m.why)}</span>
       <span class="have-list">${m.uses.length ? `<b>${m.uses.map(esc).join(", ")}</b>` : ""}${m.missing.length ? `${m.uses.length ? " · " : ""}<span class="miss">${m.missing.map(n => esc(missName(n))).join(", ")}만 있으면 돼요</span>${aiSubs(m.missing)}` : ""}</span></button>`).join("");
@@ -1199,9 +1205,9 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     const t = list.map(n => { const name = missName(n), own = subOnHand(name), s = own || (typeof n === "object" && n.substitute) || ""; return s ? `${esc(name)} 대신 ${esc(s)}${own ? "(있어요)" : ""}` : ""; }).filter(Boolean);
     return t.length ? ` <span class="sub">${t.join(", ")}</span>` : "";
   };
-  $("#aiMenus").addEventListener("click", e => { const b = e.target.closest("[data-ai]"); if (b) openAI(aiMenus[+b.dataset.ai]); });
+  $("#aiMenus").addEventListener("click", e => { const b = e.target.closest("[data-ai]"); if (b) openAI(aiMenus.find(m => m.name === b.dataset.name) || aiMenus[+b.dataset.ai]); });
   function renderCook() {
-    renderOpts(); renderEx();
+    renderOpts(); renderEx(); $("#onlyNow").checked = !!opts.onlyNow;
     const none = !items.length;
     $("#noItems").hidden = !none; $("#results").hidden = none;
     if (none) return;
@@ -1212,6 +1218,7 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
       else $("#aiMenus").innerHTML = `<button class="btn" type="button" id="askAI">AI 셰프에게 메뉴 물어보기</button>`;
     }
   }
+  $("#onlyNow").addEventListener("change", e => { opts.onlyNow = e.target.checked; lset("fc-opts", opts); shown = 12; renderCook(); buzz(); });
   $("#goRecommend").addEventListener("click", () => {
     if (!items.length) { toast(photos.length ? "먼저 「사진 속 재료 찾기」를 눌러 주세요." : "재료를 하나 이상 담아 주세요."); return; }
     buzz("MEDIUM"); showTab("cook");
