@@ -503,15 +503,15 @@ class Geocoder:
 
 
 MANIFEST = {
-    "name": "노포 지도",   # shown under the icon on older launch screens: keep it short
-    "short_name": "노포 지도",
+    "name": "최책임의 노포 맛집",   # shown under the icon on older launch screens: keep it short
+    "short_name": "최책임의 노포 맛집",
     "description": "내 주변 또는 지도에서 고른 곳 근처의 백년가게와 허영만의 백반기행 맛집을 찾아요.",
     "lang": "ko",
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
-    "background_color": "#c4231b",   # the launch screen is the signboard: all 간판 red
-    "theme_color": "#c4231b",
+    "background_color": "#5b2a17",   # the launch screen: the alley at dusk, behind 최책임
+    "theme_color": "#5b2a17",
     "icons": [
         {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
         {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
@@ -653,7 +653,7 @@ def main():
         for entry in manifest["icons"]:
             if entry["src"] == name:
                 entry["src"] = hashed
-        page = page.replace(f'href="{name}"', f'href="{hashed}"')
+        page = page.replace(f'href="{name}"', f'href="{hashed}"').replace(f'src="{name}"', f'src="{hashed}"')
     manifest_text = json.dumps(manifest, ensure_ascii=False, indent=2)
     # the version covers the manifest with its hashed icon names, so a new launch screen also counts as an update
     version = hashlib.sha256((page + SW + data + manifest_text).encode()).hexdigest()[:8]

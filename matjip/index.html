@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#12161c">
 <meta name="description" content="내 주변 또는 지도에서 고른 곳 근처의 백년가게와 허영만의 백반기행 맛집을 찾아요.">
-<title>노포 지도</title>
+<title>최책임의 노포 맛집</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -303,6 +303,7 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 /* keyboard focus and reduced motion */
 :where(button, a, select, textarea, input, label.chip):focus-visible { outline: 2.5px solid var(--me); outline-offset: 2px; border-radius: 10px; }
 .signboard h1, dialog h2 { text-wrap: balance; }
+.signboard h1 small { display: block; font-size: .42em; letter-spacing: .3em; margin: 0 0 .2em; opacity: .9; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; }
 }
@@ -344,24 +345,21 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .stamps-regions em { font-style: normal; font-size: 12px; color: #6b5a48; font-variant-numeric: tabular-nums; }
 .stamps .btn.primary { background: #2a1e16; color: #f4ead4; }
 
-/* boot: the launch screen continued. The steaming 뚝배기 of the icon on the signboard red, the name, and one
-   warm line from the house. A tap skips it. */
+/* boot: the launch screen continued. 최책임 with the map and the magnifier, out in the 노포 alley at dusk,
+   the name, and one warm line from the house. A tap skips it. */
 .boot { position: fixed; inset: 0; z-index: 4000; display: grid; place-items: center; transition: opacity .45s ease;
-  background: radial-gradient(120% 80% at 50% 42%, #d63a2b, #b3221a 60%, #7f120d); }
+  background: radial-gradient(110% 75% at 50% 40%, #8a4524, #5b2a17 55%, #2e140b); }
 .boot.out { opacity: 0; pointer-events: none; }
-.boot-inner { display: grid; justify-items: center; translate: 0 -3vh; padding: 0 24px; text-align: center; }
-.boot-bowl { width: min(66vw, 40vh); height: auto; opacity: 0; }
-.boot-name { margin: 2px 0 0; font-family: var(--font-sign); color: #f7eede; font-size: min(10.5vw, 6vh); letter-spacing: .14em; line-height: 1.1;
-  text-shadow: 0 .06em 0 #7a100c; opacity: 0; }
-.boot-line { margin: 14px 0 0; font-family: "Gowun Batang", serif; font-weight: 700; color: #fde8cc; font-size: min(5.4vw, 3.1vh); line-height: 1.45;
+.boot-inner { display: grid; justify-items: center; translate: 0 -2vh; padding: 0 24px; text-align: center; }
+.boot-pic { width: min(64vw, 38vh); height: auto; opacity: 0; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, .45)); }
+.boot-name { margin: 22px 0 0; font-family: var(--font-sign); color: #f7eede; font-size: min(10.5vw, 6vh); letter-spacing: .1em; line-height: 1.1;
+  text-shadow: 0 .06em 0 #3a160b; opacity: 0; }
+.boot-name small { display: block; font-size: .46em; letter-spacing: .32em; margin-bottom: .25em; color: #f3c98f; }
+.boot-line { margin: 14px 0 0; font-family: "Gowun Batang", serif; font-weight: 700; color: #fde8cc; font-size: min(5.2vw, 3vh); line-height: 1.45;
   word-break: keep-all; text-wrap: balance; opacity: 0; }
-.boot.ready .boot-bowl { animation: boot-in .55s cubic-bezier(.2, .9, .3, 1.15) both; }
+.boot.ready .boot-pic { animation: boot-in .55s cubic-bezier(.2, .9, .3, 1.15) both; }
 .boot.ready .boot-name { animation: rise .5s ease .2s both; }
 .boot.ready .boot-line { animation: rise .6s ease .6s both; }
-.boot-steam > g { animation: waft 2.6s ease-in-out infinite both; }
-.boot-steam > g:nth-child(1) { animation-delay: .1s; } .boot-steam > g:nth-child(2) { animation-delay: .5s; }
-.boot-steam > g:nth-child(3) { animation-delay: 0s; } .boot-steam > g:nth-child(4) { animation-delay: .9s; }
-@keyframes waft { 0% { opacity: 0; transform: translateY(16px); } 35% { opacity: 1; } 75% { opacity: .8; } 100% { opacity: 0; transform: translateY(-30px); } }
 @keyframes boot-in { from { transform: scale(.86); opacity: 0; } to { transform: none; opacity: 1; } }
 
 /* update prompt */
@@ -388,77 +386,8 @@ dialog .btn { width: 100%; }
 <body>
 <div class="boot" id="boot" aria-hidden="true">
   <div class="boot-inner">
-    <svg class="boot-bowl" viewBox="86 40 340 400">
-  <defs>
-    <radialGradient id="bt-bg" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#d63a2b"/><stop offset=".65" stop-color="#b3221a"/><stop offset="1" stop-color="#7f120d"/></radialGradient>
-    <linearGradient id="bt-clay" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#1c110c"/><stop offset=".18" stop-color="#5a3626"/><stop offset=".32" stop-color="#3b2419"/>
-      <stop offset=".7" stop-color="#24150f"/><stop offset="1" stop-color="#120a07"/>
-    </linearGradient>
-    <linearGradient id="bt-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b4331"/><stop offset="1" stop-color="#2a1912"/></linearGradient>
-    <radialGradient id="bt-stew" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#ef6a33"/><stop offset=".55" stop-color="#d6401f"/><stop offset="1" stop-color="#9f2415"/></radialGradient>
-    <linearGradient id="bt-tofuTop" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffaf0"/><stop offset="1" stop-color="#f1e6cf"/></linearGradient>
-    <filter id="bt-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter>
-    <filter id="bt-softer" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
-    <filter id="bt-tiny" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4"/></filter>
-    <clipPath id="bt-surface"><ellipse cx="256" cy="268" rx="136" ry="36"/></clipPath>
-  </defs>
-
-  
-    <g class="boot-steam" fill="none" stroke="#fff" stroke-linecap="round">
-    <g><path d="M256 236c-30-34 34-58 0-96s24-50 6-74" stroke-width="30" opacity=".22" filter="url(#bt-softer)"/></g>
-    <g><path d="M204 244c-26-24 18-44-6-72s20-34 4-62" stroke-width="15" opacity=".5" filter="url(#bt-soft)"/></g>
-    <g><path d="M258 236c-30-28 34-48 2-84s26-40 2-72" stroke-width="19" opacity=".72" filter="url(#bt-soft)"/></g>
-    <g><path d="M312 244c-18-30 26-40 0-70s12-44 6-58" stroke-width="14" opacity=".5" filter="url(#bt-soft)"/></g>
-  </g>
-
-    <ellipse cx="256" cy="408" rx="150" ry="20" fill="#000" opacity=".4" filter="url(#bt-soft)"/>
-
-    <path d="M100 266c2 52 12 96 40 124 30 22 70 24 116 24s86-2 116-24c28-28 38-72 40-124z" fill="url(#bt-clay)"/>
-  <path d="M150 396c28 16 64 20 106 20s78-4 106-20l-6 14c-26 12-60 16-100 16s-74-4-100-16z" fill="#140b07"/>
-  <g fill="none" stroke="#000" stroke-opacity=".45" stroke-width="3">
-    <path d="M104 304c40 26 96 34 152 34s112-8 152-34"/><path d="M108 322c40 26 94 34 148 34s108-8 148-34"/>
-  </g>
-  <g fill="none" stroke="#a0715a" stroke-opacity=".35" stroke-width="1.5">
-    <path d="M104 307c40 26 96 34 152 34s112-8 152-34"/><path d="M108 325c40 26 94 34 148 34s108-8 148-34"/>
-  </g>
-  <path d="M128 340c6 22 16 38 30 48" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="10" stroke-linecap="round" filter="url(#bt-tiny)"/>
-  <g fill="#b48a6a" opacity=".22">
-    <circle cx="170" cy="330" r="1.6"/><circle cx="214" cy="364" r="1.4"/><circle cx="262" cy="340" r="1.8"/><circle cx="318" cy="372" r="1.4"/>
-    <circle cx="352" cy="320" r="1.6"/><circle cx="292" cy="388" r="1.3"/><circle cx="190" cy="384" r="1.3"/><circle cx="380" cy="300" r="1.2"/>
-  </g>
-  <ellipse cx="256" cy="266" rx="156" ry="46" fill="url(#bt-rim)"/>
-  <ellipse cx="256" cy="262" rx="150" ry="40" fill="none" stroke="#9b6a50" stroke-opacity=".55" stroke-width="2"/>
-  <ellipse cx="256" cy="270" rx="140" ry="38" fill="#1a0e09"/>
-
-    <g clip-path="url(#bt-surface)">
-    <ellipse cx="256" cy="268" rx="136" ry="36" fill="url(#bt-stew)"/>
-        <g fill="#f7a23e" opacity=".55">
-      <ellipse cx="190" cy="262" rx="12" ry="4"/><ellipse cx="300" cy="280" rx="9" ry="3"/><ellipse cx="236" cy="286" rx="7" ry="2.5"/>
-      <ellipse cx="330" cy="256" rx="8" ry="3"/><ellipse cx="160" cy="280" rx="6" ry="2"/>
-    </g>
-        <path d="M168 258q22-10 40 2-14 12-40-2z" fill="#c8301a"/><path d="M286 248q20-8 36 4-16 10-36-4z" fill="#c22c18"/>
-    <path d="M318 278q16-8 30 2-12 10-30-2z" fill="#d9442a"/>
-        <g>
-      <path d="M210 256l26-8 22 8-26 9z" fill="url(#bt-tofuTop)"/><path d="M210 256v9l22 9v-9z" fill="#e3d4b6"/><path d="M232 265v9l26-8v-9z" fill="#d6c4a3"/>
-      <path d="M262 266l24-7 20 7-24 8z" fill="url(#bt-tofuTop)"/><path d="M262 266v8l20 8v-8z" fill="#e3d4b6"/><path d="M282 274v8l24-8v-8z" fill="#d6c4a3"/>
-      <path d="M180 278l20-6 18 6-20 7z" fill="url(#bt-tofuTop)"/><path d="M180 278v7l18 7v-7z" fill="#e3d4b6"/>
-    </g>
-        <g fill="none" stroke-width="4">
-      <ellipse cx="248" cy="242" rx="8" ry="3.5" stroke="#5aa83c"/><ellipse cx="300" cy="294" rx="7" ry="3" stroke="#6bbb4a"/>
-      <ellipse cx="200" cy="292" rx="7" ry="3" stroke="#5aa83c"/><ellipse cx="350" cy="268" rx="6" ry="2.6" stroke="#6bbb4a"/>
-      <ellipse cx="170" cy="246" rx="6" ry="2.6" stroke="#4f9a33"/>
-      <ellipse cx="276" cy="240" rx="5" ry="2.2" stroke="#8a0d07"/><ellipse cx="228" cy="296" rx="5" ry="2.2" stroke="#8a0d07"/>
-    </g>
-    <g fill="#e8f3d8"><ellipse cx="248" cy="242" rx="3" ry="1.2"/><ellipse cx="300" cy="294" rx="2.6" ry="1"/><ellipse cx="200" cy="292" rx="2.6" ry="1"/></g>
-        <g fill="#f27a45" stroke="#ffd2a8" stroke-width="1.5">
-      <circle cx="156" cy="266" r="5"/><circle cx="342" cy="286" r="6"/><circle cx="326" cy="244" r="4"/><circle cx="214" cy="240" r="3.5"/><circle cx="268" cy="298" r="4"/>
-    </g>
-    <g fill="#fff" opacity=".8"><circle cx="154.5" cy="264.5" r="1.6"/><circle cx="340" cy="284" r="2"/><circle cx="325" cy="242.8" r="1.3"/></g>
-  </g>
-    <path d="M110 276c30 30 90 42 146 42s116-12 146-42" fill="none" stroke="#8a5a44" stroke-opacity=".6" stroke-width="3"/>
-    </svg>
-    <p class="boot-name">노포 지도</p>
+    <img class="boot-pic" src="icon-512.png" alt="" width="512" height="512">
+    <p class="boot-name"><small>최책임의</small>노포 맛집</p>
     <p class="boot-line" id="bootLine"></p>
   </div>
 </div>
@@ -475,17 +404,17 @@ dialog .btn { width: 100%; }
     document.getElementById("bootLine").textContent = line;
     const ready = () => { boot.dataset.t = performance.now(); boot.classList.add("ready"); };
     if (document.fonts && document.fonts.load) {
-      Promise.race([Promise.all([document.fonts.load('1em "Black Han Sans"', "노포지도"), document.fonts.load('700 1em "Gowun Batang"', line)]),
+      Promise.race([Promise.all([document.fonts.load('1em "Black Han Sans"', "최책임의노포맛집"), document.fonts.load('700 1em "Gowun Batang"', line)]),
         new Promise(r => setTimeout(r, 1200))]).then(ready, ready);
     } else ready();
   })();
 </script>
 <div id="map" aria-label="지도"></div>
 
-<section class="intro" id="intro" role="dialog" aria-modal="true" aria-label="노포 지도 첫 화면" hidden>
+<section class="intro" id="intro" role="dialog" aria-modal="true" aria-label="최책임의 노포 맛집 첫 화면" hidden>
   <div class="intro-in">
     <div class="lamp" aria-hidden="true"></div>
-    <div class="signboard"><h1>노포 지도</h1><p>오래된 맛집 찾아가는 길</p></div>
+    <div class="signboard"><h1><small>최책임의</small>노포 맛집</h1><p>오래된 맛집 찾아가는 길</p></div>
     <p class="intro-lead">한자리를 <b>30년 넘게</b> 지킨 <b>백년가게</b>와<br>허영만 화백이 다녀간 <b>백반기행</b> 밥집을 한 지도에.</p>
     <div class="menuboard" aria-label="차림표"><span class="tack" aria-hidden="true"></span>
       <h2>차림표</h2>
@@ -552,7 +481,7 @@ dialog .btn { width: 100%; }
 <div class="toast" id="toast" role="status" hidden></div>
 <div class="app-banner" id="appBanner" hidden>
   <span class="logo" aria-hidden="true">노포</span>
-  <span>노포 지도 앱이 설치돼 있어요</span>
+  <span>최책임의 노포 맛집 앱이 설치돼 있어요</span>
   <a class="btn primary" id="appOpen">앱에서 열기</a>
   <button class="icon-btn" type="button" id="appClose" aria-label="닫기"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
 </div>
@@ -590,7 +519,7 @@ dialog .btn { width: 100%; }
 </dialog>
 
 <dialog id="about">
-  <h2>노포 지도</h2>
+  <h2>최책임의 노포 맛집</h2>
   <p>지도 가운데(＋)를 기준으로 가까운 식당을 보여 줘요. 지도를 움직이거나 장소를 검색하면 목록도 그 위치 기준으로 바뀌어요.</p>
   <div class="legend">
     <span><i class="dot bn"></i>백년가게: 중소벤처기업부가 지정한 30년 이상 된 가게 중 음식점</span>
