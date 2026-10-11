@@ -1,0 +1,86 @@
+# Builds the 냉장고 셰프 Android app (fridge-app/, a Capacitor shell around the live web app docs/fridge/index.html)
+# and publishes it at a fixed address:
+#   https://github.com/YoSebChoi/YoSebChoi/releases/download/fridge-apk/fridge-chef.apk
+# The app loads the live page, so web updates reach it without a new APK; rebuild only when
+# fridge-app/ changes.
+# Signing: the same repository secret as the 노포 지도 and 시약선 노트 apps, ANDROID_SIGNING = "<password> <base64 of the
+# PKCS12 keystore>" (alias "nopo"). Without it the APK is signed with a throwaway debug key and cannot
+# install over an earlier one.
+name: 냉장고 셰프 APK
+
+on:
+  push:
+    paths:
+      - "fridge-app/**"
+      - "fridge/assets/**"
+      - ".github/workflows/fridge-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fridge-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Launcher icons and launch screen from the web app's icon
+        run: pip install pillow && python3 fridge/build.py && python3 fridge-app/make_icons.py
+      - name: Capacitor sync
+        working-directory: fridge-app
+        run: |
+          npm ci --no-audit --no-fund
+          npx cap sync android
+      - name: Signing key
+        env:
+          ANDROID_SIGNING: ${{ secrets.ANDROID_SIGNING }}
+        run: |
+          if [ -z "$ANDROID_SIGNING" ]; then
+            echo "::warning::ANDROID_SIGNING is not set: signing with a debug key (updates will need a reinstall)"
+            exit 0
+          fi
+          password="${ANDROID_SIGNING%% *}"
+          echo "::add-mask::$password"
+          echo "${ANDROID_SIGNING#* }" | tr -d ' \n' | base64 -d > "$RUNNER_TEMP/fridge.p12"
+          echo "FRIDGE_KEYSTORE=$RUNNER_TEMP/fridge.p12" >> "$GITHUB_ENV"
+          echo "FRIDGE_KEY_PASSWORD=$password" >> "$GITHUB_ENV"
+      - name: Build
+        working-directory: fridge-app/android
+        env:
+          FRIDGE_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/fridge-chef.apk"
+          "$ANDROID_HOME"/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner verify --print-certs "$GITHUB_WORKSPACE/fridge-chef.apk" | head -3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fridge-chef-apk
+          path: fridge-chef.apk
+      - name: Publish the release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="냉장고 셰프 Android 앱 (빌드 ${{ github.run_number }}). 폰에서 fridge-chef.apk를 받아 설치하세요."
+          if gh release view fridge-apk >/dev/null 2>&1; then
+            gh release edit fridge-apk --title "냉장고 셰프 앱" --notes "$notes"
+          else
+            gh release create fridge-apk --title "냉장고 셰프 앱" --notes "$notes" --target "$GITHUB_SHA"
+          fi
+          gh release upload fridge-apk fridge-chef.apk --clobber

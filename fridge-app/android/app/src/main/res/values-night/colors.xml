@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- dark mode: the page's night ground (the bg token in fridge/index.html) -->
+    <color name="chef_ground">#0F1413</color>
+    <bool name="chef_light_bars">false</bool>
+</resources>

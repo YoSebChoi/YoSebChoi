@@ -1,0 +1,52 @@
+# Refreshes 냉장고 셰프's recipe DB (식품의약품안전처 「조리식품의 레시피 DB」, 식품안전나라 Open API COOKRCP01)
+# and rebuilds docs/fridge/, committing the result back.
+# Needs a repository secret FOODSAFETY_KEY: a free key from foodsafetykorea.go.kr (공공데이터 활용 → 인증키 신청).
+# Without it the page is still rebuilt, with the recipes already in fridge/data/ (or the built-in ones).
+name: 냉장고 셰프 레시피 DB
+
+on:
+  push:
+    paths:
+      - "fridge/**"
+      - ".github/workflows/fridge-data.yml"
+  workflow_dispatch:
+  # monthly: recipes the 식약처 adds
+  schedule:
+    - cron: "41 18 3 * *"   # 03:41 KST on the 4th
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fridge-data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pillow
+      - name: Download the recipe DB
+        env:
+          FOODSAFETY_KEY: ${{ secrets.FOODSAFETY_KEY }}
+        run: |
+          if [ -z "$FOODSAFETY_KEY" ]; then
+            echo "::warning::FOODSAFETY_KEY is not set: the app keeps the recipes it has (see fridge/README.md)"
+          fi
+          python3 fridge/fetch_recipes.py
+      - name: Build the page
+        run: python3 fridge/build.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/fridge $(ls -d fridge/data 2>/dev/null)
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit -m "fridge: refresh the recipe DB"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- the icon's teal: launcher background and launch screen -->
+    <color name="ic_launcher_background">#1F6F62</color>
+    <color name="chef_teal">#1F6F62</color>
+    <!-- the page's ground (the bg token in fridge/index.html) -->
+    <color name="chef_ground">#F7F3EA</color>
+    <bool name="chef_light_bars">true</bool>
+</resources>

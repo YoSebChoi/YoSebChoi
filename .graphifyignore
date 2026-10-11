@@ -1,0 +1,7 @@
+.claude/
+docs/
+node_modules/
+**/android/
+**/ios/
+**/build/
+**/*.min.js
