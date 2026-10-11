@@ -1,27 +1,25 @@
-"""Draws the Android launcher icons from the web app's icons (run after matjip/assets/render_icon.mjs).
+"""Draws the Android launcher icons from the character picture (matjip/assets/character.png).
 
 python3 android-app/make_icons.py
 """
+import sys
 from pathlib import Path
-from PIL import Image, ImageDraw
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "matjip/assets"))
+from make_icons import PIC, framed  # noqa: E402
+
 RES = ROOT / "android-app/android/app/src/main/res"
-MASKABLE = Image.open(ROOT / "docs/matjip/icon-maskable-512.png").convert("RGBA")
 DENSITIES = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
 
 for name, k in DENSITIES.items():
     out = RES / f"mipmap-{name}"
-    # adaptive foreground: 108dp, the launcher crops it to its own shape (the lettering sits inside the 66dp safe zone)
-    MASKABLE.resize((round(108 * k),) * 2, Image.LANCZOS).save(out / "ic_launcher_foreground.png")
-    # legacy icons (Android 7 and older): 48dp, square with rounded corners and round
+    # adaptive foreground, 108dp: launchers show about the middle 66-72dp, so the picture sits there
+    # whole (hat to map) over a soft blow-up of itself that fills whatever else a mask shows
+    framed(round(108 * k), 0.68).save(out / "ic_launcher_foreground.png")
+    # legacy icons (Android 7 and older): the rounded picture itself
     n = round(48 * k)
-    img = MASKABLE.resize((n, n), Image.LANCZOS)
-    for file, draw in (("ic_launcher.png", lambda d: d.rounded_rectangle((0, 0, n - 1, n - 1), radius=n // 6, fill=255)),
-                       ("ic_launcher_round.png", lambda d: d.ellipse((0, 0, n - 1, n - 1), fill=255))):
-        mask = Image.new("L", (n, n), 0)
-        draw(ImageDraw.Draw(mask))
-        icon = Image.new("RGBA", (n, n), (0, 0, 0, 0))
-        icon.paste(img, mask=mask)
-        icon.save(out / file)
+    for file in ("ic_launcher.png", "ic_launcher_round.png"):
+        PIC.resize((n, n), Image.LANCZOS).save(out / file)
 print("icons drawn")

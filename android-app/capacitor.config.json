@@ -1,8 +1,8 @@
 {
   "appId": "io.github.yosebchoi.nopo",
-  "appName": "노포 지도",
+  "appName": "최책임의 노포 맛집",
   "webDir": "www",
-  "backgroundColor": "#c4231b",
+  "backgroundColor": "#5b2a17",
   "appendUserAgent": "NopoMapApp",
   "server": {
     "url": "https://yosebchoi.github.io/YoSebChoi/matjip/",
