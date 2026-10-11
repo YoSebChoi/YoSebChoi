@@ -19,15 +19,15 @@
         <item name="android:windowLightNavigationBar">@bool/chef_light_bars</item>
     </style>
 
-    <!-- launch: the fridge in its chef's hat on teal; the page's splash opens on this same picture
-         and lets the ingredients hop out, so the two read as one scene -->
+    <!-- launch: 최책임's face in a circle on the picture's green; the page's splash opens on this
+         same circle and widens it into the whole picture, so the two read as one scene -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/chef_teal</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_fridge</item>
+        <item name="windowSplashScreenBackground">@color/chef_green</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_chef</item>
         <item name="windowSplashScreenAnimationDuration">0</item>
         <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
-        <item name="android:statusBarColor">@color/chef_teal</item>
-        <item name="android:navigationBarColor">@color/chef_teal</item>
-        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/chef_green</item>
+        <item name="android:navigationBarColor">@color/chef_green</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

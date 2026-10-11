@@ -14,14 +14,14 @@ OUT = SRC.parent / "docs" / "fridge"
 
 MANIFEST = {
     "id": "./",
-    "name": "냉장고 셰프",
-    "short_name": "냉장고 셰프",
+    "name": "최책임의 냉장고 셰프",
+    "short_name": "최책임 냉장고셰프",
     "description": "냉장고 사진이나 재료로 오늘 메뉴와 출처 있는 레시피를 찾아 줘요",
     "lang": "ko",
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
-    "background_color": "#1f6f62",
+    "background_color": "#c8e2bb",
     "theme_color": "#fffaf3",
     "icons": [
         {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
@@ -30,9 +30,9 @@ MANIFEST = {
     ],
 }
 
-SW = """// 냉장고 셰프 service worker: the app shell from cache, refreshed in the background.
+SW = """// 최책임의 냉장고 셰프 service worker: the app shell from cache, refreshed in the background.
 const CACHE = "fridge-chef-__VERSION__";
-const SHELL = ["./", "./index.html", "./recipes.js", "./vendor/anthropic-sdk.mjs"];
+const SHELL = ["./", "./index.html", "./recipes.js", "./vendor/anthropic-sdk.mjs", "./chef-face.jpg", "./chef-art.jpg"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("fridge-chef-") && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
@@ -60,6 +60,9 @@ def main():
     Image.open(SRC / "assets/icon-512.png").resize((192, 192), Image.LANCZOS).save(OUT / "icon-192.png")
     shutil.copyfile(SRC / "assets/icon-512.png", OUT / "icon-512.png")
     shutil.copyfile(SRC / "assets/icon-maskable-512.png", OUT / "icon-maskable-512.png")
+    # 최책임: the face for the header and the launch circle, the whole picture for the splash
+    for pic in ("chef-face.jpg", "chef-art.jpg"):
+        shutil.copyfile(SRC / "assets" / pic, OUT / pic)
     for name in ("icon-192.png", "icon-512.png", "icon-maskable-512.png"):
         hashed = name.replace(".png", f".{hashlib.sha256((OUT / name).read_bytes()).hexdigest()[:8]}.png")
         shutil.copyfile(OUT / name, OUT / hashed)
@@ -76,7 +79,8 @@ def main():
         (OUT / "recipes-db.json").write_text(db, encoding="utf-8")
     elif (OUT / "recipes-db.json").exists():
         (OUT / "recipes-db.json").unlink()
-    version = hashlib.sha256((page + recipes + sdk + db + SW + manifest_text).encode()).hexdigest()[:8]
+    pics = b"".join((SRC / "assets" / p).read_bytes() for p in ("chef-face.jpg", "chef-art.jpg"))
+    version = hashlib.sha256((page + recipes + sdk + db + SW + manifest_text).encode() + pics).hexdigest()[:8]
     (OUT / "index.html").write_text(page.replace("__VERSION__", version), encoding="utf-8")
     (OUT / "recipes.js").write_text(recipes, encoding="utf-8")
     (OUT / "vendor").mkdir(exist_ok=True)

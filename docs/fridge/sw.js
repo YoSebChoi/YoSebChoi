@@ -1,6 +1,6 @@
-// 냉장고 셰프 service worker: the app shell from cache, refreshed in the background.
-const CACHE = "fridge-chef-e49bc0e6";
-const SHELL = ["./", "./index.html", "./recipes.js", "./vendor/anthropic-sdk.mjs"];
+// 최책임의 냉장고 셰프 service worker: the app shell from cache, refreshed in the background.
+const CACHE = "fridge-chef-8c7e6855";
+const SHELL = ["./", "./index.html", "./recipes.js", "./vendor/anthropic-sdk.mjs", "./chef-face.jpg", "./chef-art.jpg"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("fridge-chef-") && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
