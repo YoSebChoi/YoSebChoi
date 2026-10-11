@@ -1939,9 +1939,9 @@ body.sheet-open .timers { bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     nlisten("App", "appUrlOpen", e => e && e.url && handleLink(e.url));
     ncall("App", "getLaunchUrl").then(r => r && r.url && handleLink(r.url)).catch(() => {});
   }
-  $("#versionLine").textContent = "화면 버전 455ab4aa";
-  $("#aboutVersion").textContent = "화면 버전 455ab4aa";
-  if (native) ncall("App", "getInfo").then(i => { if (i && i.version) { $("#aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 455ab4aa`; } }).catch(() => {});
+  $("#versionLine").textContent = "화면 버전 e49bc0e6";
+  $("#aboutVersion").textContent = "화면 버전 e49bc0e6";
+  if (native) ncall("App", "getInfo").then(i => { if (i && i.version) { $("#aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 e49bc0e6`; } }).catch(() => {});
   setTimeout(checkAppUpdate, 2600);   // after the splash
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 })();
