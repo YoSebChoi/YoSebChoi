@@ -77,10 +77,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          notes="냉장고 셰프 Android 앱 (빌드 ${{ github.run_number }}). 폰에서 fridge-chef.apk를 받아 설치하세요."
+          notes="최책임의 냉장고 셰프 Android 앱 (빌드 ${{ github.run_number }}). 폰에서 fridge-chef.apk를 받아 설치하세요."
           if gh release view fridge-apk >/dev/null 2>&1; then
-            gh release edit fridge-apk --title "냉장고 셰프 앱" --notes "$notes"
+            gh release edit fridge-apk --title "최책임의 냉장고 셰프 앱" --notes "$notes"
           else
-            gh release create fridge-apk --title "냉장고 셰프 앱" --notes "$notes" --target "$GITHUB_SHA"
+            gh release create fridge-apk --title "최책임의 냉장고 셰프 앱" --notes "$notes" --target "$GITHUB_SHA"
           fi
           gh release upload fridge-apk fridge-chef.apk --clobber

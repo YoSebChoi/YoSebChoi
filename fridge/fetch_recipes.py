@@ -39,7 +39,8 @@ def fetch_all(key):
         body = data.get("COOKRCP01") or {}
         res = body.get("RESULT") or data.get("RESULT") or {}
         if res.get("CODE") not in (None, "INFO-000"):
-            raise SystemExit(f"식품안전나라 API: {res.get('CODE')} {res.get('MSG')}")
+            # e.g. INFO-500 「현재 접속 중인 인증키입니다」: busy for now, so the caller keeps what it has
+            raise RuntimeError(f"식품안전나라 API: {res.get('CODE')} {res.get('MSG')}")
         total = int(body.get("total_count") or 0)
         page = body.get("row") or []
         rows += page

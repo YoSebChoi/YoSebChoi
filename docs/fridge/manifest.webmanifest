@@ -1,29 +1,29 @@
 {
   "id": "./",
-  "name": "냉장고 셰프",
-  "short_name": "냉장고 셰프",
+  "name": "최책임의 냉장고 셰프",
+  "short_name": "최책임 냉장고셰프",
   "description": "냉장고 사진이나 재료로 오늘 메뉴와 출처 있는 레시피를 찾아 줘요",
   "lang": "ko",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#1f6f62",
+  "background_color": "#c8e2bb",
   "theme_color": "#fffaf3",
   "icons": [
     {
-      "src": "icon-192.f6578a3f.png",
+      "src": "icon-192.78a8035b.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-512.9682ea30.png",
+      "src": "icon-512.4b793f21.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icon-maskable-512.e439bee2.png",
+      "src": "icon-maskable-512.40b99e55.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

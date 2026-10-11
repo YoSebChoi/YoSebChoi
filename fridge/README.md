@@ -1,4 +1,4 @@
-# 냉장고 셰프
+# 최책임의 냉장고 셰프
 
 냉장고에 있는 재료를 고르면 오늘 해 먹을 메뉴를 골라 주고
 **식품의약품안전처 레시피 DB**에서 찾아 주는 앱이에요. 키 없이 그냥 돼요.
@@ -49,7 +49,7 @@
 ```sh
 FOODSAFETY_KEY=... python3 fridge/fetch_recipes.py   # 식약처 레시피 DB → fridge/data/foodsafety.json
 python3 fridge/build.py          # fridge/ → docs/fridge/ (버전, 레시피 DB, 서비스 워커, 매니페스트, 아이콘)
-node fridge/assets/render_icon.mjs   # 아이콘 그림(icon.svg)을 고쳤을 때 PNG 다시 만들기 (playwright 필요)
+python3 fridge/assets/make_chef_icons.py   # 최책임 그림(chef-art.png)에서 아이콘·얼굴·시작 화면 그림 만들기
 python3 fridge-app/make_icons.py     # Android 런처 아이콘과 시작 화면 (APK 빌드 때도 자동)
 ```
 
