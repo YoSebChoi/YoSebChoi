@@ -9,6 +9,7 @@
 - embryo_day       5 / 6 / 3 / 불명   (분석 대상은 5, 6일배는 별도 기록)
 - transfer_type    신선 / 동결 / 불명
 - transfer_date    YYYY-MM-DD (알 수 있으면)
+- maternal_age     35이상 / 35미만 / (빈칸=미상). 이식 시점 만 나이 기준, 근거는 ambiguous에 '나이:'로 기록
 - count_basis      date(날짜로 계산) / zero(이식일=0일차) / one(이식일=1일차) / 불명
 - test_d13, test_d14, test_d15
                    이식일=0 기준 경과일별 임테기 결과: 역전 / 동일진하기 / 미역전(연함) / 음성 / 기록없음
@@ -31,13 +32,14 @@ import sys
 from common import DATA, read_csv, write_csv
 
 PATH = os.path.join(DATA, "cases.csv")
-FIELDS = ["url", "case_id", "embryo_day", "transfer_type", "transfer_date", "count_basis",
+FIELDS = ["url", "case_id", "embryo_day", "transfer_type", "transfer_date", "maternal_age", "count_basis",
           "day_from_transfer", "test_d13", "test_d14", "test_d15", "reversal_day", "hcg", "evidence",
           "outcome", "twins", "outcome_week", "followup_url", "ambiguous"]
 
 ALLOWED = {
     "embryo_day": {"5", "6", "3", "불명"},
     "transfer_type": {"신선", "동결", "불명"},
+    "maternal_age": {"35이상", "35미만", ""},
     "count_basis": {"date", "zero", "one", "불명"},
     "test_d13": {"역전", "동일진하기", "미역전(연함)", "음성", "기록없음", ""},
     "outcome": {"심장소리확인", "아기집만(계류)", "화학적유산", "자궁외", "미확인", ""},

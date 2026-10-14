@@ -65,12 +65,23 @@ REV_COARSE = [("경과 13일 이전", lambda d: d <= 13), ("경과 14~15일", la
               ("경과 16~17일", lambda d: 16 <= d <= 17), ("경과 18일 이후", lambda d: d >= 18)]
 
 
+DAY3_SHIFT = 2  # 3일배는 5일배보다 이틀 덜 자란 배아를 넣으므로 경과일 −2 = 5일배 환산
+
+
+def rev_day(r):
+    """5일배 기준으로 환산한 첫 역전 경과일(3일배는 −2). 숫자가 아니면 None."""
+    d = r.get("reversal_day", "")
+    if not d.isdigit():
+        return None
+    return int(d) - (DAY3_SHIFT if r.get("embryo_day") == "3" else 0)
+
+
 def reversal_table(rows, bins):
-    """reversal_day(첫 역전 경과일) 구간별 심장소리 비율. 미관찰·미상은 따로 한 줄씩."""
+    """reversal_day(첫 역전 경과일, 3일배는 5일배 환산) 구간별 심장소리 비율. 미관찰·미상은 따로 한 줄씩."""
     lines = [HEAD.replace("| 그룹 |", "| 첫 역전 |", 1)]
-    days = [r for r in rows if r.get("reversal_day", "").isdigit()]
+    days = [r for r in rows if rev_day(r) is not None]
     for label, f in bins:
-        lines.append(row_md(label, stats([r for r in days if f(int(r["reversal_day"]))])))
+        lines.append(row_md(label, stats([r for r in days if f(rev_day(r))])))
     for v in ("미관찰", "미상"):
         lines.append(row_md(v, stats([r for r in rows if r.get("reversal_day") == v])))
     return "\n".join(lines)
@@ -84,9 +95,29 @@ def main_line(label, s):
             f"{fmt_pct(s['lo'])}–{fmt_pct(s['hi'])}), 미확인 {s['unk']}건 제외, 심장소리 확인 중 쌍둥이 {s['twins']}건")
 
 
+def age_section(cases):
+    """심장소리를 못 들은(계류·화유·자궁외) 케이스의 산모 나이(만 35세 기준)."""
+    fails = [r for r in cases if r["outcome"] in FAILURES]
+    cols = [("35이상", "만 35세 이상"), ("35미만", "만 35세 미만"), ("", "미상")]
+    lines = ["## 심장소리 못 들은 케이스의 산모 나이", "",
+             "- 같은 블로그 글에서 나이 표현(만 나이, '서른아홉', '35세 이상이라 2개 이식' 등)을 찾아 이식 시점 기준으로 판정.",
+             "- 비교 기준이 되는 심장소리 확인 케이스의 나이는 조사하지 않았으므로 이 표만으로 나이 영향을 말할 수 없다.", "",
+             "| 결과 | 배아 | " + " | ".join(c[1] for c in cols) + " | 계 |", "|---|---|" + "---:|" * (len(cols) + 1)]
+    for o in sorted(FAILURES):
+        for e in ("3", "5", "6", "불명"):
+            sub = [r for r in fails if r["outcome"] == o and r.get("embryo_day") == e]
+            if sub:
+                lines.append(f"| {o} | {e}일배 | " + " | ".join(str(sum(r.get('maternal_age', '') == c[0] for r in sub)) for c in cols)
+                             + f" | {len(sub)} |")
+    lines.append("| 계 | | " + " | ".join(str(sum(r.get('maternal_age', '') == c[0] for r in fails)) for c in cols)
+                 + f" | {len(fails)} |")
+    return lines + [""]
+
+
 def build(cases):
     five = [r for r in cases if r.get("embryo_day") == "5"]
     six = [r for r in cases if r.get("embryo_day") == "6"]
+    three = [r for r in cases if r.get("embryo_day") == "3"]
     out = [
         "# 5일배아 이식 후 경과 14·15일 임테기 역전 → 심장소리 확인 비율",
         "",
@@ -106,7 +137,13 @@ def build(cases):
             "- reversal_day = 블로거가 처음 '역전'이라 적은 날(경과일). 그 전 날짜 기록이 없으면 실제 역전은 더 빨랐을 수 있다.",
             "- 미관찰 = 기록된 기간 안에 역전이 없거나 애매했던 케이스(임테기를 일찍 멈춘 경우 포함).", "",
             reversal_table(five, REV_BINS), "", "### 묶어서 보기 (5일배)", "", reversal_table(five, REV_COARSE), "",
-            "### 참고: 배아 일수 무관 전체", "", reversal_table(cases, REV_COARSE), ""]
+            "## 3일배아 첫 역전 시기별 (경과일 −2로 5일배 환산)", "",
+            f"- 3일배 케이스 {len(three)}건. 예) 3일배 경과 16일 역전 → 5일배 환산 경과 14일 줄에 들어간다.", "",
+            reversal_table(three, REV_COARSE), "",
+            "### 5일배 + 3일배(환산) 합산", "", reversal_table(five + three, REV_BINS), "",
+            reversal_table(five + three, REV_COARSE), "",
+            "### 참고: 배아 일수 무관 전체(3일배 환산 포함)", "", reversal_table(cases, REV_COARSE), ""]
+    out += age_section(cases)
     for day, label in MAIN_DAYS:
         out += [f"## {label} 결과별 비교 (5일배)", "", table(five, day), "",
                 f"### 하위분석: 신선 vs 동결 ({label}, 5일배)", "",
