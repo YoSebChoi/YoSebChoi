@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from cases import dedupe, elapsed_days, validate  # noqa: E402
 from common import canonical_url, parse_post_url  # noqa: E402
 from fetch_posts import extract  # noqa: E402
-from summarize import build, stats, wilson  # noqa: E402
+from summarize import REV_COARSE, reversal_table, build, stats, wilson  # noqa: E402
 
 
 def case(**kw):
@@ -50,6 +50,14 @@ class T(unittest.TestCase):
         merged = dedupe([case(hcg=""), case(hcg="2026-03-10:300(d9)")])
         self.assertEqual(len(merged), 1)
         self.assertEqual(merged[0]["hcg"], "2026-03-10:300(d9)")
+
+    def test_reversal_day(self):
+        self.assertTrue(validate([case(reversal_day="14일")]))
+        self.assertFalse(validate([case(reversal_day="미관찰")]))
+        t = reversal_table([case(reversal_day="14", outcome="심장소리확인", followup_url="x"),
+                            case(case_id="b", reversal_day="19", outcome="화학적유산", followup_url="x")], REV_COARSE)
+        self.assertIn("| 경과 14~15일 | 1 | 1 |", t)
+        self.assertIn("| 경과 18일 이후 | 1 | 0 |", t)
 
     def test_build_runs(self):
         md = build([case(outcome="심장소리확인", followup_url="x"), case(case_id="b", test_d14="동일진하기")])

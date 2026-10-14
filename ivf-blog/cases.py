@@ -13,6 +13,8 @@
 - test_d13, test_d14, test_d15
                    이식일=0 기준 경과일별 임테기 결과: 역전 / 동일진하기 / 미역전(연함) / 음성 / 기록없음
                    (test_d14 = 과제의 test_result_d14, "이식일 포함 15일차")
+- reversal_day     블로거가 처음 역전이라 적은 날(이식일=0 기준 경과일, 숫자) / 미관찰(기록 안에서 역전 없음·애매) / 미상(역전은 했으나 일차 불명)
+                   그 전 날짜 기록이 없으면 '처음 기록된 역전일'이라 실제 역전은 더 빨랐을 수 있다
 - day_from_transfer 글에서 주로 다룬 임테기 시점(이식일=0 기준 경과일)
 - hcg              "YYYY-MM-DD:값(dN)" 을 ; 로 연결. 예) 2026-03-10:312(d9);2026-03-12:780(d11)
 - evidence         판정 근거 한 줄 요약(원문 복사 금지)
@@ -30,7 +32,7 @@ from common import DATA, read_csv, write_csv
 
 PATH = os.path.join(DATA, "cases.csv")
 FIELDS = ["url", "case_id", "embryo_day", "transfer_type", "transfer_date", "count_basis",
-          "day_from_transfer", "test_d13", "test_d14", "test_d15", "hcg", "evidence",
+          "day_from_transfer", "test_d13", "test_d14", "test_d15", "reversal_day", "hcg", "evidence",
           "outcome", "twins", "outcome_week", "followup_url", "ambiguous"]
 
 ALLOWED = {
@@ -81,6 +83,9 @@ def validate(rows):
         for f, ok in ALLOWED.items():
             if r.get(f, "") not in ok:
                 errs.append(f"{i}행 {f}={r.get(f)!r} 허용값 아님")
+        rd = r.get("reversal_day", "")
+        if rd not in ("", "미관찰", "미상") and not rd.isdigit():
+            errs.append(f"{i}행 reversal_day={rd!r} 숫자/미관찰/미상 아님")
         if r.get("transfer_date"):
             try:
                 dt.date.fromisoformat(r["transfer_date"])

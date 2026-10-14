@@ -8,6 +8,10 @@ python fetch_posts.py              # 본문 → .cache/posts (로컬 전용, 커
 python read_post.py <url>          # 2단계: 글 전체를 읽고 data/cases.csv에 직접 판정 기록
 python cases.py                    # cases.csv 형식 검증 (스키마 설명은 cases.py 상단)
 python followup.py                 # 3단계: 조건 충족 케이스의 같은 블로그 이후 글 후보 → data/followup_queue.csv
+python followup_log.py build       # 읽은 결과를 data/followup_log.csv로 기록(케이스당 한 줄: 마지막 확인일·마지막 글 번호·판정 근거)
+python followup_log.py status --unknown  # 원문을 다시 읽지 않고 기록만으로 검토
+python followup_log.py recheck     # 미확인 케이스는 마지막으로 본 글 이후 새 글만 조회
+python followup_log.py snip CASE   # 새로 생긴 후보 글만 결과 키워드 주변 짧게 출력
 python summarize.py                # 4단계: results/summary.md
 python -m unittest discover -s tests
 ```

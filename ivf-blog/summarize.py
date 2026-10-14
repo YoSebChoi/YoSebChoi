@@ -58,6 +58,24 @@ def table(rows, day, by=None):
     return "\n".join(lines)
 
 
+REV_BINS = [("경과 12일 이전", lambda d: d <= 12), ("경과 13일", lambda d: d == 13), ("경과 14일", lambda d: d == 14),
+            ("경과 15일", lambda d: d == 15), ("경과 16일", lambda d: d == 16), ("경과 17일", lambda d: d == 17),
+            ("경과 18일 이후", lambda d: d >= 18)]
+REV_COARSE = [("경과 13일 이전", lambda d: d <= 13), ("경과 14~15일", lambda d: 14 <= d <= 15),
+              ("경과 16~17일", lambda d: 16 <= d <= 17), ("경과 18일 이후", lambda d: d >= 18)]
+
+
+def reversal_table(rows, bins):
+    """reversal_day(첫 역전 경과일) 구간별 심장소리 비율. 미관찰·미상은 따로 한 줄씩."""
+    lines = [HEAD.replace("| 그룹 |", "| 첫 역전 |", 1)]
+    days = [r for r in rows if r.get("reversal_day", "").isdigit()]
+    for label, f in bins:
+        lines.append(row_md(label, stats([r for r in days if f(int(r["reversal_day"]))])))
+    for v in ("미관찰", "미상"):
+        lines.append(row_md(v, stats([r for r in rows if r.get("reversal_day") == v])))
+    return "\n".join(lines)
+
+
 MAIN_DAYS = [("test_d14", "경과 14일(이식일 포함 15일차)"), ("test_d15", "경과 15일(이식일 포함 16일차)")]
 
 
@@ -84,6 +102,11 @@ def build(cases):
     late = [r for r in five if r.get("test_d14") in ("동일진하기", "미역전(연함)") and r.get("test_d15") == "역전"]
     out += [main_line("경과 14·15일 모두", stats(both)),
             main_line("경과 14일 미역전 → 경과 15일", stats(late)), ""]
+    out += ["## 첫 역전 시기별 심장소리 비율 (5일배)", "",
+            "- reversal_day = 블로거가 처음 '역전'이라 적은 날(경과일). 그 전 날짜 기록이 없으면 실제 역전은 더 빨랐을 수 있다.",
+            "- 미관찰 = 기록된 기간 안에 역전이 없거나 애매했던 케이스(임테기를 일찍 멈춘 경우 포함).", "",
+            reversal_table(five, REV_BINS), "", "### 묶어서 보기 (5일배)", "", reversal_table(five, REV_COARSE), "",
+            "### 참고: 배아 일수 무관 전체", "", reversal_table(cases, REV_COARSE), ""]
     for day, label in MAIN_DAYS:
         out += [f"## {label} 결과별 비교 (5일배)", "", table(five, day), "",
                 f"### 하위분석: 신선 vs 동결 ({label}, 5일배)", "",

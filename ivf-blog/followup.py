@@ -17,8 +17,8 @@ QUERIES = ["아기집", "심장소리", "계류", "화유"]
 OUT = os.path.join(DATA, "followup_queue.csv")
 
 
-def post_list(blog_id, pages=5):
-    """블로그 글 목록(모바일 API). 실패하면 빈 목록."""
+def post_list(blog_id, pages=5, stop_at=0):
+    """블로그 글 목록(모바일 API, 최신순). stop_at(logNo) 이하 글이 나오면 그 페이지에서 멈춤. 실패하면 빈 목록."""
     items = []
     for page in range(1, pages + 1):
         try:
@@ -33,7 +33,7 @@ def post_list(blog_id, pages=5):
             items.append({"url": canonical_url(blog_id, it.get("logNo")),
                           "title": strip_tags(it.get("titleWithInspectMessage") or it.get("title", "")),
                           "logNo": int(it.get("logNo", 0)), "source": "post-list"})
-        if len(batch) < 30:
+        if len(batch) < 30 or any(int(it.get("logNo", 0)) <= stop_at for it in batch):
             break
     return items
 
