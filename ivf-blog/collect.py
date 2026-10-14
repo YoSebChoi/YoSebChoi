@@ -26,9 +26,10 @@ def main():
 
     rows = read_csv(OUT)  # 이어하기
     seen = {r["url"] for r in rows}
-    done_kw = {r["keyword"] for r in rows}
     # 라운드로빈: --limit이 작을 때도 키워드가 고르게 섞이도록 페이지 단위로 번갈아 수집
-    starts = {kw: 1 for kw in KEYWORDS if kw not in done_kw}
+    # 이전 실행에서 --limit에 걸려 중간에 끊긴 키워드도 있으므로 모든 키워드를 처음부터 다시 검색한다.
+    # 이미 받은 URL은 seen으로 걸러지므로 중복 없이 빠진 결과만 추가된다.
+    starts = {kw: 1 for kw in KEYWORDS}
     while starts:
         for kw in list(starts):
             start = starts[kw]

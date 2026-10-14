@@ -38,7 +38,9 @@ def extract(html):
     body = soup.select_one(".se-main-container") or soup.select_one("#postViewArea") or soup.select_one(".post_ct")
     blocks = []
     if body:
-        for el in body.select(".se-component, p, .se_component") or [body]:
+        # SE3는 .se-component 단위, 구 에디터는 .se_component/p 단위. 섞어 고르면 중첩돼 본문이 두 번 나온다.
+        parts = body.select(".se-component") or body.select(".se_component") or body.select("p")
+        for el in parts or [body]:
             if el.select_one(".se-image, img") is not None:
                 for img in el.select("img"):
                     alt = (img.get("alt") or "").strip()
