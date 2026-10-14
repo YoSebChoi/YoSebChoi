@@ -61,7 +61,9 @@ def main():
         targets = [c for c in cases if c.get("embryo_day") == "5" and
                    (args.all_groups and c.get("test_d14") in ("역전", "동일진하기", "미역전(연함)") or is_target(c))]
     queue = read_csv(OUT)
-    done = {q["case_id"] for q in queue}
+    # 이미 후보를 모았거나 followup_log에 확인 기록이 있는 케이스는 건너뜀(새 글 확인은 followup_log.py recheck)
+    log = os.path.join(DATA, "followup_log.csv")
+    done = {q["case_id"] for q in queue} | {r["case_id"] for r in read_csv(log)}
     for c in targets:
         if c["case_id"] in done:
             continue

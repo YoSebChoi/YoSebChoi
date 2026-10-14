@@ -121,7 +121,8 @@ def build(cases):
     out = [
         "# 5일배아 이식 후 경과 14·15일 임테기 역전 → 심장소리 확인 비율",
         "",
-        f"- 판정 케이스(주기 단위, 중복 제거): {len(cases)}  · 5일배 {len(five)} · 6일배 {len(six)} (별도)",
+        f"- 판정 케이스(주기 단위, 중복 제거): {len(cases)}  · 5일배 {len(five)} · 3일배 {len(three)} · 6일배 {len(six)} (별도)",
+        "- 3일배는 이틀 덜 자란 배아를 넣으므로 첫 역전 경과일에서 2일을 빼 5일배 기준으로 환산해 비교한다(역전 시기 표에만 사용).",
         "- 경과일은 이식일 = 0 기준. \"이식일 포함 15일차\" = 경과 14일, \"이식일 포함 16일차\" = 경과 15일.",
         "- 주 지표 = 심장소리확인 / (심장소리확인 + 계류 + 화유 + 자궁외). 미확인은 분모에서 제외하고 개수만 표기.",
         "",
@@ -139,7 +140,7 @@ def build(cases):
             reversal_table(five, REV_BINS), "", "### 묶어서 보기 (5일배)", "", reversal_table(five, REV_COARSE), "",
             "## 3일배아 첫 역전 시기별 (경과일 −2로 5일배 환산)", "",
             f"- 3일배 케이스 {len(three)}건. 예) 3일배 경과 16일 역전 → 5일배 환산 경과 14일 줄에 들어간다.", "",
-            reversal_table(three, REV_COARSE), "",
+            reversal_table(three, REV_BINS), "", reversal_table(three, REV_COARSE), "",
             "### 5일배 + 3일배(환산) 합산", "", reversal_table(five + three, REV_BINS), "",
             reversal_table(five + three, REV_COARSE), "",
             "### 참고: 배아 일수 무관 전체(3일배 환산 포함)", "", reversal_table(cases, REV_COARSE), ""]
