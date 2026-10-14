@@ -58,43 +58,40 @@ def table(rows, day, by=None):
     return "\n".join(lines)
 
 
+MAIN_DAYS = [("test_d14", "경과 14일(이식일 포함 15일차)"), ("test_d15", "경과 15일(이식일 포함 16일차)")]
+
+
+def main_line(label, s):
+    return (f"- {label} 역전: **{fmt_pct(s['rate'])}** ({s['hb']}/{s['n']}, Wilson 95% CI "
+            f"{fmt_pct(s['lo'])}–{fmt_pct(s['hi'])}), 미확인 {s['unk']}건 제외, 심장소리 확인 중 쌍둥이 {s['twins']}건")
+
+
 def build(cases):
     five = [r for r in cases if r.get("embryo_day") == "5"]
     six = [r for r in cases if r.get("embryo_day") == "6"]
-    main_s = stats([r for r in five if r.get("test_d14") == "역전"])
     out = [
-        "# 5일배아 이식 후 경과 14일(이식일 포함 15일차) 임테기 역전 → 심장소리 확인 비율",
+        "# 5일배아 이식 후 경과 14·15일 임테기 역전 → 심장소리 확인 비율",
         "",
         f"- 판정 케이스(주기 단위, 중복 제거): {len(cases)}  · 5일배 {len(five)} · 6일배 {len(six)} (별도)",
-        "- 경과일은 이식일 = 0 기준. \"이식일 포함 15일차\" = 경과 14일.",
+        "- 경과일은 이식일 = 0 기준. \"이식일 포함 15일차\" = 경과 14일, \"이식일 포함 16일차\" = 경과 15일.",
         "- 주 지표 = 심장소리확인 / (심장소리확인 + 계류 + 화유 + 자궁외). 미확인은 분모에서 제외하고 개수만 표기.",
         "",
-        "## 주 결과",
+        "## 주 결과 (5일배)",
         "",
-        f"**{fmt_pct(main_s['rate'])}** ({main_s['hb']}/{main_s['n']}, Wilson 95% CI "
-        f"{fmt_pct(main_s['lo'])}–{fmt_pct(main_s['hi'])}), 미확인 {main_s['unk']}건 제외"
-        f", 심장소리 확인 중 쌍둥이 {main_s['twins']}건",
-        "",
-        "## 경과 14일 결과별 비교 (5일배)",
-        "",
-        table(five, "test_d14"),
-        "",
-        "## 하위분석: 신선 vs 동결 (경과 14일, 5일배)",
-        "",
-        table(five, "test_d14", ("transfer_type", ["신선", "동결", "불명"])),
-        "",
-        "## 참고: 경과 13일 (5일배)",
-        "",
-        table(five, "test_d13"),
-        "",
-        "## 참고: 경과 15일 (5일배)",
-        "",
-        table(five, "test_d15"),
-        "",
-        "## 참고: 6일배 경과 14일 (분석 대상 외)",
-        "",
-        table(six, "test_d14"),
-        "",
+    ]
+    out += [main_line(label, stats([r for r in five if r.get(day) == "역전"])) for day, label in MAIN_DAYS]
+    both = [r for r in five if r.get("test_d14") == "역전" and r.get("test_d15") == "역전"]
+    late = [r for r in five if r.get("test_d14") in ("동일진하기", "미역전(연함)") and r.get("test_d15") == "역전"]
+    out += [main_line("경과 14·15일 모두", stats(both)),
+            main_line("경과 14일 미역전 → 경과 15일", stats(late)), ""]
+    for day, label in MAIN_DAYS:
+        out += [f"## {label} 결과별 비교 (5일배)", "", table(five, day), "",
+                f"### 하위분석: 신선 vs 동결 ({label}, 5일배)", "",
+                table(five, day, ("transfer_type", ["신선", "동결", "불명"])), ""]
+    out += ["## 참고: 경과 13일 (5일배)", "", table(five, "test_d13"), ""]
+    for day, label in MAIN_DAYS:
+        out += [f"## 참고: 6일배 {label} (분석 대상 외)", "", table(six, day), ""]
+    out += [
         "## 한계",
         "",
         "- **후기 작성자 편향**: 블로그 후기는 결과가 좋을 때(또는 극적일 때) 더 많이 쓰이고, 실패 후 후속 글이 "

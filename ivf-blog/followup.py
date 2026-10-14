@@ -1,6 +1,8 @@
 """3단계 준비: 조건 충족 케이스(5일배 + 경과 14일 역전)의 같은 블로그 이후 글 후보를 모은다.
 결과는 data/followup_queue.csv (case_id, url, title, date, source). 결과 판정은 글을 읽고 cases.csv에 기록.
-사용: python followup.py [--all-groups]   (--all-groups: 비교군 동일진하기/미역전도 추적)
+사용: python followup.py [--all-groups] [--unknown]
+  --all-groups: 비교군 동일진하기/미역전도 추적
+  --unknown: 결과가 미확인인 케이스 전부 추적(배아 일수·그룹 무관)
 """
 import argparse
 import json
@@ -50,10 +52,14 @@ def search_same_blog(blog_id):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--all-groups", action="store_true")
+    ap.add_argument("--unknown", action="store_true")
     args = ap.parse_args()
     cases = dedupe(read_csv(CASES))
-    targets = [c for c in cases if c.get("embryo_day") == "5" and
-               (args.all_groups and c.get("test_d14") in ("역전", "동일진하기", "미역전(연함)") or is_target(c))]
+    if args.unknown:
+        targets = [c for c in cases if c.get("outcome") in ("미확인", "")]
+    else:
+        targets = [c for c in cases if c.get("embryo_day") == "5" and
+                   (args.all_groups and c.get("test_d14") in ("역전", "동일진하기", "미역전(연함)") or is_target(c))]
     queue = read_csv(OUT)
     done = {q["case_id"] for q in queue}
     for c in targets:
