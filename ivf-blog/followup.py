@@ -12,7 +12,7 @@ import re
 from cases import PATH as CASES, dedupe, is_target
 from common import DATA, blog_search, canonical_url, http_get, parse_post_url, read_csv, strip_tags, write_csv
 
-OUTCOME_WORDS = re.compile(r"아기집|난황|심장|심박|계류|화유|화학적|자궁외|졸업|주차|\d+주|임신확인|유산|소파|피검|베타")
+OUTCOME_WORDS = re.compile(r"아기집|난황|심장|심박|계류|화유|화학적|자궁외|졸업|\d+주|임신확인|유산|소파|피검|베타")
 QUERIES = ["아기집", "심장소리", "계류", "화유"]
 OUT = os.path.join(DATA, "followup_queue.csv")
 
