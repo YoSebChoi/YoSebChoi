@@ -50,15 +50,26 @@ def http_get(url, headers=None, retries=2):
     raise RuntimeError(f"GET 실패 ({retries + 1}회): {url}: {last_err}")
 
 
-def naver_headers():
-    """키가 환경변수에 있으면 헤더로, 없으면 network secret 프록시가 붙인다고 가정."""
-    cid, sec = os.environ.get("NAVER_CLIENT_ID"), os.environ.get("NAVER_CLIENT_SECRET")
-    return {"X-Naver-Client-Id": cid, "X-Naver-Client-Secret": sec} if cid and sec else {}
+# 검색 API는 개발자센터(openapi.naver.com) → NAVER API HUB(네이버 클라우드 플랫폼)로 이관 중.
+# NCP_API_KEY_ID/NCP_API_KEY가 있으면 HUB, NAVER_CLIENT_ID/SECRET이 있으면 개발자센터를 쓴다.
+# 둘 다 없으면 network secret 프록시가 헤더를 붙인다고 보고 NAVER_SEARCH_URL(기본: HUB)로 요청.
+HUB_URL = "https://naverapihub.apigw.ntruss.com/search/v1/blog"
+DEV_URL = "https://openapi.naver.com/v1/search/blog"
+
+
+def search_endpoint():
+    env = os.environ.get
+    if env("NCP_API_KEY_ID") and env("NCP_API_KEY"):
+        return HUB_URL, {"X-NCP-APIGW-API-KEY-ID": env("NCP_API_KEY_ID"), "X-NCP-APIGW-API-KEY": env("NCP_API_KEY")}
+    if env("NAVER_CLIENT_ID") and env("NAVER_CLIENT_SECRET"):
+        return DEV_URL, {"X-Naver-Client-Id": env("NAVER_CLIENT_ID"), "X-Naver-Client-Secret": env("NAVER_CLIENT_SECRET")}
+    return env("NAVER_SEARCH_URL", HUB_URL), {}
 
 
 def blog_search(query, start=1, display=100, sort="sim"):
+    url, headers = search_endpoint()
     qs = urllib.parse.urlencode({"query": query, "display": display, "start": start, "sort": sort})
-    body = http_get(f"https://openapi.naver.com/v1/search/blog?{qs}", naver_headers())
+    body = http_get(f"{os.environ.get('NAVER_SEARCH_URL', url)}?{qs}", headers)
     return json.loads(body) if body else {"items": []}
 
 

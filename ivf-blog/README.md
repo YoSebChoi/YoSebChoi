@@ -12,7 +12,10 @@ python summarize.py                # 4단계: results/summary.md
 python -m unittest discover -s tests
 ```
 
-- 네이버 API 키: `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` 환경변수가 있으면 헤더로 붙이고, 없으면 network secret 프록시가 붙인다고 가정.
+- 검색 API 키 (`common.search_endpoint`):
+  - NAVER API HUB(네이버 클라우드 플랫폼, 신규 발급은 여기서): `NCP_API_KEY_ID` / `NCP_API_KEY` → `naverapihub.apigw.ntruss.com`
+  - 기존 개발자센터 키: `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` → `openapi.naver.com` (2027-06-30 지원 종료 예정)
+  - 둘 다 없으면 network secret 프록시가 헤더를 붙인다고 가정. 엔드포인트가 바뀌면 `NAVER_SEARCH_URL`로 덮어쓰기.
 - 판정은 키워드 매칭으로 하지 않는다. `read_post.py`는 날짜·일차 줄에 ▶ 표시만 한다.
 - 개인정보: 블로그 URL(blogId 포함) 외에는 저장하지 않는다. 블로그 닉네임·본문 원문은 커밋하지 않는다.
 - 경과일은 이식일 = 0 기준. "이식일 포함 15일차" = 경과 14일 = `test_d14`.
