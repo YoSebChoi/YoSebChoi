@@ -7,6 +7,7 @@ python collect.py --limit 300      # 1단계: data/candidates.csv (url, title, b
 python fetch_posts.py              # 본문 → .cache/posts (로컬 전용, 커밋 안 함)
 python read_post.py <url>          # 2단계: 글 전체를 읽고 data/cases.csv에 직접 판정 기록
 python cases.py                    # cases.csv 형식 검증 (스키마 설명은 cases.py 상단)
+python collect.py --day4           # 4일배아 키워드로 후보 추가 수집
 python collect.py --day3           # 3일배아 키워드로 후보 추가 수집(제목에 3일배아 표현 있는 글만)
 python followup.py                 # 3단계: 조건 충족 케이스의 같은 블로그 이후 글 후보 → data/followup_queue.csv
 python followup_log.py build       # 읽은 결과를 data/followup_log.csv로 기록(케이스당 한 줄: 마지막 확인일·마지막 글 번호·판정 근거)
@@ -24,3 +25,18 @@ python -m unittest discover -s tests
 - 판정은 키워드 매칭으로 하지 않는다. `read_post.py`는 날짜·일차 줄에 ▶ 표시만 한다.
 - 개인정보: 블로그 URL(blogId 포함) 외에는 저장하지 않는다. 블로그 닉네임·본문 원문은 커밋하지 않는다.
 - 경과일은 이식일 = 0 기준. "이식일 포함 15일차" = 경과 14일 = `test_d14`.
+
+## 토큰 적게 쓰는 판정 순서 (review.py)
+
+원문 전체를 읽지 않고 필요한 문장만 보고, 판정은 한 줄씩 남긴다. 다시 볼 때는 `cases.csv`(evidence·ambiguous)와 `followup_log.csv`만 보면 된다.
+
+```
+python review.py read 1686 2172 --day 4 --auto | python review.py add --day 4   # 역전 언급 없는 글 자동 제외
+python review.py read 1686 2172 --day 4        # 남은 글: '역전' 주변·이식일·결과 문장만 발췌(이미 판정한 글은 건너뜀)
+python review.py add --day 4 < 판정줄           # idx|신선/동결|이식일|basis|역전일|결과|쌍둥이|근거[|애매|후속URL] 또는 X|idx|사유
+python followup.py --unknown                   # 미확인 케이스의 후속 글 후보(이미 기록된 케이스는 건너뜀)
+python review.py titles --day 4                # 후속 글 제목만 한 줄로 — 대부분 제목으로 결과 판정
+python review.py snip CASE_ID ...              # 제목으로 애매한 케이스만 결과 문장 발췌
+python review.py outcome < 결과줄               # case_id|결과|주수|제목키워드|쌍둥이|메모
+python followup_log.py build                   # 케이스당 한 줄 기록 갱신
+```

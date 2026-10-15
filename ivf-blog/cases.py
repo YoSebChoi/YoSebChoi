@@ -6,7 +6,7 @@
 필드
 - url              판정에 쓴 대표 글
 - case_id          {blogId}_{transfer_date} (이식일 모르면 {blogId}_{logNo})
-- embryo_day       5 / 6 / 3 / 불명   (분석 대상은 5, 6일배는 별도 기록)
+- embryo_day       5 / 6 / 4 / 3 / 불명   (분석 대상은 5, 6일배는 별도 기록)
 - transfer_type    신선 / 동결 / 불명
 - transfer_date    YYYY-MM-DD (알 수 있으면)
 - maternal_age     35이상 / 35미만 / (빈칸=미상). 이식 시점 만 나이 기준, 근거는 ambiguous에 '나이:'로 기록
@@ -37,7 +37,7 @@ FIELDS = ["url", "case_id", "embryo_day", "transfer_type", "transfer_date", "mat
           "outcome", "twins", "outcome_week", "followup_url", "ambiguous"]
 
 ALLOWED = {
-    "embryo_day": {"5", "6", "3", "불명"},
+    "embryo_day": {"5", "6", "4", "3", "불명"},
     "transfer_type": {"신선", "동결", "불명"},
     "maternal_age": {"35이상", "35미만", ""},
     "count_basis": {"date", "zero", "one", "불명"},

@@ -65,15 +65,16 @@ REV_COARSE = [("경과 13일 이전", lambda d: d <= 13), ("경과 14~15일", la
               ("경과 16~17일", lambda d: 16 <= d <= 17), ("경과 18일 이후", lambda d: d >= 18)]
 
 
-DAY3_SHIFT = 2  # 3일배는 5일배보다 이틀 덜 자란 배아를 넣으므로 경과일 −2 = 5일배 환산
+# 덜 자란 배아를 넣을수록 같은 hCG 단계까지 경과일이 길다 → 5일배 기준으로 환산(3일배 −2, 4일배 −1)
+DAY_SHIFT = {"3": 2, "4": 1}
 
 
 def rev_day(r):
-    """5일배 기준으로 환산한 첫 역전 경과일(3일배는 −2). 숫자가 아니면 None."""
+    """5일배 기준으로 환산한 첫 역전 경과일(3일배 −2, 4일배 −1). 숫자가 아니면 None."""
     d = r.get("reversal_day", "")
     if not d.isdigit():
         return None
-    return int(d) - (DAY3_SHIFT if r.get("embryo_day") == "3" else 0)
+    return int(d) - DAY_SHIFT.get(r.get("embryo_day"), 0)
 
 
 def reversal_table(rows, bins):
@@ -104,7 +105,7 @@ def age_section(cases):
              "- 비교 기준이 되는 심장소리 확인 케이스의 나이는 조사하지 않았으므로 이 표만으로 나이 영향을 말할 수 없다.", "",
              "| 결과 | 배아 | " + " | ".join(c[1] for c in cols) + " | 계 |", "|---|---|" + "---:|" * (len(cols) + 1)]
     for o in sorted(FAILURES):
-        for e in ("3", "5", "6", "불명"):
+        for e in ("3", "4", "5", "6", "불명"):
             sub = [r for r in fails if r["outcome"] == o and r.get("embryo_day") == e]
             if sub:
                 lines.append(f"| {o} | {e}일배 | " + " | ".join(str(sum(r.get('maternal_age', '') == c[0] for r in sub)) for c in cols)
@@ -118,11 +119,12 @@ def build(cases):
     five = [r for r in cases if r.get("embryo_day") == "5"]
     six = [r for r in cases if r.get("embryo_day") == "6"]
     three = [r for r in cases if r.get("embryo_day") == "3"]
+    four = [r for r in cases if r.get("embryo_day") == "4"]
     out = [
         "# 5일배아 이식 후 경과 14·15일 임테기 역전 → 심장소리 확인 비율",
         "",
-        f"- 판정 케이스(주기 단위, 중복 제거): {len(cases)}  · 5일배 {len(five)} · 3일배 {len(three)} · 6일배 {len(six)} (별도)",
-        "- 3일배는 이틀 덜 자란 배아를 넣으므로 첫 역전 경과일에서 2일을 빼 5일배 기준으로 환산해 비교한다(역전 시기 표에만 사용).",
+        f"- 판정 케이스(주기 단위, 중복 제거): {len(cases)}  · 5일배 {len(five)} · 3일배 {len(three)} · 4일배 {len(four)} · 6일배 {len(six)} (별도)",
+        "- 3일배는 첫 역전 경과일에서 2일, 4일배는 1일을 빼 5일배 기준으로 환산해 비교한다(역전 시기 표에만 사용).",
         "- 경과일은 이식일 = 0 기준. \"이식일 포함 15일차\" = 경과 14일, \"이식일 포함 16일차\" = 경과 15일.",
         "- 주 지표 = 심장소리확인 / (심장소리확인 + 계류 + 화유 + 자궁외). 미확인은 분모에서 제외하고 개수만 표기.",
         "",
@@ -141,9 +143,12 @@ def build(cases):
             "## 3일배아 첫 역전 시기별 (경과일 −2로 5일배 환산)", "",
             f"- 3일배 케이스 {len(three)}건. 예) 3일배 경과 16일 역전 → 5일배 환산 경과 14일 줄에 들어간다.", "",
             reversal_table(three, REV_BINS), "", reversal_table(three, REV_COARSE), "",
-            "### 5일배 + 3일배(환산) 합산", "", reversal_table(five + three, REV_BINS), "",
-            reversal_table(five + three, REV_COARSE), "",
-            "### 참고: 배아 일수 무관 전체(3일배 환산 포함)", "", reversal_table(cases, REV_COARSE), ""]
+            "## 4일배아 첫 역전 시기별 (경과일 −1로 5일배 환산)", "",
+            f"- 4일배 케이스 {len(four)}건. 예) 4일배 경과 15일 역전 → 5일배 환산 경과 14일.", "",
+            reversal_table(four, REV_BINS), "", reversal_table(four, REV_COARSE), "",
+            "### 5일배 + 4일배 + 3일배(환산) 합산", "", reversal_table(five + four + three, REV_BINS), "",
+            reversal_table(five + four + three, REV_COARSE), "",
+            "### 참고: 배아 일수 무관 전체(3·4일배 환산 포함)", "", reversal_table(cases, REV_COARSE), ""]
     out += age_section(cases)
     for day, label in MAIN_DAYS:
         out += [f"## {label} 결과별 비교 (5일배)", "", table(five, day), "",
