@@ -1,0 +1,115 @@
+<title>임테기 역전과 심장소리</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#f7f8fa;--panel:#ffffff;--fg:#1b2430;--muted:#5d6876;--line:#dde2e8;--grid:#e8ecf0;
+--accent:#2f6db3;--low:#d0643b;--lowbg:#fbeee8;--strip:#e9edf2;
+--sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--panel:#1b2027;--fg:#e8ecf1;--muted:#9aa5b2;
+--line:#2c333d;--grid:#262c35;--accent:#5b8fd4;--low:#d0643b;--lowbg:#2b211d;--strip:#262c35;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181d;--panel:#1b2027;--fg:#e8ecf1;--muted:#9aa5b2;--line:#2c333d;--grid:#262c35;
+--accent:#5b8fd4;--low:#d0643b;--lowbg:#2b211d;--strip:#262c35;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.6}
+.wrap{max-width:880px;margin:0 auto;padding-block:32px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
+header{display:grid;grid-template-columns:auto 1fr;gap:24px;padding-left:14px;align-items:center}
+.strip{width:46px;height:120px;border-radius:8px;background:var(--strip);position:relative;border:1px solid var(--line)}
+.strip i{position:absolute;left:8px;right:8px;height:5px;border-radius:2px}
+.strip .c{top:44px;background:var(--muted);opacity:.55}.strip .t{top:70px;background:var(--low)}
+.strip span{position:absolute;left:-14px;font:600 10px var(--mono);color:var(--muted)}
+h1{font-size:clamp(24px,4vw,32px);line-height:1.25;margin:0;text-wrap:balance;font-weight:700}
+h2{font-size:20px;margin:0 0 4px;text-wrap:balance}
+h3{font-size:15px;margin:18px 0 6px;color:var(--muted);font-weight:600}
+p{margin:0}.lede{color:var(--muted);margin-top:6px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi b{display:block;font:600 24px var(--mono);font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:13px}
+.key{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:16px 18px}
+.key ul{margin:6px 0 0;padding-left:20px;display:grid;gap:4px}
+section{display:grid;gap:10px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0;display:grid;gap:12px}
+.tag{display:inline-block;font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.chart{width:100%;height:auto;display:block}
+.chart .grid{stroke:var(--grid);stroke-width:1}.chart .tick{fill:var(--muted);font:11px var(--mono)}
+.chart .lab{fill:var(--fg);font:500 13px var(--sans)}.chart .val{fill:var(--fg);font:600 14px var(--mono)}
+.chart .sub{fill:var(--muted);font:11px var(--sans)}.chart .bar.hi{fill:var(--accent)}.chart .bar.low{fill:var(--low)}
+.chart .ci{stroke:var(--fg);stroke-width:1.5;opacity:.55}.chart .hit{fill:transparent}.chart .row:hover .hit{fill:var(--grid)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;color:var(--muted);font-size:13px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-weight:600;font-size:12.5px}
+tr.low td{background:var(--lowbg)}tr.total td{border-top:2px solid var(--line)}
+.muted{color:var(--muted)}.note{color:var(--muted);font-size:13.5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}.two>*{min-width:0}
+ol,ul{margin:0}.method li,.limits li{margin-bottom:4px}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}header{grid-template-columns:1fr}.strip{display:none}}
+</style>
+<div class="wrap">
+<header>
+  <div class="strip" aria-hidden="true"><i class="c"></i><span style="top:38px">C</span><i class="t"></i><span style="top:64px">T</span></div>
+  <div><span class="tag">시험관 이식 후기 분석 · 2026-10-15</span>
+  <h1>임테기 역전 시점과 심장소리 확인 비율</h1>
+  <p class="lede">네이버 블로그 시험관 후기에서 이식 후 임테기가 처음 역전(시약선 T가 대조선 C보다 진해짐)된 날을 모으고, 이후 심장소리를 들었는지 추적했습니다.</p></div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><b>440</b><span>분석 케이스 (3·4·5일배)</span></div>
+  <div class="kpi"><b>129</b><span>5일배</span></div>
+  <div class="kpi"><b>103 · 208</b><span>4일배 · 3일배</span></div>
+  <div class="kpi"><b>369</b><span>결과 확인된 케이스</span></div>
+</div>
+
+<div class="key"><b>핵심 결과</b>
+<ul>
+  <li>첫 역전이 <b>5일배 기준 경과 17일 이내</b>면 심장소리 확인 비율이 <b>94.5%</b> (275/291)로 높고, 13일 이전·14~15일·16~17일 사이 차이는 크지 않습니다.</li>
+  <li>첫 역전이 <b>경과 18일 이후</b>면 <b>56.0%</b> (14/25), 기록 기간 안에 <b>역전이 없으면</b> <b>57.8%</b> (26/45)로 떨어집니다. 화학적 유산은 대부분 이 그룹에서 나왔습니다.</li>
+  <li>5일배만 따로 봐도 같은 모양입니다. 3·4일배는 경과일을 5일배 기준으로 환산하면 5일배와 결과가 겹칩니다.</li>
+</ul></div>
+
+<section>
+  <h2>1. 3·4·5일배 전체</h2>
+  <p class="note">3일배는 경과일 −2, 4일배는 −1로 환산해 5일배와 같은 축에 놓았습니다. 비율 = 심장소리 확인 ÷ (심장소리 + 계류 + 화유 + 자궁외).</p>
+  <div class="panel"><div class="legend"><span><i style="background:var(--accent)"></i>경과 17일 이내 역전</span><span><i style="background:var(--low)"></i>늦은 역전·역전 미관찰</span><span>가는 선: 95% 신뢰구간</span></div><svg viewBox="0 0 680 284" role="img" aria-label="3·4·5일배 전체 첫 역전 시기별 심장소리 비율" class="chart"><line x1="118.0" y1="22" x2="118.0" y2="258" class="grid"/><text x="118.0" y="276" class="tick" text-anchor="middle">0%</text><line x1="221.0" y1="22" x2="221.0" y2="258" class="grid"/><text x="221.0" y="276" class="tick" text-anchor="middle">25%</text><line x1="324.0" y1="22" x2="324.0" y2="258" class="grid"/><text x="324.0" y="276" class="tick" text-anchor="middle">50%</text><line x1="427.0" y1="22" x2="427.0" y2="258" class="grid"/><text x="427.0" y="276" class="tick" text-anchor="middle">75%</text><line x1="530.0" y1="22" x2="530.0" y2="258" class="grid"/><text x="530.0" y="276" class="tick" text-anchor="middle">100%</text><g class="row"><title>경과 13일 이전: 93.7% (74/79), 95% CI 86%–97%, 미확인 21건 제외</title><rect x="0" y="26" width="680" height="44" class="hit"/><text x="106" y="49" class="lab" text-anchor="end">13일 이전</text><rect x="118" y="36" width="385.9" height="20" rx="4" class="bar hi"/><line x1="472.4" y1="46" x2="518.7" y2="46" class="ci"/><line x1="472.4" y1="40" x2="472.4" y2="52" class="ci"/><line x1="518.7" y1="40" x2="518.7" y2="52" class="ci"/><text x="544" y="45" class="val">93.7%</text><text x="544" y="61" class="sub">74/79 · 미확인 21</text></g><g class="row"><title>경과 14~15일: 96.1% (124/129), 95% CI 91%–98%, 미확인 18건 제외</title><rect x="0" y="70" width="680" height="44" class="hit"/><text x="106" y="93" class="lab" text-anchor="end">14~15일</text><rect x="118" y="80" width="396.0" height="20" rx="4" class="bar hi"/><line x1="493.9" y1="90" x2="523.1" y2="90" class="ci"/><line x1="493.9" y1="84" x2="493.9" y2="96" class="ci"/><line x1="523.1" y1="84" x2="523.1" y2="96" class="ci"/><text x="544" y="89" class="val">96.1%</text><text x="544" y="105" class="sub">124/129 · 미확인 18</text></g><g class="row"><title>경과 16~17일: 92.8% (77/83), 95% CI 85%–97%, 미확인 16건 제외</title><rect x="0" y="114" width="680" height="44" class="hit"/><text x="106" y="137" class="lab" text-anchor="end">16~17일</text><rect x="118" y="124" width="382.2" height="20" rx="4" class="bar hi"/><line x1="468.7" y1="134" x2="516.2" y2="134" class="ci"/><line x1="468.7" y1="128" x2="468.7" y2="140" class="ci"/><line x1="516.2" y1="128" x2="516.2" y2="140" class="ci"/><text x="544" y="133" class="val">92.8%</text><text x="544" y="149" class="sub">77/83 · 미확인 16</text></g><g class="row"><title>경과 18일 이후: 56.0% (14/25), 95% CI 37%–73%, 미확인 3건 제외</title><rect x="0" y="158" width="680" height="44" class="hit"/><text x="106" y="181" class="lab" text-anchor="end">18일 이후</text><rect x="118" y="168" width="230.7" height="20" rx="4" class="bar low"/><line x1="270.7" y1="178" x2="420.1" y2="178" class="ci"/><line x1="270.7" y1="172" x2="270.7" y2="184" class="ci"/><line x1="420.1" y1="172" x2="420.1" y2="184" class="ci"/><text x="544" y="177" class="val">56.0%</text><text x="544" y="193" class="sub">14/25 · 미확인 3</text></g><g class="row"><title>미관찰: 57.8% (26/45), 95% CI 43%–71%, 미확인 13건 제외</title><rect x="0" y="202" width="680" height="44" class="hit"/><text x="106" y="225" class="lab" text-anchor="end">미관찰</text><rect x="118" y="212" width="238.0" height="20" rx="4" class="bar low"/><line x1="296.4" y1="222" x2="410.6" y2="222" class="ci"/><line x1="296.4" y1="216" x2="296.4" y2="228" class="ci"/><line x1="410.6" y1="216" x2="410.6" y2="228" class="ci"/><text x="544" y="221" class="val">57.8%</text><text x="544" y="237" class="sub">26/45 · 미확인 13</text></g></svg>
+  <h3>하루 단위 상세</h3><div class="tbl"><table><thead><tr><th>첫 역전</th><th>심장소리</th><th>계류</th><th>화유</th><th>자궁외</th><th>비율</th><th>95% 신뢰구간</th><th>미확인</th></tr></thead><tbody><tr class=""><td>12일 이전</td><td>41</td><td>2</td><td>0</td><td>0</td><td class="num"><b>95.3%</b></td><td>85%–99%</td><td class="muted">11</td></tr><tr class=""><td>13일</td><td>33</td><td>3</td><td>0</td><td>0</td><td class="num"><b>91.7%</b></td><td>78%–97%</td><td class="muted">10</td></tr><tr class=""><td>14일</td><td>60</td><td>1</td><td>1</td><td>0</td><td class="num"><b>96.8%</b></td><td>89%–99%</td><td class="muted">12</td></tr><tr class=""><td>15일</td><td>64</td><td>3</td><td>0</td><td>0</td><td class="num"><b>95.5%</b></td><td>88%–98%</td><td class="muted">6</td></tr><tr class=""><td>16일</td><td>50</td><td>4</td><td>0</td><td>0</td><td class="num"><b>92.6%</b></td><td>82%–97%</td><td class="muted">11</td></tr><tr class=""><td>17일</td><td>27</td><td>2</td><td>0</td><td>0</td><td class="num"><b>93.1%</b></td><td>78%–98%</td><td class="muted">5</td></tr><tr class="low"><td>18일 이후</td><td>14</td><td>8</td><td>0</td><td>3</td><td class="num"><b>56.0%</b></td><td>37%–73%</td><td class="muted">3</td></tr><tr class="low"><td>미관찰</td><td>26</td><td>3</td><td>15</td><td>1</td><td class="num"><b>57.8%</b></td><td>43%–71%</td><td class="muted">13</td></tr></tbody></table></div></div>
+</section>
+
+<section>
+  <h2>2. 5일배아만</h2>
+  <p class="note">환산 없이 실제 경과일(이식일 = 0일) 그대로입니다.</p>
+  <div class="panel"><div class="legend"><span><i style="background:var(--accent)"></i>경과 17일 이내 역전</span><span><i style="background:var(--low)"></i>늦은 역전·역전 미관찰</span><span>가는 선: 95% 신뢰구간</span></div><svg viewBox="0 0 680 284" role="img" aria-label="5일배 첫 역전 시기별 심장소리 비율" class="chart"><line x1="118.0" y1="22" x2="118.0" y2="258" class="grid"/><text x="118.0" y="276" class="tick" text-anchor="middle">0%</text><line x1="221.0" y1="22" x2="221.0" y2="258" class="grid"/><text x="221.0" y="276" class="tick" text-anchor="middle">25%</text><line x1="324.0" y1="22" x2="324.0" y2="258" class="grid"/><text x="324.0" y="276" class="tick" text-anchor="middle">50%</text><line x1="427.0" y1="22" x2="427.0" y2="258" class="grid"/><text x="427.0" y="276" class="tick" text-anchor="middle">75%</text><line x1="530.0" y1="22" x2="530.0" y2="258" class="grid"/><text x="530.0" y="276" class="tick" text-anchor="middle">100%</text><g class="row"><title>경과 13일 이전: 89.5% (17/19), 95% CI 69%–97%, 미확인 6건 제외</title><rect x="0" y="26" width="680" height="44" class="hit"/><text x="106" y="49" class="lab" text-anchor="end">13일 이전</text><rect x="118" y="36" width="368.6" height="20" rx="4" class="bar hi"/><line x1="400.7" y1="46" x2="517.9" y2="46" class="ci"/><line x1="400.7" y1="40" x2="400.7" y2="52" class="ci"/><line x1="517.9" y1="40" x2="517.9" y2="52" class="ci"/><text x="544" y="45" class="val">89.5%</text><text x="544" y="61" class="sub">17/19 · 미확인 6</text></g><g class="row"><title>경과 14~15일: 95.2% (40/42), 95% CI 84%–99%, 미확인 7건 제외</title><rect x="0" y="70" width="680" height="44" class="hit"/><text x="106" y="93" class="lab" text-anchor="end">14~15일</text><rect x="118" y="80" width="392.4" height="20" rx="4" class="bar hi"/><line x1="464.9" y1="90" x2="524.6" y2="90" class="ci"/><line x1="464.9" y1="84" x2="464.9" y2="96" class="ci"/><line x1="524.6" y1="84" x2="524.6" y2="96" class="ci"/><text x="544" y="89" class="val">95.2%</text><text x="544" y="105" class="sub">40/42 · 미확인 7</text></g><g class="row"><title>경과 16~17일: 100.0% (16/16), 95% CI 81%–100%, 미확인 8건 제외</title><rect x="0" y="114" width="680" height="44" class="hit"/><text x="106" y="137" class="lab" text-anchor="end">16~17일</text><rect x="118" y="124" width="412.0" height="20" rx="4" class="bar hi"/><line x1="450.2" y1="134" x2="530.0" y2="134" class="ci"/><line x1="450.2" y1="128" x2="450.2" y2="140" class="ci"/><line x1="530.0" y1="128" x2="530.0" y2="140" class="ci"/><text x="544" y="133" class="val">100.0%</text><text x="544" y="149" class="sub">16/16 · 미확인 8</text></g><g class="row"><title>경과 18일 이후: 60.0% (3/5), 95% CI 23%–88%, 미확인 2건 제외</title><rect x="0" y="158" width="680" height="44" class="hit"/><text x="106" y="181" class="lab" text-anchor="end">18일 이후</text><rect x="118" y="168" width="247.2" height="20" rx="4" class="bar low"/><line x1="213.1" y1="178" x2="481.5" y2="178" class="ci"/><line x1="213.1" y1="172" x2="213.1" y2="184" class="ci"/><line x1="481.5" y1="172" x2="481.5" y2="184" class="ci"/><text x="544" y="177" class="val">60.0%</text><text x="544" y="193" class="sub">3/5 · 미확인 2</text></g><g class="row"><title>미관찰: 64.7% (11/17), 95% CI 41%–83%, 미확인 6건 제외</title><rect x="0" y="202" width="680" height="44" class="hit"/><text x="106" y="225" class="lab" text-anchor="end">미관찰</text><rect x="118" y="212" width="266.6" height="20" rx="4" class="bar low"/><line x1="288.2" y1="222" x2="458.7" y2="222" class="ci"/><line x1="288.2" y1="216" x2="288.2" y2="228" class="ci"/><line x1="458.7" y1="216" x2="458.7" y2="228" class="ci"/><text x="544" y="221" class="val">64.7%</text><text x="544" y="237" class="sub">11/17 · 미확인 6</text></g></svg>
+  <h3>하루 단위 상세</h3><div class="tbl"><table><thead><tr><th>첫 역전</th><th>심장소리</th><th>계류</th><th>화유</th><th>자궁외</th><th>비율</th><th>95% 신뢰구간</th><th>미확인</th></tr></thead><tbody><tr class=""><td>12일 이전</td><td>8</td><td>0</td><td>0</td><td>0</td><td class="num"><b>100.0%</b></td><td>68%–100%</td><td class="muted">3</td></tr><tr class=""><td>13일</td><td>9</td><td>2</td><td>0</td><td>0</td><td class="num"><b>81.8%</b></td><td>52%–95%</td><td class="muted">3</td></tr><tr class=""><td>14일</td><td>23</td><td>1</td><td>0</td><td>0</td><td class="num"><b>95.8%</b></td><td>80%–99%</td><td class="muted">5</td></tr><tr class=""><td>15일</td><td>17</td><td>1</td><td>0</td><td>0</td><td class="num"><b>94.4%</b></td><td>74%–99%</td><td class="muted">2</td></tr><tr class=""><td>16일</td><td>8</td><td>0</td><td>0</td><td>0</td><td class="num"><b>100.0%</b></td><td>68%–100%</td><td class="muted">5</td></tr><tr class=""><td>17일</td><td>8</td><td>0</td><td>0</td><td>0</td><td class="num"><b>100.0%</b></td><td>68%–100%</td><td class="muted">3</td></tr><tr class="low"><td>18일 이후</td><td>3</td><td>1</td><td>0</td><td>1</td><td class="num"><b>60.0%</b></td><td>23%–88%</td><td class="muted">2</td></tr><tr class="low"><td>미관찰</td><td>11</td><td>0</td><td>6</td><td>0</td><td class="num"><b>64.7%</b></td><td>41%–83%</td><td class="muted">6</td></tr></tbody></table></div>
+  <h3>특정 날의 임테기 상태별 (경과 14일·15일)</h3><div class="tbl"><table><thead><tr><th>시점</th><th>그날 임테기</th><th>비율</th><th>심장소리/분모</th><th>95% 신뢰구간</th><th>미확인</th></tr></thead><tbody><tr class=""><td>경과 14일 (이식일 포함 15일차)</td><td>역전</td><td class="num"><b>96.8%</b></td><td>30/31</td><td>84%–99%</td><td class="muted">8</td></tr><tr class=""><td>경과 14일 (이식일 포함 15일차)</td><td>동일진하기</td><td class="num"><b>100.0%</b></td><td>14/14</td><td>78%–100%</td><td class="muted">3</td></tr><tr class="low"><td>경과 14일 (이식일 포함 15일차)</td><td>미역전(연함)</td><td class="num"><b>75.0%</b></td><td>18/24</td><td>55%–88%</td><td class="muted">11</td></tr><tr class=""><td>경과 15일 (이식일 포함 16일차)</td><td>역전</td><td class="num"><b>96.3%</b></td><td>26/27</td><td>82%–99%</td><td class="muted">5</td></tr><tr class=""><td>경과 15일 (이식일 포함 16일차)</td><td>동일진하기</td><td class="num"><b>100.0%</b></td><td>10/10</td><td>72%–100%</td><td class="muted">2</td></tr><tr class="low"><td>경과 15일 (이식일 포함 16일차)</td><td>미역전(연함)</td><td class="num"><b>76.9%</b></td><td>10/13</td><td>50%–92%</td><td class="muted">7</td></tr></tbody></table></div></div>
+</section>
+
+<section>
+  <h2>3. 배아 일수별 비교</h2>
+  <div class="panel"><div class="tbl"><table><thead><tr><th>첫 역전 (5일배 기준)</th><th>5일배</th><th>4일배 (−1일)</th><th>3일배 (−2일)</th></tr></thead><tbody><tr class=""><td>13일 이전</td><td><b>89%</b> <span class="muted">17/19</span></td><td><b>100%</b> <span class="muted">16/16</span></td><td><b>93%</b> <span class="muted">41/44</span></td></tr><tr class=""><td>14~15일</td><td><b>95%</b> <span class="muted">40/42</span></td><td><b>93%</b> <span class="muted">26/28</span></td><td><b>98%</b> <span class="muted">58/59</span></td></tr><tr class=""><td>16~17일</td><td><b>100%</b> <span class="muted">16/16</span></td><td><b>87%</b> <span class="muted">20/23</span></td><td><b>93%</b> <span class="muted">41/44</span></td></tr><tr class="low"><td>18일 이후</td><td><b>60%</b> <span class="muted">3/5</span></td><td><b>40%</b> <span class="muted">2/5</span></td><td><b>60%</b> <span class="muted">9/15</span></td></tr><tr class="low"><td>미관찰</td><td><b>65%</b> <span class="muted">11/17</span></td><td><b>50%</b> <span class="muted">4/8</span></td><td><b>55%</b> <span class="muted">11/20</span></td></tr></tbody></table></div>
+  <p class="note">셀: 심장소리 비율, 회색 숫자는 심장소리/분모. 4일배는 표본이 작아 구간마다 흔들림이 큽니다.</p></div>
+</section>
+
+<section>
+  <h2>4. 심장소리를 못 들은 케이스의 산모 나이</h2>
+  <div class="panel"><div class="tbl"><table><thead><tr><th>결과</th><th>만 35세 이상</th><th>만 35세 미만</th><th>단서 없음</th><th>계</th></tr></thead><tbody><tr><td>계류 (아기집만)</td><td>8</td><td>9</td><td>12</td><td><b>29</b></td></tr><tr><td>화학적 유산</td><td>6</td><td>6</td><td>7</td><td><b>19</b></td></tr><tr><td>자궁외 임신</td><td>3</td><td>3</td><td>1</td><td><b>7</b></td></tr><tr class="total"><td>합계</td><td>17</td><td>18</td><td>20</td><td><b>55</b></td></tr></tbody></table></div>
+  <p class="note">같은 블로그의 다른 글에서 나이 표현을 찾아 이식 시점 기준으로 판정했습니다. 성공 케이스의 나이는 조사하지 않아 비교 기준이 없으므로, 이 표만으로 나이의 영향을 말할 수는 없습니다.</p></div>
+</section>
+
+<div class="two">
+<section><h2>분석 방법</h2>
+<ul class="method note">
+  <li>키워드로 네이버 블로그 후기를 모아 글마다 배아 일수, 이식일, 첫 역전 날을 기록했습니다.</li>
+  <li>경과일은 이식일 = 0일. "이식일 포함 N일차"는 N−1로 맞췄습니다.</li>
+  <li>같은 블로거의 이후 글로 심장소리 확인, 계류, 화학적 유산, 자궁외 임신을 판정했습니다. 9주 이상 진행이나 난임병원 졸업도 심장소리 확인으로 봤습니다.</li>
+  <li>결과를 끝내 알 수 없는 케이스(미확인)는 분모에서 빼고 개수만 표시했습니다. 신뢰구간은 Wilson 95%입니다.</li>
+</ul></section>
+<section><h2>해석할 때 주의</h2>
+<ul class="limits note">
+  <li>후기는 결과가 좋을 때 더 많이 남고, 실패하면 글이 끊기기 쉽습니다. 미확인을 빼면 비율이 높게 나올 수 있습니다.</li>
+  <li>"첫 역전"은 처음 기록된 날이라 실제로는 더 빨랐을 수 있습니다. 역전 판단은 블로거의 눈과 임테기 제품에 따라 다릅니다.</li>
+  <li>3·4일배는 2~3개 이식이 많아 쌍둥이가 흔합니다.</li>
+  <li>의학적 판단 근거가 아닙니다. 피검 hCG와 초음파가 기준입니다.</li>
+</ul></section>
+</div>
+</div>

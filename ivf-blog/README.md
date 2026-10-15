@@ -10,6 +10,7 @@ python cases.py                    # cases.csv 형식 검증 (스키마 설명�
 python collect.py --day4           # 4일배아 키워드로 후보 추가 수집
 python collect.py --day3           # 3일배아 키워드로 후보 추가 수집(제목에 3일배아 표현 있는 글만)
 python followup.py                 # 3단계: 조건 충족 케이스의 같은 블로그 이후 글 후보 → data/followup_queue.csv
+python report.py                   # 결과 보고서 HTML → results/report.html
 python followup_log.py build       # 읽은 결과를 data/followup_log.csv로 기록(케이스당 한 줄: 마지막 확인일·마지막 글 번호·판정 근거)
 python followup_log.py status --unknown  # 원문을 다시 읽지 않고 기록만으로 검토
 python followup_log.py recheck     # 미확인 케이스는 마지막으로 본 글 이후 새 글만 조회
@@ -38,5 +39,6 @@ python followup.py --unknown                   # 미확인 케이스의 후속 �
 python review.py titles --day 4                # 후속 글 제목만 한 줄로 — 대부분 제목으로 결과 판정
 python review.py snip CASE_ID ...              # 제목으로 애매한 케이스만 결과 문장 발췌
 python review.py outcome < 결과줄               # case_id|결과|주수|제목키워드|쌍둥이|메모
+python report.py                   # 결과 보고서 HTML → results/report.html
 python followup_log.py build                   # 케이스당 한 줄 기록 갱신
 ```
