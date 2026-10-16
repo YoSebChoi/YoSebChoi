@@ -1,0 +1,118 @@
+<title>심장소리 이후 출산</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#f7f8fa;--panel:#ffffff;--fg:#1b2430;--muted:#5d6876;--line:#dde2e8;--grid:#e8ecf0;
+--accent:#2f6db3;--low:#d0643b;--mid:#8fb3dc;--lowbg:#fbeee8;--strip:#e9edf2;
+--sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--panel:#1b2027;--fg:#e8ecf1;--muted:#9aa5b2;
+--line:#2c333d;--grid:#262c35;--accent:#5b8fd4;--low:#d0643b;--mid:#35557d;--lowbg:#2b211d;--strip:#262c35;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181d;--panel:#1b2027;--fg:#e8ecf1;--muted:#9aa5b2;--line:#2c333d;--grid:#262c35;
+--accent:#5b8fd4;--low:#d0643b;--mid:#35557d;--lowbg:#2b211d;--strip:#262c35;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.6}
+.wrap{max-width:880px;margin:0 auto;padding-block:32px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
+header{display:grid;grid-template-columns:auto 1fr;gap:24px;padding-left:14px;align-items:center}
+.strip{width:46px;height:120px;border-radius:8px;background:var(--strip);position:relative;border:1px solid var(--line)}
+.strip i{position:absolute;left:8px;right:8px;height:5px;border-radius:2px}
+.strip .c{top:44px;background:var(--muted);opacity:.55}.strip .t{top:70px;background:var(--low)}
+.strip span{position:absolute;left:-14px;font:600 10px var(--mono);color:var(--muted)}
+h1{font-size:clamp(24px,4vw,32px);line-height:1.25;margin:0;text-wrap:balance;font-weight:700}
+h2{font-size:20px;margin:0 0 4px;text-wrap:balance}
+h3{font-size:15px;margin:18px 0 6px;color:var(--muted);font-weight:600}
+p{margin:0}.lede{color:var(--muted);margin-top:6px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi b{display:block;font:600 24px var(--mono);font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:13px}
+.key{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:16px 18px}
+.key ul{margin:6px 0 0;padding-left:20px;display:grid;gap:4px}
+section{display:grid;gap:10px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0;display:grid;gap:12px}
+.tag{display:inline-block;font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.chart{width:100%;height:auto;display:block}
+.chart .grid{stroke:var(--grid);stroke-width:1}.chart .tick{fill:var(--muted);font:11px var(--mono)}
+.chart .lab{fill:var(--fg);font:500 13px var(--sans)}.chart .val{fill:var(--fg);font:600 14px var(--mono)}
+.chart .sub{fill:var(--muted);font:11px var(--sans)}.chart .bar.hi{fill:var(--accent)}.chart .bar.low{fill:var(--low)}
+.chart .ci{stroke:var(--fg);stroke-width:1.5;opacity:.55}.chart .hit{fill:transparent}.chart .row:hover .hit{fill:var(--grid)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;color:var(--muted);font-size:13px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-weight:600;font-size:12.5px}
+tr.low td{background:var(--lowbg)}tr.total td{border-top:2px solid var(--line)}
+.muted{color:var(--muted)}.note{color:var(--muted);font-size:13.5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}.two>*{min-width:0}
+.stack{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:6px;background:var(--grid)}.stack i{display:block;height:100%}
+.grp td{padding-top:14px}
+ol,ul{margin:0}.method li,.limits li{margin-bottom:4px}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}header{grid-template-columns:1fr}.strip{display:none}}
+</style>
+<div class="wrap">
+<header>
+  <div class="strip" aria-hidden="true"><i class="c"></i><span style="top:38px">C</span><i class="t"></i><span style="top:64px">T</span></div>
+  <div><span class="tag">시험관 이식 후기 분석 · 2026-10-16</span>
+  <h1>심장소리 확인 후 출산까지</h1>
+  <p class="lede">임테기 역전 분석에서 심장소리를 들은 케이스를 같은 블로그의 이후 글로 끝까지 따라가, 실제로 출산했는지 확인했습니다.</p></div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><b>318</b><span>심장소리 확인 (3·4·5일배)</span></div>
+  <div class="kpi"><b>214</b><span>예정일 지났거나 결과 나온 케이스</span></div>
+  <div class="kpi"><b>136</b><span>출산 확인</span></div>
+  <div class="kpi"><b>88.9%</b><span>출산 비율 (출산 ÷ 출산+유산)</span></div>
+</div>
+
+<div class="key"><b>핵심 결과</b>
+<ul>
+  <li>심장소리를 들은 뒤 결과가 확인된 153건 중 <b>88.9%</b> (136건)가 출산했습니다 (95% 신뢰구간 83%–93%). 심장소리 후 유산은 <b>17건</b>이고 대부분 10주 이전 계류유산입니다.</li>
+  <li>첫 역전 시점별 출산 비율은 13일 이전 <b>97%</b>, 14~15일 <b>90%</b>, 16~17일 <b>88%</b>로, 일단 심장소리를 들은 뒤에는 역전 시점에 따른 차이가 크지 않습니다. 18일 이후는 6/8건으로 표본이 적습니다.</li>
+  <li>출산 글은 없지만 <b>24주 이상까지 기록이 이어진 24건</b>은 대부분 출산했을 것으로 보여, 실제 출산 비율은 이보다 높을 수 있습니다.</li>
+  <li><b>5일배아</b>는 대부분 2025~2026년 이식이라 87건 중 13건만 예정일이 지났습니다. 아직 출산 비율을 말하기 어렵습니다.</li>
+</ul></div>
+
+<section>
+  <h2>1. 3·4·5일배 전체</h2>
+  <p class="note">3일배는 경과일 −2, 4일배는 −1로 환산한 첫 역전 시점별입니다. 비율 = 출산 ÷ (출산 + 심장소리 후 유산). 막대 오른쪽 '미확인'은 출산 글 없이 임신 주수 기록에서 끊긴 케이스입니다.</p>
+  <div class="panel"><div class="legend"><span><i style="background:var(--accent)"></i>경과 17일 이내 역전</span><span><i style="background:var(--low)"></i>늦은 역전·역전 미관찰</span><span>가는 선: 95% 신뢰구간</span></div><svg viewBox="0 0 680 284" role="img" aria-label="첫 역전 시기별 심장소리 이후 출산 비율" class="chart"><line x1="118.0" y1="22" x2="118.0" y2="258" class="grid"/><text x="118.0" y="276" class="tick" text-anchor="middle">0%</text><line x1="221.0" y1="22" x2="221.0" y2="258" class="grid"/><text x="221.0" y="276" class="tick" text-anchor="middle">25%</text><line x1="324.0" y1="22" x2="324.0" y2="258" class="grid"/><text x="324.0" y="276" class="tick" text-anchor="middle">50%</text><line x1="427.0" y1="22" x2="427.0" y2="258" class="grid"/><text x="427.0" y="276" class="tick" text-anchor="middle">75%</text><line x1="530.0" y1="22" x2="530.0" y2="258" class="grid"/><text x="530.0" y="276" class="tick" text-anchor="middle">100%</text><g class="row"><title>경과 13일 이전: 96.9% (31/32), 95% CI 84%–99%, 미확인 13건 제외</title><rect x="0" y="26" width="680" height="44" class="hit"/><text x="106" y="49" class="lab" text-anchor="end">13일 이전</text><rect x="118" y="36" width="399.1" height="20" rx="4" class="bar hi"/><line x1="465.1" y1="46" x2="527.7" y2="46" class="ci"/><line x1="465.1" y1="40" x2="465.1" y2="52" class="ci"/><line x1="527.7" y1="40" x2="527.7" y2="52" class="ci"/><text x="544" y="45" class="val">96.9%</text><text x="544" y="61" class="sub">31/32 · 미확인 13</text></g><g class="row"><title>경과 14~15일: 89.8% (53/59), 95% CI 80%–95%, 미확인 23건 제외</title><rect x="0" y="70" width="680" height="44" class="hit"/><text x="106" y="93" class="lab" text-anchor="end">14~15일</text><rect x="118" y="80" width="370.1" height="20" rx="4" class="bar hi"/><line x1="445.7" y1="90" x2="510.5" y2="90" class="ci"/><line x1="445.7" y1="84" x2="445.7" y2="96" class="ci"/><line x1="510.5" y1="84" x2="510.5" y2="96" class="ci"/><text x="544" y="89" class="val">89.8%</text><text x="544" y="105" class="sub">53/59 · 미확인 23</text></g><g class="row"><title>경과 16~17일: 87.8% (36/41), 95% CI 74%–95%, 미확인 19건 제외</title><rect x="0" y="114" width="680" height="44" class="hit"/><text x="106" y="137" class="lab" text-anchor="end">16~17일</text><rect x="118" y="124" width="361.8" height="20" rx="4" class="bar hi"/><line x1="424.8" y1="134" x2="508.1" y2="134" class="ci"/><line x1="424.8" y1="128" x2="424.8" y2="140" class="ci"/><line x1="508.1" y1="128" x2="508.1" y2="140" class="ci"/><text x="544" y="133" class="val">87.8%</text><text x="544" y="149" class="sub">36/41 · 미확인 19</text></g><g class="row"><title>경과 18일 이후: 75.0% (6/8), 95% CI 41%–93%, 미확인 2건 제외</title><rect x="0" y="158" width="680" height="44" class="hit"/><text x="106" y="181" class="lab" text-anchor="end">18일 이후</text><rect x="118" y="168" width="309.0" height="20" rx="4" class="bar low"/><line x1="286.6" y1="178" x2="500.6" y2="178" class="ci"/><line x1="286.6" y1="172" x2="286.6" y2="184" class="ci"/><line x1="500.6" y1="172" x2="500.6" y2="184" class="ci"/><text x="544" y="177" class="val">75.0%</text><text x="544" y="193" class="sub">6/8 · 미확인 2</text></g><g class="row"><title>미관찰: 90.9% (10/11), 95% CI 62%–98%, 미확인 3건 제외</title><rect x="0" y="202" width="680" height="44" class="hit"/><text x="106" y="225" class="lab" text-anchor="end">미관찰</text><rect x="118" y="212" width="374.5" height="20" rx="4" class="bar low"/><line x1="374.5" y1="222" x2="523.3" y2="222" class="ci"/><line x1="374.5" y1="216" x2="374.5" y2="228" class="ci"/><line x1="523.3" y1="216" x2="523.3" y2="228" class="ci"/><text x="544" y="221" class="val">90.9%</text><text x="544" y="237" class="sub">10/11 · 미확인 3</text></g></svg>
+  <h3>결과 구성</h3><div class="legend"><span><i style="background:var(--accent)"></i>출산 확인</span><span><i style="background:var(--low)"></i>심장소리 후 유산</span><span><i style="background:var(--mid)"></i>24주 이상까지 확인</span><span><i style="background:var(--grid)"></i>24주 전까지만 확인</span><span><i style="background:var(--grid)"></i>이후 글 없음</span><span><i style="background:var(--strip)"></i>아직 예정일 전</span></div><div class="tbl"><table><thead><tr><th>첫 역전</th><th>출산 확인</th><th>심장소리 후 유산</th><th>24주 이상까지 확인</th><th>24주 전까지만 확인</th><th>이후 글 없음</th><th>아직 예정일 전</th><th>출산 비율</th></tr></thead><tbody><tr class="grp"><td colspan="8"><b>3·4·5일배 전체 (5일배 기준 환산)</b> <div class="stack"><i style="width:63.55%;background:var(--accent)" title="출산 확인 136"></i><i style="width:7.94%;background:var(--low)" title="심장소리 후 유산 17"></i><i style="width:11.21%;background:var(--mid)" title="24주 이상까지 확인 24"></i><i style="width:14.02%;background:var(--grid)" title="24주 전까지만 확인 30"></i><i style="width:3.27%;background:var(--grid)" title="이후 글 없음 7"></i></div></td></tr><tr class=""><td>13일 이전</td><td>31</td><td>1</td><td>5</td><td>5</td><td>3</td><td>0</td><td class="num"><b>97%</b> <span class="muted">31/32</span></td></tr><tr class=""><td>14~15일</td><td>53</td><td>6</td><td>9</td><td>13</td><td>1</td><td>0</td><td class="num"><b>90%</b> <span class="muted">53/59</span></td></tr><tr class=""><td>16~17일</td><td>36</td><td>5</td><td>8</td><td>9</td><td>2</td><td>0</td><td class="num"><b>88%</b> <span class="muted">36/41</span></td></tr><tr class="low"><td>18일 이후</td><td>6</td><td>2</td><td>0</td><td>1</td><td>1</td><td>0</td><td class="num muted">6/8</td></tr><tr class="low"><td>미관찰</td><td>10</td><td>1</td><td>2</td><td>1</td><td>0</td><td>0</td><td class="num"><b>91%</b> <span class="muted">10/11</span></td></tr><tr class="total"><td>합계</td><td>136</td><td>17</td><td>24</td><td>30</td><td>7</td><td>0</td><td class="num"><b>88.9%</b> <span class="muted">136/153</span></td></tr></tbody></table></div></div>
+</section>
+
+<section>
+  <h2>2. 5일배아만</h2>
+  <p class="note">5일배는 예정일이 지난 케이스가 13건뿐이어서, 아직 예정일 전인 케이스까지 모두 보여 줍니다. 분모 10건 미만이면 비율 대신 개수만 적었습니다.</p>
+  <div class="panel"><div class="legend"><span><i style="background:var(--accent)"></i>출산 확인</span><span><i style="background:var(--low)"></i>심장소리 후 유산</span><span><i style="background:var(--mid)"></i>24주 이상까지 확인</span><span><i style="background:var(--grid)"></i>24주 전까지만 확인</span><span><i style="background:var(--grid)"></i>이후 글 없음</span><span><i style="background:var(--strip)"></i>아직 예정일 전</span></div><div class="tbl"><table><thead><tr><th>첫 역전</th><th>출산 확인</th><th>심장소리 후 유산</th><th>24주 이상까지 확인</th><th>24주 전까지만 확인</th><th>이후 글 없음</th><th>아직 예정일 전</th><th>출산 비율</th></tr></thead><tbody><tr class="grp"><td colspan="8"><b>5일배아만 (예정일 전 포함)</b> <div class="stack"><i style="width:2.30%;background:var(--accent)" title="출산 확인 2"></i><i style="width:6.90%;background:var(--low)" title="심장소리 후 유산 6"></i><i style="width:1.15%;background:var(--mid)" title="24주 이상까지 확인 1"></i><i style="width:4.60%;background:var(--grid)" title="24주 전까지만 확인 4"></i><i style="width:85.06%;background:var(--strip)" title="아직 예정일 전 74"></i></div></td></tr><tr class=""><td>13일 이전</td><td>0</td><td>0</td><td>0</td><td>1</td><td>0</td><td>16</td><td class="num muted">0/0</td></tr><tr class=""><td>14~15일</td><td>2</td><td>2</td><td>1</td><td>2</td><td>0</td><td>33</td><td class="num muted">2/4</td></tr><tr class=""><td>16~17일</td><td>0</td><td>3</td><td>0</td><td>1</td><td>0</td><td>12</td><td class="num muted">0/3</td></tr><tr class="low"><td>18일 이후</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>3</td><td class="num muted">0/0</td></tr><tr class="low"><td>미관찰</td><td>0</td><td>1</td><td>0</td><td>0</td><td>0</td><td>10</td><td class="num muted">0/1</td></tr><tr class="total"><td>합계</td><td>2</td><td>6</td><td>1</td><td>4</td><td>0</td><td>74</td><td class="num muted">2/8</td></tr></tbody></table></div>
+  <p class="note">지금까지 출산 2건, 심장소리 후 유산 6건이 확인됐습니다. 예정일 전 74건은 몇 달 뒤 같은 방법으로 다시 확인하면 됩니다.</p></div>
+</section>
+
+<section>
+  <h2>3. 배아 일수·쌍둥이별 비교</h2>
+  <div class="panel"><div class="tbl"><table><thead><tr><th>배아</th><th>케이스</th><th>출산</th><th>심장소리 후 유산</th><th>결과 미확인</th><th>출산 비율</th><th>95% 신뢰구간</th></tr></thead><tbody><tr><td>5일배</td><td>13</td><td>2</td><td>6</td><td class="muted">5</td><td class="num"><span class="muted">2/8</span></td><td>—</td></tr><tr><td>4일배</td><td>57</td><td>36</td><td>3</td><td class="muted">18</td><td class="num"><b>92.3%</b> <span class="muted">36/39</span></td><td>80%–97%</td></tr><tr><td>3일배</td><td>144</td><td>98</td><td>8</td><td class="muted">38</td><td class="num"><b>92.5%</b> <span class="muted">98/106</span></td><td>86%–96%</td></tr></tbody></table></div>
+  <h3>단태 · 쌍둥이</h3><div class="tbl"><table><thead><tr><th>임신</th><th>케이스</th><th>출산</th><th>심장소리 후 유산</th><th>결과 미확인</th><th>출산 비율</th><th>95% 신뢰구간</th></tr></thead><tbody><tr><td>단태·불명</td><td>160</td><td>97</td><td>17</td><td class="muted">46</td><td class="num"><b>85.1%</b> <span class="muted">97/114</span></td><td>77%–90%</td></tr><tr><td>쌍둥이</td><td>54</td><td>39</td><td>0</td><td class="muted">15</td><td class="num"><b>100.0%</b> <span class="muted">39/39</span></td><td>91%–100%</td></tr></tbody></table></div>
+  <p class="note">예정일이 지났거나 결과가 나온 케이스 기준입니다. 쌍둥이는 조산이 많지만 출산 자체는 '출산'으로 셌습니다. 쌍둥이 여부는 이후 글에서 확인된 경우가 많아, 일찍 유산된 쌍둥이 임신은 단태로 남았을 수 있습니다(쌍둥이 100%는 과대평가일 수 있음).</p></div>
+</section>
+
+<section>
+  <h2>4. 심장소리 후 유산 시기</h2>
+  <div class="panel"><div class="tbl"><table><thead><tr><th>7주 이하</th><th>8주</th><th>9~12주</th><th>13주 이후</th><th>주수 미상</th><th>계</th></tr></thead><tbody><tr><td>5</td><td>5</td><td>3</td><td>2</td><td>2</td><td><b>17</b></td></tr></tbody></table></div>
+  <p class="note">유산을 알린 글의 제목에 나온 주수입니다. 주수가 나온 15건 중 10건이 8주 이하로, 심장소리를 들은 직후 심장이 멈춘 계류유산이 대부분이었습니다. 13주 이후는 2건입니다.</p></div>
+</section>
+
+<div class="two">
+<section><h2>분석 방법</h2>
+<ul class="method note">
+  <li>심장소리를 확인한 3·4·5일배 케이스에서 같은 블로그의 이식 이후 글 목록(제목)을 모았습니다.</li>
+  <li>출산 후기, 제왕절개·자연분만, 조리원, 생후 N일 같은 제목이면 출산, 계류·심장 멈춤 등이면 유산, 임신 주수 글만 있으면 마지막 주수까지 진행으로 판정했습니다.</li>
+  <li>글 작성 시점을 추정해 이식 직후에 쓴 육아 글(이전 아이)과 출산가방·백일해 접종 같은 출산 전 글은 제외했습니다. 애매한 29건은 제목을 직접 보고 판정했습니다.</li>
+  <li>출산 예정일은 이식일 + 261일(5일배 기준, 3·4일배는 +2·+1일)로 잡았습니다. 신뢰구간은 Wilson 95%입니다.</li>
+</ul></section>
+<section><h2>해석할 때 주의</h2>
+<ul class="limits note">
+  <li>출산 후 블로그를 쉬는 경우가 많아 출산 글을 못 찾은 케이스가 있습니다. 반대로 유산 후 글이 끊기면 유산이 빠질 수 있어, 미확인을 빼면 비율이 높게 나올 수 있습니다.</li>
+  <li>제목만으로 판정해 사산·조산의 결과까지는 구분하지 않았습니다.</li>
+  <li>예정일 계산은 대략적인 값이라 예정일 직후 케이스는 아직 글이 없을 수 있습니다.</li>
+  <li>의학적 판단 근거가 아닙니다.</li>
+</ul></section>
+</div>
+</div>
