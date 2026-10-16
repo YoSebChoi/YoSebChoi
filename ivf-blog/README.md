@@ -41,4 +41,7 @@ python review.py snip CASE_ID ...              # 제목으로 애매한 케이�
 python review.py outcome < 결과줄               # case_id|결과|주수|제목키워드|쌍둥이|메모
 python report.py                   # 결과 보고서 HTML → results/report.html
 python followup_log.py build                   # 케이스당 한 줄 기록 갱신
+python birth.py collect                        # 심장소리 확인 케이스의 이후 글 제목으로 출산·유산 판정 → data/birth_log.csv
+python birth.py review                         # 자동 판정 중 확인이 필요한 줄만(유산?·추적불가·예정일 지난 진행중)
+python birth.py set < 판정줄                    # case_id|출산/유산/진행중/추적불가|마지막주수|메모 (다음 collect에서도 유지)
 ```

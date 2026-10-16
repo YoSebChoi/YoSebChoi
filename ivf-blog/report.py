@@ -6,7 +6,7 @@ import html
 import os
 
 from cases import FAILURES, PATH as CASES, dedupe
-from common import RESULTS, read_csv
+from common import DATA, RESULTS, read_csv
 from summarize import REV_BINS, REV_COARSE, rev_day, stats
 
 LOW = {"경과 18일 이후", "미관찰", "미상"}
@@ -110,14 +110,73 @@ def age_table(cases):
             + f'<th>계</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
 
 
+BIRTH_COLS = [("출산", "출산 확인", "var(--accent)"), ("유산", "심장소리 후 유산", "var(--low)"),
+              ("진행24", "24주 이상까지 확인", "var(--mid)"), ("진행", "24주 전까지만 확인", "var(--grid)"),
+              ("추적불가", "이후 글 없음", "var(--grid)"), ("예정일전", "아직 예정일 전", "var(--strip)")]
+
+
+def birth_rows(cases, future=False):
+    """심장소리 확인 케이스 중 예정일이 지났거나 결과(출산·유산)가 나온 케이스에 출산 판정을 붙인다."""
+    log = {r["case_id"]: r for r in read_csv(os.path.join(DATA, "birth_log.csv"))}
+    out = []
+    for c in cases:
+        b = log.get(c["case_id"])
+        if c["outcome"] != "심장소리확인" or not b:
+            continue
+        st = b["status"]
+        if st == "진행중":
+            st = "진행24" if b["last_week"].isdigit() and int(b["last_week"]) >= 24 else "진행"
+        if st in ("출산", "유산") or b["due_passed"] == "Y":
+            out.append({**c, "birth": st})
+        elif future:
+            out.append({**c, "birth": "예정일전"})
+    return out
+
+
+def birth_count(rows):
+    n = {k: sum(r["birth"] == k for r in rows) for k, _, _ in BIRTH_COLS}
+    d = n["출산"] + n["유산"]
+    return n, (n["출산"] / d if d else float("nan")), d
+
+
+def birth_bar(rows):
+    n, _, _ = birth_count(rows)
+    tot = sum(n.values()) or 1
+    segs = "".join(f'<i style="width:{n[k] / tot * 100:.2f}%;background:{c}" title="{name} {n[k]}"></i>'
+                   for k, name, c in BIRTH_COLS if n[k])
+    return f'<div class="stack">{segs}</div>'
+
+
+def birth_table(sets):
+    head = "".join(f"<th>{name}</th>" for _, name, _ in BIRTH_COLS)
+    body = []
+    for title, rows in sets:
+        n, rate, d = birth_count(rows)
+        body.append(f'<tr class="grp"><td colspan="{len(BIRTH_COLS) + 2}"><b>{html.escape(title)}</b> {birth_bar(rows)}</td></tr>')
+        for label, f in REV_COARSE + [("미관찰", None)]:
+            sub = [r for r in rows if (f(rev_day(r)) if f and rev_day(r) is not None else (not f and r.get("reversal_day") == label))]
+            if not sub:
+                continue
+            m, rt, dd = birth_count(sub)
+            body.append(f'<tr class="{"low" if label in LOW else ""}"><td>{html.escape(short(label))}</td>'
+                        + "".join(f"<td>{m[k]}</td>" for k, _, _ in BIRTH_COLS)
+                        + (f'<td class="num"><b>{pct(rt, 0)}</b> <span class="muted">{m["출산"]}/{dd}</span></td></tr>' if dd >= 10
+                           else f'<td class="num muted">{m["출산"]}/{dd}</td></tr>'))
+        body.append('<tr class="total"><td>합계</td>' + "".join(f"<td>{n[k]}</td>" for k, _, _ in BIRTH_COLS)
+                    + (f'<td class="num"><b>{pct(rate)}</b> <span class="muted">{n["출산"]}/{d}</span></td></tr>' if d >= 10
+                       else f'<td class="num muted">{n["출산"]}/{d}</td></tr>'))
+    return (f'<div class="tbl"><table><thead><tr><th>첫 역전</th>{head}<th>출산 비율</th></tr></thead>'
+            f'<tbody>{"".join(body)}</tbody></table></div>')
+
+
 CSS = """
 :root{--bg:#f7f8fa;--panel:#ffffff;--fg:#1b2430;--muted:#5d6876;--line:#dde2e8;--grid:#e8ecf0;
---accent:#2f6db3;--low:#d0643b;--lowbg:#fbeee8;--strip:#e9edf2;
+--accent:#2f6db3;--low:#d0643b;--mid:#8fb3dc;--lowbg:#fbeee8;--strip:#e9edf2;
 --sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--panel:#1b2027;--fg:#e8ecf1;--muted:#9aa5b2;
---line:#2c333d;--grid:#262c35;--accent:#5b8fd4;--low:#d0643b;--lowbg:#2b211d;--strip:#262c35;color-scheme:dark}}
+--line:#2c333d;--grid:#262c35;--accent:#5b8fd4;--low:#d0643b;--mid:#35557d;--lowbg:#2b211d;--strip:#262c35;color-scheme:dark}}
 :root[data-theme="dark"]{--bg:#14181d;--panel:#1b2027;--fg:#e8ecf1;--muted:#9aa5b2;--line:#2c333d;--grid:#262c35;
---accent:#5b8fd4;--low:#d0643b;--lowbg:#2b211d;--strip:#262c35;color-scheme:dark}
+--accent:#5b8fd4;--low:#d0643b;--mid:#35557d;--lowbg:#2b211d;--strip:#262c35;color-scheme:dark}
 body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.6}
 .wrap{max-width:880px;margin:0 auto;padding-block:32px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
 header{display:grid;grid-template-columns:auto 1fr;gap:24px;padding-left:14px;align-items:center}
@@ -152,6 +211,8 @@ th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-weight:
 tr.low td{background:var(--lowbg)}tr.total td{border-top:2px solid var(--line)}
 .muted{color:var(--muted)}.note{color:var(--muted);font-size:13.5px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}.two>*{min-width:0}
+.stack{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:6px;background:var(--grid)}.stack i{display:block;height:100%}
+.grp td{padding-top:14px}
 ol,ul{margin:0}.method li,.limits li{margin-bottom:4px}
 @media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}header{grid-template-columns:1fr}.strip{display:none}}
 """
@@ -173,6 +234,12 @@ def build(cases):
               '<span><i style="background:var(--low)"></i>늦은 역전·역전 미관찰</span>'
               '<span>가는 선: 95% 신뢰구간</span></div>')
     today = datetime.date.today().isoformat()
+    b_all = birth_rows(allc)
+    b_five = birth_rows(five, future=True)
+    bn, brate, bd = birth_count(b_all)
+    hb_all = sum(r["outcome"] == "심장소리확인" for r in allc)
+    blegend = ('<div class="legend">' + "".join(f'<span><i style="background:{c}"></i>{name}</span>'
+                                                 for k, name, c in BIRTH_COLS if k != "추적불가") + '</div>')
     return f"""<title>임테기 역전과 심장소리</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -197,6 +264,7 @@ def build(cases):
 <ul>
   <li>첫 역전이 <b>5일배 기준 경과 17일 이내</b>면 심장소리 확인 비율이 <b>{pct(early['rate'])}</b> ({early['hb']}/{early['n']})로 높고, 13일 이전·14~15일·16~17일 사이 차이는 크지 않습니다.</li>
   <li>첫 역전이 <b>경과 18일 이후</b>면 <b>{pct(late['rate'])}</b> ({late['hb']}/{late['n']}), 기록 기간 안에 <b>역전이 없으면</b> <b>{pct(none['rate'])}</b> ({none['hb']}/{none['n']})로 떨어집니다. 화학적 유산은 대부분 이 그룹에서 나왔습니다.</li>
+  <li>심장소리를 들은 뒤 출산 예정일이 지난 케이스에서 결과가 확인된 것 중 <b>{pct(brate)}</b> ({bn['출산']}/{bd})가 출산했습니다. 심장소리 이후 유산은 {bn['유산']}건이었습니다.</li>
   <li>5일배만 따로 봐도 같은 모양입니다. 3·4일배는 경과일을 5일배 기준으로 환산하면 5일배와 결과가 겹칩니다.</li>
 </ul></div>
 
@@ -227,12 +295,21 @@ def build(cases):
   <p class="note">같은 블로그의 다른 글에서 나이 표현을 찾아 이식 시점 기준으로 판정했습니다. 성공 케이스의 나이는 조사하지 않아 비교 기준이 없으므로, 이 표만으로 나이의 영향을 말할 수는 없습니다.</p></div>
 </section>
 
+<section>
+  <h2>5. 심장소리 확인 후 출산까지</h2>
+  <p class="note">심장소리를 들은 {hb_all}건 중 출산 예정일이 지났거나 결과가 나온 {len(b_all)}건입니다. 출산 비율 = 출산 ÷ (출산 + 심장소리 후 유산). 이후 글이 임신 주수 기록에서 끊긴 케이스는 비율에서 빼고 개수만 표시했습니다.</p>
+  <div class="panel">{blegend}{birth_table([("3·4·5일배 전체 (5일배 기준 환산)", b_all), ("5일배아만 (예정일 전 포함)", b_five)])}
+  <p class="note">5일배 케이스는 대부분 2025~2026년 이식이라 아직 출산 예정일 전이어서, 5일배만은 예정일 전 케이스까지 모두 보여 줍니다(분모 10건 미만이면 비율 대신 개수만). 전체 표는 예정일이 지난 케이스만 셌으며, 그래서 대부분 3·4일배입니다.</p>
+  <p class="note">심장소리 후 유산은 대부분 7~10주 계류유산이었습니다. 24주 이상까지 기록이 이어진 케이스는 출산 글만 없을 뿐 출산했을 가능성이 큽니다.</p></div>
+</section>
+
 <div class="two">
 <section><h2>분석 방법</h2>
 <ul class="method note">
   <li>키워드로 네이버 블로그 후기를 모아 글마다 배아 일수, 이식일, 첫 역전 날을 기록했습니다.</li>
   <li>경과일은 이식일 = 0일. "이식일 포함 N일차"는 N−1로 맞췄습니다.</li>
   <li>같은 블로거의 이후 글로 심장소리 확인, 계류, 화학적 유산, 자궁외 임신을 판정했습니다. 9주 이상 진행이나 난임병원 졸업도 심장소리 확인으로 봤습니다.</li>
+  <li>출산 여부는 같은 블로그의 이식 이후 글 제목(출산 후기, 제왕절개·자연분만, 조리원, 생후 N일 등)으로 판정했습니다. 작성 시점이 이식 직후라 이전 아이 이야기일 수 있는 글과 출산 준비 글은 제외했습니다.</li>
   <li>결과를 끝내 알 수 없는 케이스(미확인)는 분모에서 빼고 개수만 표시했습니다. 신뢰구간은 Wilson 95%입니다.</li>
 </ul></section>
 <section><h2>해석할 때 주의</h2>
