@@ -234,7 +234,11 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   const days = (a, b) => Math.max(0, Math.round((b - a) / DAY));
   // 평 as people say it (공급면적 기준: 84㎡ 전용 = 32평); without 공급면적 only the 전용 ㎡
   const sizeLabel = (area, supply) => supply ? `${Math.round(supply / 3.3058)}평` : area ? `${Math.round(area)}㎡` : "";
-  const unitLabel = u => `${u.dong || "동 미공개"} ${u.floor}층${u.floorTotal ? `/${u.floorTotal}` : ""}`;
+  // display only (the stored values make the flat's key): "212" → "212동", "ES" → "남동향"
+  const dongLabel = d => !d ? "동 미공개" : /^\d+$/.test(d) ? `${d}동` : d;
+  const DIRS = { EE: "동향", WW: "서향", SS: "남향", NN: "북향", ES: "남동향", SE: "남동향", WS: "남서향", SW: "남서향", EN: "북동향", NE: "북동향", WN: "북서향", NW: "북서향" };
+  const dirLabel = d => DIRS[String(d || "").toUpperCase()] || d || "";
+  const unitLabel = u => `${dongLabel(u.dong)} ${u.floor}층${u.floorTotal ? `/${u.floorTotal}` : ""}`;
   const areaLabel = (a, supply) => a ? `전용 ${a.toFixed(1)}㎡${supply ? ` · ${sizeLabel(a, supply)}` : ""}` : "";
   const STATUS = { "거래 추정": "b-guess", "실거래 확인": "b-ok", "재등록": "b-back" };
 
@@ -631,7 +635,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   }
 
   function eventRow(e) {
-    const u = e.unit.split("|"), label = `${nameOfNo(e.cx)} ${u[1] !== "?" ? u[1] : ""} ${u[2]}층 ${u[3] !== "?" ? Math.round(+u[3]) + "㎡" : ""}`;
+    const u = e.unit.split("|"), label = `${nameOfNo(e.cx)} ${u[1] !== "?" ? dongLabel(u[1]) : ""} ${u[2]}층 ${u[3] !== "?" ? Math.round(+u[3]) + "㎡" : ""}`;
     const kinds = {
       gone: [`<span class="badge b-guess">사라짐</span>`, `${fmt(e.price)}에 있던 매물 · 거래됐을 수 있어요`],
       trade: [`<span class="badge b-ok">실거래</span>`, `${fmt(e.price)} 거래 신고 (${esc(e.date)})`],
@@ -691,7 +695,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       const tags = [...new Set(ls.flatMap(l => l.tags || []))].slice(0, 3);
       return `<div class="row tap" data-unit="${esc(u.key)}"><div class="main">
           <div class="price">${fmt(u.lastPrice)} ${cut ? `<span class="small ${cut[1] < cut[0] ? "down" : "up"}">${cut[1] < cut[0] ? "▼" : "▲"}${fmt(Math.abs(cut[0] - cut[1]))}</span>` : ""}</div>
-          <div class="meta">${esc(unitLabel(u))} · ${esc(sizeLabel(u.area, first.supply))}${u.dir ? " · " + esc(u.dir) : ""}</div>
+          <div class="meta">${esc(unitLabel(u))} · ${esc(sizeLabel(u.area, first.supply))}${u.dir ? " · " + esc(dirLabel(u.dir)) : ""}</div>
           <div class="meta tiny">${tags.map(esc).join(" · ")}</div></div>
         <div class="side"><div>${days(u.firstSeen, now)}일째</div><div class="muted tiny">중개 ${ls.length}곳</div></div></div>`;
     }).join("");
@@ -714,7 +718,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     const trades = DATA.trades.filter(t => cfg.links[t.cx] && String(cfg.links[t.cx].no) === u.cx && Math.abs(t.area - (u.area || 0)) <= 1).slice(-6).reverse();
     const supply = (ls[0] || {}).supply || u.supply;
     $("#unitBody").innerHTML = `
-      <dl class="kv"><dt>면적</dt><dd>${esc(areaLabel(u.area, supply))}</dd><dt>방향</dt><dd>${esc(u.dir || "-")}</dd>
+      <dl class="kv"><dt>면적</dt><dd>${esc(areaLabel(u.area, supply))}</dd><dt>방향</dt><dd>${esc(dirLabel(u.dir) || "-")}</dd>
         <dt>처음 본 날</dt><dd>${dfull(u.firstSeen)} (${fmt(u.firstPrice)})</dd><dt>마지막 본 날</dt><dd>${dfull(u.lastSeen)} (${fmt(u.lastPrice)})</dd>
         ${u.status ? `<dt>상태</dt><dd><span class="badge ${STATUS[u.status]}">${esc(u.status)}</span>${u.trade ? ` ${esc(u.trade.date)} ${fmt(u.trade.price)} · ${u.trade.floor}층` : ""}</dd>` : ""}</dl>
       ${ls.length ? `<h4 style="margin:16px 0 4px">올린 중개사 ${ls.length}곳</h4>` + ls.map(l => `<div class="row"><div class="main">
@@ -876,7 +880,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)${s.src === "지도" ? " · 지도 목록" : s.src === "fin" ? " · 새 네이버 목록" : ""}`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
         <details class="small"><summary>네트워크 진단 (네이버 답 ${netlog.length}개)</summary><ul class="list-plain">${netlog.slice().reverse().map(n => `<li>${new Date(n.t).toTimeString().slice(0, 5)} ${esc(n.path)} → ${n.err ? `<span class="up">${esc(n.err)}</span>` : `HTTP ${n.status}${n.location ? " → " + esc(n.location) : ""}`}<div class="tiny muted" style="word-break:break-all">${esc(n.head)}</div></li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 cc4febcecc</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 d4cbb82794</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -1029,7 +1033,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "cc4febcecc" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "d4cbb82794" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }
