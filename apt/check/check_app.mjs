@@ -167,6 +167,8 @@ const browser = await chromium.launch();
         return { status: 200, body: "null" };
       },
       async request({ url, method, body }) {
+        // the first try drops (like a phone switching networks): the app must try again
+        if (!window.__dropped) { window.__dropped = true; throw new Error('network: Unable to resolve host "fin.land.naver.com"'); }
         window.__reqs.push({ url, method, body });
         const second = Array.isArray(body.lastInfo) && body.lastInfo.length;
         const list = second ? [{ representativeArticleInfo: flat("A3", "105동", "고/25", 920000000, "새공인") }]

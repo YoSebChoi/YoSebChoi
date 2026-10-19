@@ -259,8 +259,19 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   // opts {method, body}: a POST with a JSON body (needs an app with AptNet.request)
   async function netJson(url, opts) {
     let r;
-    try { r = opts ? await ncall("AptNet", "request", { url, ...opts }) : await ncall("AptNet", "get", { url }); }
-    catch (e) { logNet(url, null, e.message); throw new Error(`인터넷 연결 문제예요 (${e.message})`); }
+    const send = () => opts ? ncall("AptNet", "request", { url, ...opts }) : ncall("AptNet", "get", { url });
+    try { r = await send(); }
+    catch (e) {
+      // a dropped connection (switching between Wi-Fi and LTE, a weak signal): one more try 2 seconds later
+      logNet(url, null, e.message);
+      await sleep(2000);
+      try { r = await send(); }
+      catch (e2) {
+        logNet(url, null, e2.message);
+        const offline = /resolve host|No address|timeout|timed out|Unable to|connect|reset/i.test(e2.message);
+        throw new Error(offline ? "인터넷 연결이 잠깐 끊겼어요. 잠시 뒤 다시 확인해요" : `인터넷 연결 문제예요 (${e2.message})`);
+      }
+    }
     logNet(url, r);
     if (r.status !== 200) throw new Error(r.status >= 300 && r.status < 400 ? `네이버가 요청을 막았어요 (HTTP ${r.status}). 잠시 뒤 다시 해 보세요` : `HTTP ${r.status}`);
     try { return JSON.parse(r.body); } catch (e) { throw new Error("네이버 답이 예상한 형식이 아니에요"); }
