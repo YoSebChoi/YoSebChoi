@@ -261,7 +261,8 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     try { return JSON.parse(r.body); } catch (e) { throw new Error("네이버 답이 예상한 형식이 아니에요"); }
   }
 
-  async function fetchListings(no, maxPages = 10) {
+  // the complex's own 매매 list (m.land 단지 매물)
+  async function fetchComplexList(no, maxPages = 10) {
     const all = [];
     for (let page = 1; page <= maxPages; page++) {
       if (page > 1) await sleep(1200 + Math.random() * 1200);
@@ -272,6 +273,40 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       if (res.moreDataYn !== "Y") break;
     }
     return all;
+  }
+
+  // the map's article list in a small box around the complex, keeping this complex's articles only
+  // (used when the complex list comes back empty: Naver has answered an empty list there while the map shows listings)
+  const MAP_URL = (lat, lng) => `https://m.land.naver.com/cluster/ajax/articleList?rletTpCd=APT&tradTpCd=A1&z=18&lat=${lat}&lon=${lng}` +
+    `&btm=${(lat - 0.0018).toFixed(6)}&lft=${(lng - 0.0022).toFixed(6)}&top=${(lat + 0.0018).toFixed(6)}&rgt=${(lng + 0.0022).toFixed(6)}&page={page}`;
+  const squash = s => String(s || "").replace(/\s+/g, "").toLowerCase();
+  async function fetchMapList(link, maxPages = 6) {
+    const all = [];
+    for (let page = 1; page <= maxPages; page++) {
+      await sleep(1200 + Math.random() * 1200);
+      const j = await netJson(MAP_URL(link.lat, link.lng).replace("{page}", page));
+      const list = Array.isArray(j.body) ? j.body : Array.isArray(j.result?.list) ? j.result.list : null;
+      if (!list) throw new Error("네이버 지도 매물 목록 형식이 바뀌었어요");
+      all.push(...list);
+      if (list.length < 20 && j.more !== true) break;
+    }
+    return mineOnly(link, all);
+  }
+  const mineOnly = (link, list) => list.filter(a => String(a.hscpNo || "") === String(link.no) || (link.name && squash(a.atclNm) === squash(link.name)));
+  // where this complex's listings were last found: "지도" when the complex list came back empty
+  const srcOf = no => ([...S.snaps].reverse().find(s => s.cx === String(no) && s.ok) || {}).src || "단지";
+
+  // → {articles, src}: the complex list, or the map list when the first is empty
+  async function fetchListings(no, maxPages = 10) {
+    const list = await fetchComplexList(no, maxPages);
+    if (list.length || maxPages === 1) return { articles: list, src: "단지" };
+    const key = keyOfNo(no);
+    let link = key && cfg.links[key];
+    if (link && !(link.lat && link.lng)) {
+      try { await sleep(1000); autoLink(await discover()); link = cfg.links[key]; } catch (e) { /* no coordinates: keep the empty answer */ }
+    }
+    if (!link || !(link.lat && link.lng)) return { articles: list, src: "단지" };
+    return { articles: await fetchMapList(link), src: "지도" };
   }
 
   // complexes around 시범한빛마을, from the mobile map
@@ -310,9 +345,14 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   function autoLink(found) {
     let n = 0;
     for (const c of DATA.complexes) {
-      if (cfg.links[c.key]?.no) continue;
+      const l = cfg.links[c.key];
+      if (l?.no) {
+        const f = found.find(f => f.no === String(l.no));
+        if (f) Object.assign(l, { lat: f.lat, lng: f.lng, deals: f.deals, hh: l.hh || f.hh, name: l.name || f.name });
+        continue;
+      }
       const hit = found.find(f => ours(c, f));
-      if (hit) { cfg.links[c.key] = { no: hit.no, name: hit.name, hh: hit.hh }; n++; }
+      if (hit) { cfg.links[c.key] = { no: hit.no, name: hit.name, hh: hit.hh, lat: hit.lat, lng: hit.lng, deals: hit.deals }; n++; }
     }
     saveCfg();
     return n;
@@ -344,7 +384,15 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         const got = await ncall("AptNet", "collect");
         for (const s of (got && got.snapshots) || []) {
           if (!keyOfNo(s.cx)) continue;
-          if (s.ok) tally(T.ingest(S, s.cx, s.t, s.articles || [])); else T.recordFailure(S, s.cx, s.t, s.err);
+          if (!s.ok) { T.recordFailure(S, s.cx, s.t, s.err); continue; }
+          let arts = s.articles || [];
+          // listings found on the map: keep this complex's own, and do not take an empty complex list
+          // (from an older background check) as a sell-out
+          if (srcOf(s.cx) === "지도") {
+            arts = mineOnly(cfg.links[keyOfNo(s.cx)], arts);
+            if (!arts.length) continue;
+          }
+          tally(T.ingest(S, s.cx, s.t, arts));
         }
       } catch (e) { /* an older app without the background check */ }
       // nothing linked yet, or 우리 단지 still missing (at most every 6 hours)
@@ -363,7 +411,10 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         setStatus(`${shortName(cxs[i])} 매물 확인 중… (${i + 1}/${cxs.length})`);
         try {
           if (i) await sleep(1500 + Math.random() * 1000);
-          tally(T.ingest(S, no, Date.now(), await fetchListings(no)));
+          const got = await fetchListings(no);
+          tally(T.ingest(S, no, Date.now(), got.articles));
+          const snap = S.snaps[S.snaps.length - 1];
+          if (snap && snap.cx === no && snap.ok) snap.src = got.src;
         } catch (e) { T.recordFailure(S, no, Date.now(), e.message); }
       }
       matchTrades();
@@ -386,7 +437,12 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   // the background check reads the same pages (SnapshotWorker); set again only when something changed
   async function scheduleBackground() {
     if (!native) return;
-    const jobs = linked().map(c => ({ cx: String(cfg.links[c.key].no), name: shortName(c), url: LIST_URL(cfg.links[c.key].no), maxPages: 10 }));
+    const jobs = linked().map(c => {
+      const l = cfg.links[c.key], no = String(l.no);
+      return srcOf(no) === "지도" && l.lat && l.lng
+        ? { cx: no, name: shortName(c), url: MAP_URL(l.lat, l.lng), maxPages: 6, hscpNo: no, only: squash(l.name) }
+        : { cx: no, name: shortName(c), url: LIST_URL(no), maxPages: 10 };
+    });
     const sig = JSON.stringify([jobs, cfg.hours, cfg.notify]);
     // Android 13+ asks once before an app may notify
     if (cfg.notify && cfg.hours && jobs.length && !cfg.askedNotify) {
@@ -672,7 +728,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     const linkRows = DATA.complexes.map(c => {
       const l = cfg.links[c.key];
       return `<div class="row"><div class="main"><div class="small"><b>${esc(c.name)}</b>${c.main ? ' <span class="badge b-new">우리 단지</span>' : ""}</div>
-        <div class="meta tiny">${l?.no ? `네이버 ${esc(l.name || "")} (${esc(l.no)})${l.hh ? " · " + l.hh + "세대" : ""}` : "연결 안 됨"}</div></div>
+        <div class="meta tiny">${l?.no ? `네이버 ${esc(l.name || "")} (${esc(l.no)})${l.hh ? " · " + l.hh + "세대" : ""}${l.deals != null ? ` · 지도 매매 ${l.deals}` : ""}` : "연결 안 됨"}</div></div>
         ${native ? `<button class="btn ghost small" data-unlink="${esc(c.key)}" ${l?.no ? "" : "hidden"}>끊기</button>` : ""}</div>`;
     }).join("");
     const snaps = S.snaps.slice(-15).reverse();
@@ -696,10 +752,10 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <h4 style="margin:20px 0 2px">기록</h4>
         <div class="tiny muted">매물 기록은 이 폰에만 있어요. 폰을 바꾸거나 앱을 지우기 전에 내보내 두세요.</div>
         <div class="btns" style="margin:8px 0"><button class="btn ghost" id="exportBtn">내보내기</button><label class="btn ghost" style="display:inline-block">가져오기<input type="file" id="importFile" accept="application/json,.json" hidden></label></div>
-        <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
+        <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)${s.src === "지도" ? " · 지도 목록" : ""}`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
         <details class="small"><summary>네트워크 진단 (네이버 답 ${netlog.length}개)</summary><ul class="list-plain">${netlog.slice().reverse().map(n => `<li>${new Date(n.t).toTimeString().slice(0, 5)} ${esc(n.path)} → ${n.err ? `<span class="up">${esc(n.err)}</span>` : `HTTP ${n.status}${n.location ? " → " + esc(n.location) : ""}`}<div class="tiny muted" style="word-break:break-all">${esc(n.head)}</div></li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 360b8514f5</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 6c7bc7d3fc</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -720,7 +776,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       if (!no) { toast("링크에서 단지 번호를 찾지 못했어요"); return; }
       const key = $("#linkKey").value;
       let name = "";
-      try { const ls = await fetchListings(no, 1); name = ls[0]?.atclNm || ""; } catch (e) { /* still link it */ }
+      try { const ls = (await fetchListings(no, 1)).articles; name = ls[0]?.atclNm || ""; } catch (e) { /* still link it */ }
       cfg.links[key] = { no, name }; saveCfg(); toast(`${byKey(key).name} ← ${name || no}`); renderSettings(); refresh(true);
     };
     $("#hoursSel").onchange = e => { cfg.hours = +e.target.value; saveCfg(); scheduleBackground(); };
@@ -742,7 +798,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       found.map(f => `<div class="row tap" data-pick="${esc(f.no)}"><div class="main small">${esc(f.name)} ${used.has(f.no) ? '<span class="badge b-ok">연결됨</span>' : ""}</div><div class="side tiny muted">${f.hh ? f.hh + "세대" : ""}${f.deals != null ? ` · 매매 ${f.deals}` : ""}</div></div>`).join("");
     $("#foundList").querySelectorAll("[data-pick]").forEach(r => r.addEventListener("click", () => {
       const f = found.find(x => x.no === r.dataset.pick), key = $("#linkKey").value;
-      cfg.links[key] = { no: f.no, name: f.name, hh: f.hh }; saveCfg(); toast(`${byKey(key).name} ← ${f.name}`); renderSettings(); refresh(true);
+      cfg.links[key] = { no: f.no, name: f.name, hh: f.hh, lat: f.lat, lng: f.lng, deals: f.deals }; saveCfg(); toast(`${byKey(key).name} ← ${f.name}`); renderSettings(); refresh(true);
     }));
   }
 
