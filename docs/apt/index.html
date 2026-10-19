@@ -243,8 +243,20 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   const NAVER_ARTICLE = no => `https://fin.land.naver.com/articles/${encodeURIComponent(no)}`;
   const NAVER_COMPLEX = no => `https://fin.land.naver.com/complexes/${encodeURIComponent(no)}`;
 
+  // the last answers from Naver, kept on this phone for 설정 → 네트워크 진단 (what to send when something breaks)
+  let netlog = lget("aw-netlog", []);
+  function logNet(url, r, err) {
+    const u = new URL(url);
+    netlog.push({ t: Date.now(), path: u.host + u.pathname, status: r ? r.status : null, location: r && r.location || "",
+      head: r ? String(r.body || "").replace(/\s+/g, " ").slice(0, 200) : "", err: err || "" });
+    netlog = netlog.slice(-12);
+    lset("aw-netlog", netlog);
+  }
   async function netJson(url) {
-    const r = await ncall("AptNet", "get", { url });
+    let r;
+    try { r = await ncall("AptNet", "get", { url }); }
+    catch (e) { logNet(url, null, e.message); throw new Error(`인터넷 연결 문제예요 (${e.message})`); }
+    logNet(url, r);
     if (r.status !== 200) throw new Error(r.status >= 300 && r.status < 400 ? `네이버가 요청을 막았어요 (HTTP ${r.status}). 잠시 뒤 다시 해 보세요` : `HTTP ${r.status}`);
     try { return JSON.parse(r.body); } catch (e) { throw new Error("네이버 답이 예상한 형식이 아니에요"); }
   }
@@ -285,6 +297,15 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     return n;
   }
 
+  // finds the complexes and links ours; says why when nothing could be linked
+  async function discoverAndLink() {
+    found = await discover();
+    if (!found.length) throw new Error("주변 단지를 하나도 받지 못했어요 (네이버 답의 형식이 바뀐 것 같아요)");
+    const n = autoLink(found);
+    if (!n && !linked().length) throw new Error(`주변 단지 ${found.length}곳을 받았지만 한빛마을 이름이 없어요: ${found.slice(0, 5).map(f => f.name).join(", ")}`);
+    return n;
+  }
+
   const parseNaverLink = s => {
     const m = String(s || "").match(/complexes\/(\d+)|complex\/info\/(\d+)|hscpNo=(\d+)|complexNo=(\d+)|^\s*(\d{3,})\s*$/);
     return m ? (m[1] || m[2] || m[3] || m[4] || m[5]) : null;
@@ -307,7 +328,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       } catch (e) { /* an older app without the background check */ }
       if (!linked().length) {
         setStatus("네이버 부동산 단지를 찾는 중…");
-        try { autoLink(await discover()); } catch (e) { T.recordFailure(S, "discover", Date.now(), e.message); }
+        try { await discoverAndLink(); } catch (e) { T.recordFailure(S, "discover", Date.now(), e.message); }
       }
       const cxs = linked();
       for (let i = 0; i < cxs.length; i++) {
@@ -418,7 +439,9 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     const el = $("#panel-home"), m = mainCx();
     let h = native ? "" : appNote();
     if (native && !linked().length) {
-      h += `<div class="note warn"><b>네이버 부동산 단지를 아직 연결하지 않았어요.</b> 설정 → 단지 연결에서 「주변 단지 찾기」를 눌러 주세요.</div>`;
+      const why = [...S.snaps].reverse().find(s => s.cx === "discover");
+      h += `<div class="note warn"><b>네이버 부동산 단지를 아직 연결하지 않았어요.</b> 설정 → 단지 연결에서 「주변 단지 찾기」를 눌러 주세요.
+        ${why && !why.ok ? `<br>마지막으로 찾아본 결과 (${ago(why.t)}): ${esc(why.err)}` : ""}</div>`;
     }
     const mainNo = m && cfg.links[m.key]?.no ? String(cfg.links[m.key].no) : null;
     if (native && mainNo) {
@@ -641,17 +664,23 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <h4 style="margin:20px 0 2px">기록</h4>
         <div class="tiny muted">매물 기록은 이 폰에만 있어요. 폰을 바꾸거나 앱을 지우기 전에 내보내 두세요.</div>
         <div class="btns" style="margin:8px 0"><button class="btn ghost" id="exportBtn">내보내기</button><label class="btn ghost" style="display:inline-block">가져오기<input type="file" id="importFile" accept="application/json,.json" hidden></label></div>
-        <details class="small"><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? `매물 ${s.count}건 (${s.units}집)` : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
+        <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? `매물 ${s.count}건 (${s.units}집)` : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
+        <details class="small"><summary>네트워크 진단 (네이버 답 ${netlog.length}개)</summary><ul class="list-plain">${netlog.slice().reverse().map(n => `<li>${new Date(n.t).toTimeString().slice(0, 5)} ${esc(n.path)} → ${n.err ? `<span class="up">${esc(n.err)}</span>` : `HTTP ${n.status}${n.location ? " → " + esc(n.location) : ""}`}<div class="tiny muted" style="word-break:break-all">${esc(n.head)}</div></li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 e0436ad5c1</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 7dcde73fda</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
     if (!native) return;
     $("#findBtn").onclick = async () => {
       $("#findBtn").disabled = true; $("#foundList").innerHTML = `<div class="small muted">찾는 중…</div>`;
-      try { found = await discover(); const n = autoLink(found); toast(n ? `${n}개 단지를 연결했어요` : "주변 단지를 찾았어요"); renderSettings(); showFound(); refresh(); }
-      catch (e) { $("#foundList").innerHTML = `<div class="small up">${esc(e.message)}</div>`; $("#findBtn").disabled = false; }
+      try { const n = await discoverAndLink(); toast(n ? `${n}개 단지를 연결했어요` : "이미 연결돼 있어요"); renderSettings(); showFound(); refresh(); }
+      catch (e) {
+        T.recordFailure(S, "discover", Date.now(), e.message); saveState();
+        renderSettings();
+        if (found && found.length) showFound();
+        $("#foundList").insertAdjacentHTML("afterbegin", `<div class="small up" style="margin:6px 0">${esc(e.message)}<br>아래 「네트워크 진단」을 캡처해 보내 주세요.</div>`);
+      }
     };
     if (found) showFound();
     $("#linkBtn").onclick = async () => {
