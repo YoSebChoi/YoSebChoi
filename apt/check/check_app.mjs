@@ -150,6 +150,50 @@ const browser = await chromium.launch();
   await page.close();
 }
 
+// 6. both mobile-site lists answer null (what the phone got): the new fin.land list is read (POST),
+//    prices in 원 become 만원, the agents' copies of one flat stay one flat, and the background check follows
+{
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  page.on("pageerror", e => fail.push("fin: page error: " + e.message));
+  await page.addInitScript(() => {
+    localStorage.setItem("aw-cfg", JSON.stringify({ links: { kcc: { no: "1001", name: "동탄시범한빛마을KCC스위첸", hh: 484, lat: 37.2046, lng: 127.0731, approx: 0 } }, hours: 12, notify: true, askedNotify: true }));
+    window.__reqs = [];
+    const flat = (no, dong, floor, price, broker) => ({ articleNumber: no, complexName: "동탄시범한빛마을KCC스위첸", dongName: dong,
+      articleDetail: { floorInfo: floor, direction: "남향" }, spaceInfo: { supplySpace: 106.3, exclusiveSpace: 84.65 },
+      priceInfo: { dealPrice: price }, brokerInfo: { brokerageName: broker } });
+    const AptNet = {
+      async get({ url }) {
+        if (url.includes("complex/info") || url.includes("fin.land.naver.com/complexes")) return { status: 200, body: "<html></html>" };
+        return { status: 200, body: "null" };
+      },
+      async request({ url, method, body }) {
+        window.__reqs.push({ url, method, body });
+        const second = Array.isArray(body.lastInfo) && body.lastInfo.length;
+        const list = second ? [{ representativeArticleInfo: flat("A3", "105동", "고/25", 920000000, "새공인") }]
+          : [{ representativeArticleInfo: flat("A1", "101동", "13/25", 850000000, "한빛공인"),
+               duplicatedArticleInfo: { articleInfoList: [flat("A2", "101동", "13/25", 860000000, "시범공인")] } }];
+        return { status: 200, body: JSON.stringify({ isSuccess: true, result: { list, hasNextPage: !second, lastInfo: second ? null : ["cursor1"] } }) };
+      },
+      async schedule(o) { window.__scheduled = o; }, async collect() { return { snapshots: [] }; },
+    };
+    window.Capacitor = { isNativePlatform: () => true, Plugins: { AptNet, App: { addListener() {}, getInfo: async () => ({ build: "999" }) } } };
+  });
+  await page.goto("http://localhost:8766/apt/", { waitUntil: "networkidle" });
+  await page.waitForFunction(() => window.__scheduled, null, { timeout: 60000 }).catch(() => {});
+  const s = await page.evaluate(() => window.__aptwatch.S);
+  const units = Object.values(s.units).filter(u => u.cx === "1001");
+  if (units.length !== 2) fail.push(`fin: expected 2 flats (3 listings), got ${units.length}: ${JSON.stringify(s.snaps.slice(-2))}`);
+  const u101 = units.find(u => u.dong === "101동");
+  if (!u101 || u101.lastPrice !== 85000 || u101.articles.length !== 2) fail.push("fin: 101동 should be 8억 5,000 with 2 agents: " + JSON.stringify(u101));
+  const snap = s.snaps.filter(x => x.cx === "1001").at(-1);
+  if (!snap || snap.src !== "fin") fail.push("fin: snapshot not marked fin");
+  const job = (await page.evaluate(() => window.__scheduled))?.jobs?.find(j => j.cx === "1001");
+  if (!job || job.method !== "POST" || !job.map || job.priceDiv !== 10000 || !job.listPath) fail.push("fin: background job not on the fin list: " + JSON.stringify(job));
+  const reqs = await page.evaluate(() => window.__reqs);
+  if (reqs.length !== 2 || !reqs[1].body.lastInfo?.length) fail.push("fin: second page not asked with the cursor");
+  await page.close();
+}
+
 // 5. KCC linked earlier without coordinates, the wide search leaves it out, and the complex list answers null:
 //    one search in small boxes finds its coordinates and the map list is read
 {
