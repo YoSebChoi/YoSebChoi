@@ -3,7 +3,7 @@
     <!-- the icon's sky: launcher background and launch screen -->
     <color name="ic_launcher_background">#2F5D8A</color>
     <color name="apt_sky">#2F5D8A</color>
-    <!-- the page's accent and ground (the --accent and --bg tokens in apt/index.html) -->
+    <!-- the page's accent and ground (the accent and bg tokens in apt/index.html) -->
     <color name="apt_accent">#2F5D8A</color>
     <color name="apt_ground">#F4F6F8</color>
     <bool name="apt_light_bars">true</bool>
