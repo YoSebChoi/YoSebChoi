@@ -44,11 +44,33 @@
     return rest ? `${eok}억 ${rest.toLocaleString("ko-KR")}` : `${eok}억`;
   }
 
+  const toManwon = p => p != null && p > 1e6 ? Math.round(p / 10000) : p;
+
+  // prices stored in 원 by a background check before they were converted: back to 만원, and the
+  // 「가격 올림/내림」 those made between the two scales (the same price) dropped
+  function repairPrices(st) {
+    let n = 0;
+    const fix = (o, k) => { if (o && o[k] != null && o[k] > 1e6) { o[k] = toManwon(o[k]); n++; } };
+    for (const l of Object.values(st.listings)) {
+      fix(l, "price");
+      if (l.price != null && l.priceText && /^\d{5,}억/.test(l.priceText)) l.priceText = formatPrice(l.price);
+      (l.history || []).forEach(h => fix(h, "price"));
+      l.history = (l.history || []).filter((h, i, a) => i === 0 || h.price !== a[i - 1].price);
+    }
+    for (const u of Object.values(st.units)) { fix(u, "lastPrice"); fix(u, "firstPrice"); }
+    for (const g of st.gone) { fix(g, "lastPrice"); fix(g, "firstPrice"); }
+    for (const e of st.events) { fix(e, "price"); fix(e, "from"); fix(e, "to"); }
+    const before = st.events.length;
+    st.events = st.events.filter(e => !(e.type === "price" && e.from === e.to));
+    return n + (before - st.events.length);
+  }
+
   // one article from m.land.naver.com/complex/getComplexArticleList → our shape
   function normalizeArticle(a, cx) {
     const f = parseFloor(a.flrInfo);
     const area = num(a.spc2);
-    const price = num(a.prc) ?? parseHanPrice(a.hanPrc);
+    // 만원; the new Naver list gives 원 (no flat here costs 100억 만원, so a bigger number is 원)
+    const price = toManwon(num(a.prc) ?? parseHanPrice(a.hanPrc));
     const dong = String(a.bildNm || "").trim();
     const dir = String(a.direction || "").trim();
     return {
@@ -248,6 +270,6 @@
   // a trade's id: the fields that make it one deal
   const tradeId = t => [t.cx, t.date, t.area, t.floor, t.price, t.dong || ""].join("|");
 
-  return { emptyState, ingest, recordFailure, matchTrades, normalizeArticle, parseFloor, parseHanPrice, formatPrice,
+  return { emptyState, ingest, recordFailure, matchTrades, repairPrices, normalizeArticle, parseFloor, parseHanPrice, formatPrice,
     floorFits, tradeId, dayOf, unitKey, HOUR, DAY };
 });

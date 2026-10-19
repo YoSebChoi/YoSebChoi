@@ -295,7 +295,8 @@ public class SnapshotWorker extends Worker {
             String k = it.next();
             Object v = path(item, map.optString(k));
             if (v == null) continue;
-            if (k.equals("prc") && v instanceof Number && priceDiv > 1) v = Math.round(((Number) v).doubleValue() / priceDiv);
+            if (k.equals("prc") && v instanceof Number && (priceDiv > 1 || ((Number) v).doubleValue() > 1e6))
+                v = Math.round(((Number) v).doubleValue() / (priceDiv > 1 ? priceDiv : 10000));
             out.put(k, v);
         }
         if (!out.has("tradTpCd")) out.put("tradTpCd", "A1");
@@ -327,11 +328,19 @@ public class SnapshotWorker extends Worker {
                 if (a == null) continue;
                 String key = unitKey(a);
                 long price = a.optLong("prc", 0);
+                if (price > 1_000_000L) price = Math.round(price / 10000.0);   // 원 → 만원, as the page does
                 if (price > 0 && (!now.has(key) || now.getLong(key) == 0 || price < now.getLong(key))) now.put(key, price);
                 else if (!now.has(key)) now.put(key, 0);
             }
             String saved = prefs.getString("units_" + cx, null);
             JSONObject before = saved == null ? null : new JSONObject(saved);
+            if (before != null) {
+                for (java.util.Iterator<String> it = before.keys(); it.hasNext(); ) {
+                    String k = it.next();
+                    long p = before.optLong(k, 0);
+                    if (p > 1_000_000L) before.put(k, Math.round(p / 10000.0));
+                }
+            }
             // an empty answer where there were many flats is more likely a block than a sell-out: wait for the next one
             if (before != null && now.length() == 0 && before.length() >= 5) return null;
             prefs.edit().putString("units_" + cx, now.toString()).apply();

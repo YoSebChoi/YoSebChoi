@@ -310,7 +310,8 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   }
   const mineOnly = (link, list) => list.filter(a => String(a.hscpNo || "") === String(link.no) || (link.name && squash(a.atclNm) === squash(link.name)));
   // where this complex's listings were last found: "지도" when the complex list came back empty
-  const srcOf = no => ([...S.snaps].reverse().find(s => s.cx === String(no) && s.ok) || {}).src || "단지";
+  // kept on the link (a background snapshot has no source of its own, and must not send the complex back to the old list)
+  const srcOf = no => cfg.links[keyOfNo(no)]?.src || ([...S.snaps].reverse().find(s => s.cx === String(no) && s.ok && s.src) || {}).src || "단지";
 
   let lastDiscover = 0;
   // → {articles, src}: the complex list, or the map list when the first is empty
@@ -537,6 +538,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
           tally(T.ingest(S, no, Date.now(), got.articles));
           const snap = S.snaps[S.snaps.length - 1];
           if (snap && snap.cx === no && snap.ok) snap.src = got.src;
+          if (cfg.links[keyOfNo(no)] && got.articles.length) { cfg.links[keyOfNo(no)].src = got.src; saveCfg(); }
         } catch (e) { T.recordFailure(S, no, Date.now(), e.message); }
       }
       matchTrades();
@@ -563,7 +565,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       const l = cfg.links[c.key], no = String(l.no);
       const src = srcOf(no);
       if (src === "fin") return { cx: no, name: shortName(c), url: FIN_LIST, method: "POST", body: FIN_BODY(no), maxPages: 8,
-        seed: `https://fin.land.naver.com/complexes/${no}?tab=article`, map: FIN_MAP, priceDiv: finPriceDiv, ...FIN_PATHS };
+        seed: `https://fin.land.naver.com/complexes/${no}?tab=article`, map: FIN_MAP, priceDiv: 10000, ...FIN_PATHS };
       return src === "지도" && l.lat && l.lng
         ? { cx: no, name: shortName(c), url: MAP_URL(l.lat, l.lng, l.approx || 0), maxPages: l.approx > 0.004 ? 12 : 6, hscpNo: no, only: squash(l.name) }
         : { cx: no, name: shortName(c), url: LIST_URL(no), maxPages: 10, seed: `https://m.land.naver.com/complex/info/${no}?tradTpCd=A1` };
@@ -1113,7 +1115,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       DATA = Object.assign(DATA, await res.json());
     } catch (e) { toast("자료를 불러오지 못했어요"); }
     renderAll();
-    if (native) { matchTrades(); saveState(); refresh(); setTimeout(checkAppUpdate, 3000); }
+    if (native) { T.repairPrices(S); matchTrades(); saveState(); refresh(); setTimeout(checkAppUpdate, 3000); }
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   })();
   window.__aptwatch = { get S() { return S; }, get cfg() { return cfg; }, refresh };
