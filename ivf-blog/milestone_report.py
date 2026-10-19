@@ -17,7 +17,10 @@ AX0, AX1 = 28, 63  # 4주 0일 ~ 9주 0일
 
 
 def wk(d):
-    return "—" if d is None else f"{int(d) // 7}주 {round(d) % 7}일"
+    if d is None:
+        return "—"
+    d = round(d)
+    return f"{d // 7}주 {d % 7}일"
 
 
 def q(vals):
@@ -104,6 +107,27 @@ def cumulative(groups):
             + "".join(f"<th>{n}까지</th>" for _, n in cuts) + f'</tr></thead><tbody>{"".join(body)}</tbody></table></div>')
 
 
+def short_wk(d):
+    return "—" if d is None else f"{round(d) // 7}w{round(d) % 7}d"
+
+
+def matrix(hb):
+    """첫 역전 시기 × 배아 일수: 칸마다 아기집 / 난황 / 심장소리 중앙값."""
+    days = [("5", "5일배"), ("4", "4일배 (−1일)"), ("3", "3일배 (−2일)")]
+    body = []
+    for label, rs in grouped(hb):
+        cells = []
+        for d, _ in days:
+            sub = [r for r in rs if r["embryo_day"] == d]
+            meds = [q(vals(sub, k)) for k, _, _ in ITEMS]
+            n = len(vals(sub, "hb"))
+            cells.append('<td class="mono">' + " · ".join(short_wk(m[1] if m else None) for m in meds)
+                         + f' <span class="muted">({n})</span></td>' if sub else '<td class="muted">—</td>')
+        body.append(f'<tr class="{"low" if label in LOW else ""}"><td>{html.escape(short(label))}</td>{"".join(cells)}</tr>')
+    return ('<div class="tbl"><table><thead><tr><th>첫 역전 (5일배 기준)</th>'
+            + "".join(f"<th>{n}</th>" for _, n in days) + f'</tr></thead><tbody>{"".join(body)}</tbody></table></div>')
+
+
 def build(cases, log):
     allc = [c for c in cases if c.get("embryo_day") in ("3", "4", "5")]
     hb_cases = [c for c in allc if c["outcome"] == "심장소리확인"]
@@ -113,13 +137,15 @@ def build(cases, log):
     g_all, g_five = grouped(hb), grouped(five)
     med = {k: q(vals(hb, k)) for k, _, _ in ITEMS}
     by = dict(g_all)
-    early = [r for r in hb if rev_day(r) is not None and rev_day(r) <= 15]
-    late = [r for r in hb if rev_day(r) is not None and rev_day(r) >= 16]
+    early = [r for r in hb if rev_day(r) is not None and rev_day(r) <= 17]
+    late = [r for r in hb if rev_day(r) is not None and rev_day(r) >= 18]
+    none = q(vals(by["미관찰"], "hb"))
     me, ml = q(vals(early, "hb")), q(vals(late, "hb"))
     legend = '<div class="legend">' + "".join(f'<span><i style="background:{c}"></i>{n}</span>' for _, n, c in ITEMS) + \
              '<span>점: 중앙값 · 막대: 가운데 50%</span></div>'
     today = datetime.date.today().isoformat()
-    css = CSS.replace("--mid:#8fb3dc;", "--mid:#8fb3dc;--hb:#1f8a5b;").replace("--mid:#35557d;", "--mid:#6f9bd1;--hb:#4cb782;")
+    css = CSS.replace("--mid:#8fb3dc;", "--mid:#8fb3dc;--hb:#1f8a5b;").replace("--mid:#35557d;", "--mid:#6f9bd1;--hb:#4cb782;") \
+        + ".mono{font-family:var(--mono);font-size:13px;white-space:nowrap}"
     return f"""<title>아기집·난황·심장소리 시기</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -143,7 +169,8 @@ def build(cases, log):
 <div class="key"><b>핵심 결과</b>
 <ul>
   <li>심장소리까지 간 케이스는 보통 <b>아기집 {wk(med['sac'][1])}</b> → <b>난황 {wk(med['yolk'][1])}</b> → <b>심장소리 {wk(med['hb'][1])}</b> 순서로 확인했습니다 (임신 주수, 마지막 생리일 기준).</li>
-  <li>첫 역전이 경과 15일 이내인 케이스의 심장소리 중앙값은 <b>{wk(me[1]) if me else '—'}</b>, 16일 이후는 <b>{wk(ml[1]) if ml else '—'}</b>입니다.</li>
+  <li>첫 역전이 <b>경과 17일 이내</b>면 시기(13일 이전·14~15일·16~17일)와 상관없이 아기집·난황·심장소리 확인 주수가 거의 같습니다. 심장소리 중앙값 <b>{wk(me[1]) if me else '—'}</b>.</li>
+  <li>첫 역전이 <b>18일 이후</b>면 심장소리 중앙값이 <b>{wk(ml[1]) if ml else '—'}</b>({len(vals(late, 'hb'))}건), 역전 미관찰은 <b>{wk(none[1]) if none else '—'}</b>로 며칠 늦습니다. 표본이 적어 참고용입니다.</li>
   <li>임신 주수는 배아 일수와 상관없이 같은 축이라 3·4·5일배를 그대로 비교할 수 있습니다.</li>
 </ul></div>
 
@@ -166,6 +193,8 @@ def build(cases, log):
 <section>
   <h2>3. 배아 일수별 비교</h2>
   <div class="panel">{table([(f"{d}일배", [r for r in hb if r['embryo_day'] == d]) for d in ("5", "4", "3")], "배아")}
+  <h3>배아 일수 × 첫 역전 시기</h3>{matrix(hb)}
+  <p class="note">칸: 아기집 · 난황 · 심장소리 첫 확인 중앙값(예: 6w2d = 6주 2일), 괄호는 심장소리 시기가 확인된 건수.</p>
   <p class="note">이식일은 5일배 2주 5일, 4일배 2주 4일, 3일배 2주 3일입니다. 심장소리 주수에서 이 값을 빼면 이식 후 경과일이 됩니다.</p></div>
 </section>
 
@@ -179,8 +208,8 @@ def build(cases, log):
 <section><h2>분석 방법</h2>
 <ul class="method note">
   <li>심장소리 확인·계류 케이스의 이식 후기와, 같은 블로그에서 이식 후 70일 안에 쓴 초음파·주수 관련 글을 읽었습니다.</li>
-  <li>'아기집', '난황', '심장소리·심박' 문장과 가장 가까운 임신 주수(예: 6주 2일)를 그 항목의 확인 시기로 보고, 케이스마다 가장 이른 값을 썼습니다. "아직 안 보였다", "들으러 간다" 같은 문장은 뺐습니다.</li>
-  <li>순서가 어긋나거나 범위를 벗어난 값은 해당 문장을 다시 보고 고쳤습니다.</li>
+  <li>'아기집', '난황', '심장소리·심박' 문장과 가장 가까운 임신 주수(예: 6주 2일)를 그 항목의 확인 시기로 보고, 케이스마다 가장 이른 값을 썼습니다. "아직 안 보였다", "들으러 간다", "보통 7주에 듣는다" 같은 문장은 뺐습니다. 심장은 소리를 듣기 전 초음파의 깜빡임 확인도 포함했습니다.</li>
+  <li>순서가 어긋나거나 이르거나 늦은 값 약 40건은 해당 문장을 다시 보고 고쳤습니다. '5주차'처럼 일이 없는 표현은 쓰지 않았습니다.</li>
 </ul></section>
 <section><h2>해석할 때 주의</h2>
 <ul class="limits note">

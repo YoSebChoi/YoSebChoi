@@ -28,8 +28,12 @@ KEYS = {"sac": re.compile(r"아기집|태낭"), "yolk": re.compile(r"난황"),
 # 'N주 M일'처럼 일까지 적힌 주수만 쓴다('5주차'만 있으면 어느 날인지 알 수 없고, 일반론 문장이 많이 걸린다)
 GA = re.compile(r"(?<!\d)([4-9]|10)\s*(?:주|w|W)\s*(?:차\s*)?([0-6])\s*(?:일|d|D)(?![0-9])")
 FLOOR = {"sac": 30, "yolk": 33, "hb": 38}  # 4주2일·4주5일·5주3일보다 이른 값은 오탐으로 본다
-NEG = re.compile(r"^.{0,14}(안\s*(보|들|뛰|나)|못\s*(보|들|봤|확인)|없|아직|보이지|들리지|안보|안들|않)")
-FUTURE = re.compile(r"^.{0,22}(들으러|보러|기대|예정|바라|기원|기도|빌|길\s*바|ㄱㄷ|두근|떨려|무서)")
+NEG = re.compile(r"^.{0,14}(안\s*(보|들|뛰|나)|못\s*(보|들|봤|확인|하)|없|아직|보이지|들리지|안보|안들|않|듣기\s*전|보기\s*전|전이라|전까지)")
+FUTURE = re.compile(r"^.{0,22}(들으러|보러|기대|예정|바라|기원|기도|빌|길\s*바|ㄱㄷ|두근|떨려|무서|들을\s*수\s*있을|볼\s*수\s*있을|있을\s*거|"
+                    r"들을지|볼지|듣길|보길|들려줄까|보여줄까|다음|단계|만\s*들어도|들어야|봐야|라는데|라고\s*한다|이라고|확인하는\s*시기|"
+                    r"들을\s*수\s*있는|볼\s*수\s*있는|선|수치)")
+# 키워드 바로 앞이 일반론·바람·과거 차수 이야기면 제외
+PRE = re.compile(r"(아직|혹시|보통|대체로|대부분|최소|부디|다음\s*주?|언제|지난\s*차수|다른\s*분|이번엔|이제\s*몇|빨리|얼른|주차에|주에)\s*\S{0,6}$")
 TITLE_HINT = re.compile(r"아기집|난황|심장|심박|초음파|\d\s*주|주차|피검|졸업|임신\s*확인")
 
 
@@ -55,7 +59,7 @@ def first_seen(text, title):
         best = None
         for m in rx.finditer(t):
             after = re.split(r"[.!?,/~\n]|아기집|태낭|난황|심장|심박", t[m.end():m.end() + 30])[0]
-            if NEG.search(after) or FUTURE.search(after):
+            if NEG.search(after) or FUTURE.search(after) or PRE.search(t[max(0, m.start() - 14):m.start()]):
                 continue
             before = t[max(0, m.start() - 70):m.start()]
             pre, post = list(GA.finditer(before)), list(GA.finditer(t[m.end():m.end() + 25]))

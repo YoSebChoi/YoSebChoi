@@ -45,4 +45,8 @@ python birth.py collect                        # 심장소리 확인 케이스�
 python birth.py review                         # 자동 판정 중 확인이 필요한 줄만(유산?·추적불가·예정일 지난 진행중)
 python birth.py set < 판정줄                    # case_id|출산/유산/진행중/추적불가|마지막주수|메모 (다음 collect에서도 유지)
 python birth_report.py                         # 출산 보고서 HTML → results/birth_report.html
+python milestones.py collect                    # 아기집·난황·심장소리 첫 확인 주수 추출 → data/milestone_log.csv
+python milestones.py review                     # 순서가 어긋나거나 범위 밖인 값만 근거 문장과 함께
+python milestones.py set < 판정줄               # case_id|아기집|난황|심장|메모 (5w3d 형식, - 는 지움)
+python milestone_report.py                     # 시기 보고서 HTML → results/milestone_report.html
 ```
