@@ -261,6 +261,11 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     try { return JSON.parse(r.body); } catch (e) { throw new Error("네이버 답이 예상한 형식이 아니에요"); }
   }
 
+  // what an unexpected answer looked like, for the error message: its keys, or its start
+  const shapeOf = j => j && typeof j === "object"
+    ? "{" + Object.entries(j).slice(0, 6).map(([k, v]) => k + (Array.isArray(v) ? `[${v.length}]` : v && typeof v === "object" ? "{" + Object.keys(v).slice(0, 5).join(",") + "}" : "=" + String(v).slice(0, 20))).join(", ") + "}"
+    : String(j).slice(0, 80);
+
   // the complex's own 매매 list (m.land 단지 매물)
   async function fetchComplexList(no, maxPages = 10) {
     const all = [];
@@ -268,7 +273,10 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       if (page > 1) await sleep(1200 + Math.random() * 1200);
       const j = await netJson(LIST_URL(no).replace("{page}", page));
       const res = j && j.result;
-      if (!res || !Array.isArray(res.list)) throw new Error("네이버 매물 목록 형식이 바뀌었어요");
+      // an empty list can come as list: null, or with no result at all on the last page
+      if (res && (res.list == null) && page > 1) break;
+      if (res && res.list == null && (res.totAtclCnt === 0 || res.moreDataYn === "N")) break;
+      if (!res || !Array.isArray(res.list)) throw new Error(`단지 매물 목록 형식이 달라요: ${shapeOf(j)}`);
       all.push(...res.list);
       if (res.moreDataYn !== "Y") break;
     }
@@ -286,7 +294,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       await sleep(1200 + Math.random() * 1200);
       const j = await netJson(MAP_URL(link.lat, link.lng).replace("{page}", page));
       const list = Array.isArray(j.body) ? j.body : Array.isArray(j.result?.list) ? j.result.list : null;
-      if (!list) throw new Error("네이버 지도 매물 목록 형식이 바뀌었어요");
+      if (!list) throw new Error(`지도 매물 목록 형식이 달라요: ${shapeOf(j)}`);
       all.push(...list);
       if (list.length < 20 && j.more !== true) break;
     }
@@ -298,15 +306,21 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
 
   // → {articles, src}: the complex list, or the map list when the first is empty
   async function fetchListings(no, maxPages = 10) {
-    const list = await fetchComplexList(no, maxPages);
-    if (list.length || maxPages === 1) return { articles: list, src: "단지" };
+    let list = [], complexErr = null;
+    try { list = await fetchComplexList(no, maxPages); } catch (e) { complexErr = e; }
+    if (list.length || (maxPages === 1 && !complexErr)) return { articles: list, src: "단지" };
+    if (maxPages === 1) throw complexErr;
     const key = keyOfNo(no);
     let link = key && cfg.links[key];
     if (link && !(link.lat && link.lng)) {
       try { await sleep(1000); autoLink(await discover()); link = cfg.links[key]; } catch (e) { /* no coordinates: keep the empty answer */ }
     }
-    if (!link || !(link.lat && link.lng)) return { articles: list, src: "단지" };
-    return { articles: await fetchMapList(link), src: "지도" };
+    if (!link || !(link.lat && link.lng)) {
+      if (complexErr) throw new Error(`${complexErr.message} (지도 목록은 단지 좌표가 없어 못 읽었어요: 설정 → 주변 단지 찾기)`);
+      return { articles: list, src: "단지" };
+    }
+    try { return { articles: await fetchMapList(link), src: "지도" }; }
+    catch (e) { throw new Error(complexErr ? `${complexErr.message} / ${e.message}` : e.message); }
   }
 
   // complexes around 시범한빛마을, from the mobile map

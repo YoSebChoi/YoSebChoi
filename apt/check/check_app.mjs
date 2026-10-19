@@ -164,7 +164,8 @@ const browser = await chromium.launch();
         window.__urls.push(url);
         if (url.includes("complexList")) return { status: 200, body: JSON.stringify({ result: [
           { hscpNo: "1001", hscpNm: "동탄시범한빛마을KCC스위첸", totHsehCnt: 484, lat: 37.2046, lng: 127.0731, dealCnt: 3 }] }) };
-        if (url.includes("getComplexArticleList")) return { status: 200, body: JSON.stringify({ code: "success", result: { list: [], moreDataYn: "N", totAtclCnt: 0 } }) };
+        // an answer in another shape (what the phone got): the map list must still be read
+        if (url.includes("getComplexArticleList")) return { status: 200, body: JSON.stringify({ isSuccess: true, body: { articleList: [] } }) };
         if (url.includes("cluster/ajax/articleList")) return { status: 200, body: JSON.stringify({ code: "success", more: false, body: [
           art("1"), art("2", { bildNm: "103동", flrInfo: "5/25" }), art("3", { bildNm: "104동", flrInfo: "7/25" }),
           art("8", { atclNm: "동탄시범한빛마을동탄아이파크", bildNm: "201동" })] }) };
