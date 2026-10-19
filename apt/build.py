@@ -115,6 +115,8 @@ def main():
     (OUT / "index.html").write_text(page.replace("__VERSION__", version), encoding="utf-8")
     (OUT / "manifest.webmanifest").write_text(manifest_text, encoding="utf-8")
     (OUT / "sw.js").write_text(SW.replace("__VERSION__", version), encoding="utf-8")
+    # the page compares itself with this on opening (GitHub Pages serves a cached page for up to 10 minutes)
+    (OUT / "version.txt").write_text(version + "\n", encoding="utf-8")
     print(f"docs/apt/ built (version {version}): {len(data['trades'])} trades of our complexes, {len(data['blog'])} blog posts")
 
 
