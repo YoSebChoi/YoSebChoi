@@ -917,7 +917,20 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   }
 
   /* ===================== start ===================== */
+  // GitHub Pages lets a page sit in caches for up to 10 minutes after a release: when the published
+  // version is newer than this one, load it straight away (a new address skips those caches)
+  async function freshPage() {
+    try {
+      const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
+      if (v && v !== "__VERSION__" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+        location.replace(`index.html?v=${v}${location.hash}`);
+        return true;
+      }
+    } catch (e) { /* offline: this page will do */ }
+    return false;
+  }
   (async () => {
+    if (native && await freshPage()) return;
     try {
       const res = await fetch("data.json", { cache: "no-cache" });
       DATA = Object.assign(DATA, await res.json());
