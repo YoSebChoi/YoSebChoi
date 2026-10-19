@@ -161,6 +161,8 @@ public class SnapshotWorker extends Worker {
             return Result.success();
         }
         StringBuilder news = new StringBuilder();
+        JSONArray runLog = new JSONArray();
+        prefs.edit().putLong("last_start", System.currentTimeMillis()).apply();
         for (int i = 0; i < jobs.length(); i++) {
             JSONObject job = jobs.optJSONObject(i);
             if (job == null) continue;
@@ -232,16 +234,49 @@ public class SnapshotWorker extends Worker {
             } catch (Exception ignored) {
                 // a lost snapshot is only a skipped check
             }
+            String change = null;
             if (err == null) {
-                String change = compare(prefs, cx, articles);
+                change = compare(prefs, cx, articles);
                 if (change != null) {
                     if (news.length() > 0) news.append("\n");
                     news.append(job.optString("name", cx)).append(": ").append(change);
                 }
             }
+            try {
+                runLog.put(new JSONObject().put("name", job.optString("name", cx)).put("ok", err == null)
+                    .put("count", articles.length()).put("err", err == null ? "" : err).put("change", change == null ? "" : change));
+            } catch (Exception ignored) {
+                // the log is only for 설정
+            }
         }
         prune(ctx);
-        if (news.length() > 0 && prefs.getBoolean("notify", true)) notifyChanges(ctx, news.toString());
+        boolean want = news.length() > 0 && prefs.getBoolean("notify", true);
+        String text = news.toString();
+        // a test run (설정 → 백그라운드 확인부터 알림까지 시험) always reports, even with no change or an error
+        if (prefs.getBoolean("test_pending", false)) {
+            prefs.edit().putBoolean("test_pending", false).apply();
+            StringBuilder t = new StringBuilder("시험 결과\n");
+            for (int k = 0; k < runLog.length(); k++) {
+                JSONObject r = runLog.optJSONObject(k);
+                if (r == null) continue;
+                t.append(r.optString("name")).append(": ");
+                if (!r.optBoolean("ok")) t.append("오류 ").append(r.optString("err"));
+                else t.append("매물 ").append(r.optInt("count")).append("건 읽음")
+                    .append(r.optString("change").isEmpty() ? " · 변화 없음(첫 확인이면 기준만 잡아요)" : " · " + r.optString("change"));
+                t.append("\n");
+            }
+            if (jobs.length() == 0) t.append("확인할 단지가 없어요 (앱에서 단지를 연결하고 한 번 열어 주세요)");
+            text = t.toString().trim();
+            want = true;
+        }
+        boolean sent = want && notifyChanges(ctx, text);
+        // what this run did, for 설정 → 백그라운드 확인 (AptNet.workerStatus)
+        try {
+            prefs.edit().putString("last_run", new JSONObject().put("t", System.currentTimeMillis()).put("jobs", runLog)
+                .put("wanted", want).put("sent", sent).put("enabled", notificationsOn(ctx)).toString()).apply();
+        } catch (Exception ignored) {
+            // the log is only for 설정
+        }
         return Result.success();
     }
 
@@ -318,7 +353,17 @@ public class SnapshotWorker extends Worker {
         }
     }
 
-    static void notifyChanges(Context ctx, String text) {
+    /** Whether this app may show notifications and the 「매물 변화」 channel is not turned off. */
+    static boolean notificationsOn(Context ctx) {
+        if (!NotificationManagerCompat.from(ctx).areNotificationsEnabled()) return false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel ch = ctx.getSystemService(NotificationManager.class).getNotificationChannel(CHANNEL);
+            if (ch != null && ch.getImportance() == NotificationManager.IMPORTANCE_NONE) return false;
+        }
+        return true;
+    }
+
+    static boolean notifyChanges(Context ctx, String text) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel ch = new NotificationChannel(CHANNEL, "매물 변화", NotificationManager.IMPORTANCE_DEFAULT);
             ch.setDescription("매물이 사라지거나, 새로 올라오거나, 가격이 내렸을 때");
@@ -326,19 +371,23 @@ public class SnapshotWorker extends Worker {
         }
         Intent open = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
         PendingIntent pi = PendingIntent.getActivity(ctx, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        String first = text.split("\n")[0];
+        boolean test = text.startsWith("시험 결과");
+        String[] lines = text.split("\n");
+        String first = test && lines.length > 1 ? lines[1] : lines[0];
         NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_apt)
             .setColor(0xFF2F5D8A)
-            .setContentTitle("매물에 변화가 있어요")
+            .setContentTitle(test ? "백그라운드 확인 시험" : "매물에 변화가 있어요")
             .setContentText(first)
-            .setStyle(new NotificationCompat.BigTextStyle().bigText(text + "\n사라진 집은 거래됐을 수 있어요. 열어서 확인해 보세요."))
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(test ? text : text + "\n사라진 집은 거래됐을 수 있어요. 열어서 확인해 보세요."))
             .setContentIntent(pi)
             .setAutoCancel(true);
         try {
             NotificationManagerCompat.from(ctx).notify(1, b.build());
+            return notificationsOn(ctx);
         } catch (SecurityException ignored) {
             // notifications not allowed: the page shows the changes on the next opening anyway
         }
+        return false;
     }
 }
