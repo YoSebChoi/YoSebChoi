@@ -71,9 +71,15 @@ const browser = await chromium.launch();
     const AptNet = {
       async get({ url }) {
         window.__calls.push(url);
-        if (url.includes("complexList")) return { status: 200, body: JSON.stringify({ result: [
-          { hscpNo: "1001", hscpNm: "동탄시범한빛마을KCC스위첸", totHsehCnt: 484 }, { hscpNo: "1002", hscpNm: "동탄시범한빛마을동탄아이파크", totHsehCnt: 700 },
-          { hscpNo: "2001", hscpNm: "동탄시범나루마을한화꿈에그린우림필유", totHsehCnt: 444 }] }) };
+        if (url.includes("complexList")) {
+          // like Naver: a wide box answers 20 complexes and KCC is not among them; a small one has it
+          const q = new URL(url).searchParams, wide = +q.get("top") - +q.get("btm") > 0.01;
+          const others = [{ hscpNo: "1002", hscpNm: "동탄시범한빛마을동탄아이파크", totHsehCnt: 748, lat: 37.2050, lng: 127.0740 },
+            { hscpNo: "2001", hscpNm: "동탄시범나루마을한화꿈에그린우림필유", totHsehCnt: 444, lat: 37.21, lng: 127.08 }];
+          for (let i = 0; i < 18; i++) others.push({ hscpNo: String(3000 + i), hscpNm: `다른단지${i}`, lat: 37.19, lng: 127.06 });
+          const kcc = { hscpNo: "1001", hscpNm: "동탄시범한빛마을KCC스위첸", totHsehCnt: 484, lat: 37.2046, lng: 127.0731 };
+          return { status: 200, body: JSON.stringify({ result: wide ? others : [kcc, others[0]] }) };
+        }
         const no = new URL(url).searchParams.get("hscpNo");
         const list = no === "1001" ? phases[window.__phase] : [];
         return { status: 200, body: JSON.stringify({ result: { list, moreDataYn: "N", totAtclCnt: list.length } }) };

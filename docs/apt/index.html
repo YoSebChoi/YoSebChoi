@@ -275,22 +275,43 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   }
 
   // complexes around 시범한빛마을, from the mobile map
-  async function discover() {
-    const c = DATA.center || { lat: 37.2045, lng: 127.0725 }, d = 0.012;
+  async function discoverBox(c, d) {
     const url = `https://m.land.naver.com/cluster/ajax/complexList?view=atcl&rletTpCd=APT&tradTpCd=A1&z=16&lat=${c.lat}&lon=${c.lng}` +
-      `&btm=${c.lat - d}&lft=${c.lng - d}&top=${c.lat + d}&rgt=${c.lng + d}`;
+      `&btm=${(c.lat - d).toFixed(6)}&lft=${(c.lng - d).toFixed(6)}&top=${(c.lat + d).toFixed(6)}&rgt=${(c.lng + d).toFixed(6)}`;
     const j = await netJson(url);
     const list = Array.isArray(j.result) ? j.result : (j.result?.list || j.list || []);
     return list.map(x => ({ no: String(x.hscpNo || x.complexNo), name: x.hscpNm || x.complexName || "", hh: x.totHsehCnt || x.totalHouseholdCount || null,
       lat: +x.lat, lng: +x.lng, deals: x.dealCnt ?? null })).filter(x => x.no && x.name);
   }
 
+  // complexes around 시범한빛마을, from the mobile map. Naver answers at most 20 per box, so when the
+  // first wide look is full and one of ours is missing, look again in small boxes around the 한빛마을 ones found
+  const ours = (c, f) => new RegExp(c.naverName, "i").test(f.name) && /한빛/.test(f.name);
+  async function discover() {
+    const center = DATA.center || { lat: 37.2045, lng: 127.0725 };
+    const all = new Map();
+    const add = list => list.forEach(f => all.has(f.no) || all.set(f.no, f));
+    const first = await discoverBox(center, 0.012);
+    add(first);
+    const missing = () => DATA.complexes.some(c => !cfg.links[c.key]?.no && ![...all.values()].some(f => ours(c, f)));
+    if (first.length >= 20 && missing()) {
+      const hb = [...all.values()].filter(f => /한빛/.test(f.name) && f.lat && f.lng);
+      const mid = hb.length ? { lat: hb.reduce((a, f) => a + f.lat, 0) / hb.length, lng: hb.reduce((a, f) => a + f.lng, 0) / hb.length } : center;
+      for (const dy of [0, -0.005, 0.005]) for (const dx of [0, -0.005, 0.005]) {
+        if (!missing()) break;
+        await sleep(1200 + Math.random() * 1000);
+        add(await discoverBox({ lat: mid.lat + dy, lng: mid.lng + dx }, 0.003));
+      }
+    }
+    // 한빛마을 first in the list
+    return [...all.values()].sort((a, b) => (/한빛/.test(b.name) ? 1 : 0) - (/한빛/.test(a.name) ? 1 : 0));
+  }
+
   function autoLink(found) {
     let n = 0;
     for (const c of DATA.complexes) {
       if (cfg.links[c.key]?.no) continue;
-      const re = new RegExp(c.naverName, "i");
-      const hit = found.find(f => re.test(f.name) && /한빛/.test(f.name));
+      const hit = found.find(f => ours(c, f));
       if (hit) { cfg.links[c.key] = { no: hit.no, name: hit.name, hh: hit.hh }; n++; }
     }
     saveCfg();
@@ -326,9 +347,13 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
           if (s.ok) tally(T.ingest(S, s.cx, s.t, s.articles || [])); else T.recordFailure(S, s.cx, s.t, s.err);
         }
       } catch (e) { /* an older app without the background check */ }
-      if (!linked().length) {
+      // nothing linked yet, or 우리 단지 still missing (at most every 6 hours)
+      const lastFind = [...S.snaps].reverse().find(s => s.cx === "discover");
+      const m = mainCx();
+      if (!linked().length || (m && !cfg.links[m.key]?.no && (!lastFind || Date.now() - lastFind.t > 6 * 3600e3))) {
         setStatus("네이버 부동산 단지를 찾는 중…");
-        try { await discoverAndLink(); } catch (e) { T.recordFailure(S, "discover", Date.now(), e.message); }
+        try { const n = await discoverAndLink(); S.snaps.push({ t: Date.now(), cx: "discover", ok: true, count: found.length, units: n }); }
+        catch (e) { T.recordFailure(S, "discover", Date.now(), e.message); }
       }
       const cxs = linked();
       for (let i = 0; i < cxs.length; i++) {
@@ -385,7 +410,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     const tr = DATA.tradesUpdated ? `실거래 ${DATA.tradesUpdated} 기준` : "실거래 자료 없음";
     if (!native) return `${tr} · 블로그 ${DATA.blogUpdated || "-"}`;
     if (!linked().length) return "설정에서 네이버 부동산 단지를 연결해 주세요";
-    const oks = S.snaps.filter(s => s.ok);
+    const oks = S.snaps.filter(s => s.ok && s.cx !== "discover");
     const last = oks.length ? oks[oks.length - 1].t : null;
     return last ? `매물 확인 ${ago(last)} · ${tr}` : "아직 매물을 확인하지 않았어요";
   }
@@ -664,10 +689,10 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <h4 style="margin:20px 0 2px">기록</h4>
         <div class="tiny muted">매물 기록은 이 폰에만 있어요. 폰을 바꾸거나 앱을 지우기 전에 내보내 두세요.</div>
         <div class="btns" style="margin:8px 0"><button class="btn ghost" id="exportBtn">내보내기</button><label class="btn ghost" style="display:inline-block">가져오기<input type="file" id="importFile" accept="application/json,.json" hidden></label></div>
-        <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? `매물 ${s.count}건 (${s.units}집)` : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
+        <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
         <details class="small"><summary>네트워크 진단 (네이버 답 ${netlog.length}개)</summary><ul class="list-plain">${netlog.slice().reverse().map(n => `<li>${new Date(n.t).toTimeString().slice(0, 5)} ${esc(n.path)} → ${n.err ? `<span class="up">${esc(n.err)}</span>` : `HTTP ${n.status}${n.location ? " → " + esc(n.location) : ""}`}<div class="tiny muted" style="word-break:break-all">${esc(n.head)}</div></li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 d0e5d05b2b</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 642cd88020</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
