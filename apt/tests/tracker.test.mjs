@@ -107,3 +107,17 @@ test("저/중/고 floors match by third", () => {
   assert.ok(T.floorFits("13", 25, 13));
   assert.ok(!T.floorFits("13", 25, 12));
 });
+
+test("prices in 원 become 만원, and the false price changes they made go away", () => {
+  const st = T.emptyState();
+  T.ingest(st, "111", t0, [art("1", { prc: 120000 })]);
+  T.ingest(st, "111", t0 + H, [art("1", { prc: 1200000000 })]);   // a background check in 원 (now converted on the way in)
+  assert.equal(st.listings["1"].price, 120000);
+  assert.equal(st.events.filter(e => e.type === "price").length, 0);
+  // what older checks left behind
+  st.events.push({ t: t0, type: "price", cx: "111", unit: "u", from: 120000, to: 1200000000 });
+  st.units[st.listings["1"].unit].lastPrice = 1200000000;
+  T.repairPrices(st);
+  assert.equal(st.events.filter(e => e.type === "price").length, 0);
+  assert.equal(st.units[st.listings["1"].unit].lastPrice, 120000);
+});
