@@ -285,14 +285,17 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
 
   // the map's article list in a small box around the complex, keeping this complex's articles only
   // (used when the complex list comes back empty: Naver has answered an empty list there while the map shows listings)
-  const MAP_URL = (lat, lng) => `https://m.land.naver.com/cluster/ajax/articleList?rletTpCd=APT&tradTpCd=A1&z=18&lat=${lat}&lon=${lng}` +
-    `&btm=${(lat - 0.0018).toFixed(6)}&lft=${(lng - 0.0022).toFixed(6)}&top=${(lat + 0.0018).toFixed(6)}&rgt=${(lng + 0.0022).toFixed(6)}&page={page}`;
+  const MAP_URL = (lat, lng, d = 0) => {
+    const dy = Math.max(0.0018, d), dx = Math.max(0.0022, d);
+    return `https://m.land.naver.com/cluster/ajax/articleList?rletTpCd=APT&tradTpCd=A1&z=${d > 0.004 ? 16 : 17}&lat=${lat}&lon=${lng}` +
+      `&btm=${(lat - dy).toFixed(6)}&lft=${(lng - dx).toFixed(6)}&top=${(lat + dy).toFixed(6)}&rgt=${(lng + dx).toFixed(6)}&page={page}`;
+  };
   const squash = s => String(s || "").replace(/\s+/g, "").toLowerCase();
-  async function fetchMapList(link, maxPages = 6) {
+  async function fetchMapList(link, maxPages = link.approx > 0.004 ? 12 : 6) {
     const all = [];
     for (let page = 1; page <= maxPages; page++) {
       await sleep(1200 + Math.random() * 1200);
-      const j = await netJson(MAP_URL(link.lat, link.lng).replace("{page}", page));
+      const j = await netJson(MAP_URL(link.lat, link.lng, link.approx || 0).replace("{page}", page));
       const list = Array.isArray(j.body) ? j.body : Array.isArray(j.result?.list) ? j.result.list : null;
       if (!list) throw new Error(`지도 매물 목록 형식이 달라요: ${shapeOf(j)}`);
       all.push(...list);
@@ -314,7 +317,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     const key = keyOfNo(no);
     let link = key && cfg.links[key];
     // coordinates come from the complex search, once per refresh for all complexes
-    if (link && !(link.lat && link.lng) && Date.now() - lastDiscover > 10 * 60e3) {
+    if (link && (!(link.lat && link.lng) || link.approx > 0.004) && Date.now() - lastDiscover > 10 * 60e3) {
       lastDiscover = Date.now();
       try { await sleep(1000); found = await discover(); autoLink(found); link = cfg.links[key]; } catch (e) { /* no coordinates: keep the empty answer */ }
     }
@@ -332,8 +335,15 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       `&btm=${(c.lat - d).toFixed(6)}&lft=${(c.lng - d).toFixed(6)}&top=${(c.lat + d).toFixed(6)}&rgt=${(c.lng + d).toFixed(6)}`;
     const j = await netJson(url);
     const list = Array.isArray(j.result) ? j.result : (j.result?.list || j.list || []);
-    return list.map(x => ({ no: String(x.hscpNo || x.complexNo), name: x.hscpNm || x.complexName || "", hh: x.totHsehCnt || x.totalHouseholdCount || null,
-      lat: +x.lat, lng: +x.lng, deals: x.dealCnt ?? null })).filter(x => x.no && x.name);
+    // 네트워크 진단: the field names of a complex, so a renamed coordinate shows
+    if (list[0] && netlog.length) { netlog[netlog.length - 1].head = "칸: " + Object.keys(list[0]).join(",").slice(0, 300); lset("aw-netlog", netlog); }
+    const num = (...vs) => { for (const v of vs) { const n = parseFloat(v); if (isFinite(n) && n) return n; } return null; };
+    return list.map(x => {
+      const lat = num(x.lat, x.latitude, x.y, x.mapYCrdn, x.ycrdn), lng = num(x.lng, x.lon, x.longitude, x.x, x.mapXCrdn, x.xcrdn);
+      // no coordinates in the answer: where it was found (the box), with how far off it can be
+      return { no: String(x.hscpNo || x.complexNo), name: x.hscpNm || x.complexName || "", hh: x.totHsehCnt || x.totalHouseholdCount || null,
+        lat: lat || c.lat, lng: lng || c.lng, approx: lat && lng ? 0 : d, deals: x.dealCnt ?? null };
+    }).filter(x => x.no && x.name);
   }
 
   // complexes around 시범한빛마을, from the mobile map. Naver answers at most 20 per box, so when the
@@ -342,17 +352,19 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function discover() {
     const center = DATA.center || { lat: 37.2045, lng: 127.0725 };
     const all = new Map();
-    const add = list => list.forEach(f => all.has(f.no) || all.set(f.no, f));
+    // keep each complex's most exact position (exact coordinates, or the smallest box it was found in)
+    const add = list => list.forEach(f => { const o = all.get(f.no); if (!o || f.approx < o.approx) all.set(f.no, f); });
+    const precise = f => f && f.approx <= 0.004;
     const first = await discoverBox(center, 0.012);
     add(first);
     // ours not found yet: unlinked and no match, or linked without coordinates and its number not seen
     const missing = () => DATA.complexes.some(c => {
       const l = cfg.links[c.key];
-      if (l?.no) return !(l.lat && l.lng) && !all.has(String(l.no));
-      return ![...all.values()].some(f => ours(c, f));
+      if (l?.no) return !precise(all.get(String(l.no))) && !(l.lat && l.lng && !(l.approx > 0.004));
+      return ![...all.values()].some(f => ours(c, f) && precise(f));
     });
     if (first.length >= 20 && missing()) {
-      const hb = [...all.values()].filter(f => /한빛/.test(f.name) && f.lat && f.lng);
+      const hb = [...all.values()].filter(f => /한빛/.test(f.name) && f.lat && f.lng && precise(f));
       const mid = hb.length ? { lat: hb.reduce((a, f) => a + f.lat, 0) / hb.length, lng: hb.reduce((a, f) => a + f.lng, 0) / hb.length } : center;
       for (const dy of [0, -0.005, 0.005]) for (const dx of [0, -0.005, 0.005]) {
         if (!missing()) break;
@@ -370,11 +382,12 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       const l = cfg.links[c.key];
       if (l?.no) {
         const f = found.find(f => f.no === String(l.no));
-        if (f) Object.assign(l, { lat: f.lat, lng: f.lng, deals: f.deals, hh: l.hh || f.hh, name: l.name || f.name });
+        if (f && (!(l.lat && l.lng) || (l.approx || 0) >= f.approx)) Object.assign(l, { lat: f.lat, lng: f.lng, approx: f.approx });
+        if (f) Object.assign(l, { deals: f.deals, hh: l.hh || f.hh, name: l.name || f.name });
         continue;
       }
       const hit = found.find(f => ours(c, f));
-      if (hit) { cfg.links[c.key] = { no: hit.no, name: hit.name, hh: hit.hh, lat: hit.lat, lng: hit.lng, deals: hit.deals }; n++; }
+      if (hit) { cfg.links[c.key] = { no: hit.no, name: hit.name, hh: hit.hh, lat: hit.lat, lng: hit.lng, approx: hit.approx, deals: hit.deals }; n++; }
     }
     saveCfg();
     return n;
@@ -462,7 +475,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     const jobs = linked().map(c => {
       const l = cfg.links[c.key], no = String(l.no);
       return srcOf(no) === "지도" && l.lat && l.lng
-        ? { cx: no, name: shortName(c), url: MAP_URL(l.lat, l.lng), maxPages: 6, hscpNo: no, only: squash(l.name) }
+        ? { cx: no, name: shortName(c), url: MAP_URL(l.lat, l.lng, l.approx || 0), maxPages: l.approx > 0.004 ? 12 : 6, hscpNo: no, only: squash(l.name) }
         : { cx: no, name: shortName(c), url: LIST_URL(no), maxPages: 10 };
     });
     const sig = JSON.stringify([jobs, cfg.hours, cfg.notify]);
@@ -777,7 +790,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)${s.src === "지도" ? " · 지도 목록" : ""}`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
         <details class="small"><summary>네트워크 진단 (네이버 답 ${netlog.length}개)</summary><ul class="list-plain">${netlog.slice().reverse().map(n => `<li>${new Date(n.t).toTimeString().slice(0, 5)} ${esc(n.path)} → ${n.err ? `<span class="up">${esc(n.err)}</span>` : `HTTP ${n.status}${n.location ? " → " + esc(n.location) : ""}`}<div class="tiny muted" style="word-break:break-all">${esc(n.head)}</div></li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 7649bffc50</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 67b94c8048</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -820,7 +833,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       found.map(f => `<div class="row tap" data-pick="${esc(f.no)}"><div class="main small">${esc(f.name)} ${used.has(f.no) ? '<span class="badge b-ok">연결됨</span>' : ""}</div><div class="side tiny muted">${f.hh ? f.hh + "세대" : ""}${f.deals != null ? ` · 매매 ${f.deals}` : ""}</div></div>`).join("");
     $("#foundList").querySelectorAll("[data-pick]").forEach(r => r.addEventListener("click", () => {
       const f = found.find(x => x.no === r.dataset.pick), key = $("#linkKey").value;
-      cfg.links[key] = { no: f.no, name: f.name, hh: f.hh, lat: f.lat, lng: f.lng, deals: f.deals }; saveCfg(); toast(`${byKey(key).name} ← ${f.name}`); renderSettings(); refresh(true);
+      cfg.links[key] = { no: f.no, name: f.name, hh: f.hh, lat: f.lat, lng: f.lng, approx: f.approx, deals: f.deals }; saveCfg(); toast(`${byKey(key).name} ← ${f.name}`); renderSettings(); refresh(true);
     }));
   }
 
@@ -930,7 +943,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "7649bffc50" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "67b94c8048" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }

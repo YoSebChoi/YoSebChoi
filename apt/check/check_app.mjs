@@ -163,8 +163,11 @@ const browser = await chromium.launch();
         window.__urls.push(url);
         if (url.includes("complexList")) {
           const q = new URL(url).searchParams, wide = +q.get("top") - +q.get("btm") > 0.01;
-          const others = Array.from({ length: 20 }, (_, i) => ({ hscpNo: String(3000 + i), hscpNm: i ? `다른단지${i}` : "동탄시범한빛마을동탄아이파크", lat: 37.2050, lng: 127.0740 }));
-          return { status: 200, body: JSON.stringify({ result: wide ? others : [{ hscpNo: "1001", hscpNm: "동탄시범한빛마을KCC스위첸", lat: 37.2046, lng: 127.0731 }] }) };
+          // like the phone saw: no coordinates in the complexes at all; KCC only in the small box over it
+          const others = Array.from({ length: 20 }, (_, i) => ({ hscpNo: String(3000 + i), hscpNm: i ? `다른단지${i}` : "동탄시범한빛마을동탄아이파크", totHsehCnt: 700 }));
+          const lat = +q.get("lat"), lng = +q.get("lon");
+          const overKcc = Math.abs(lat - 37.2045) < 0.004 && Math.abs(lng - 127.0725) < 0.004;
+          return { status: 200, body: JSON.stringify({ result: wide ? others : overKcc ? [{ hscpNo: "1001", hscpNm: "동탄시범한빛마을KCC스위첸", totHsehCnt: 484 }] : [] }) };
         }
         if (url.includes("getComplexArticleList")) return { status: 200, body: "null" };
         if (url.includes("cluster/ajax/articleList")) return { status: 200, body: JSON.stringify({ code: "success", more: false, body: [
@@ -182,6 +185,8 @@ const browser = await chromium.launch();
   const urls = await page.evaluate(() => window.__urls);
   const wideSearches = urls.filter(u => u.includes("complexList") && (+new URL(u).searchParams.get("top") - +new URL(u).searchParams.get("btm")) > 0.01).length;
   if (wideSearches > 2) fail.push(`no coords: the wide complex search ran ${wideSearches} times`);
+  const mapUrl = urls.find(u => u.includes("articleList"));
+  if (mapUrl) { const q = new URL(mapUrl).searchParams; if (+q.get("top") - +q.get("btm") > 0.01) fail.push("no coords: map list box too wide " + mapUrl); }
   await page.close();
 }
 
