@@ -1,6 +1,6 @@
 """data/hcg_log.csv → 피검 수치 보고서(그룹별 일자별 수치, 내 수치의 위치, 비슷한 케이스의 결과 확률)
 
-사용: python hcg_report.py --mine 9:90,14:1695 [--out results/my_hcg_report.html]
+사용: python hcg_report.py --mine 9:90,14:1695 [--transfer 2026-09-30 --embryo 5 --scan 2026-10-21] [--out ...]
 --mine 은 5일배 기준 경과일(이식일 = 0일):수치. 개인 수치가 들어간 결과 파일은 커밋하지 않는다(.gitignore).
 """
 import argparse
@@ -14,6 +14,7 @@ import statistics
 from cases import PATH as CASES, dedupe
 from common import DATA, RESULTS, read_csv
 from hcg import parse
+from milestones import parse as ga_of
 from report import CSS
 from summarize import wilson
 
@@ -128,7 +129,82 @@ def band_chart(series, mine):
     return "".join(p)
 
 
-def build(rows, cases, miles, mine):
+MS = [("sac", "아기집", "var(--mid)"), ("yolk", "난황", "var(--accent)"), ("hb", "심장", "var(--hb)")]
+
+
+def gw(g):
+    return f"{g // 7}주 {g % 7}일"
+
+
+def schedule(sim_ids, birth_ids, miles, transfer, embryo, scan):
+    """첫 확인 주수를 우리 날짜로 옮긴 예상 일정. 기준: 심장소리 → 출산 케이스(비슷한 수치 / 전체), 심장소리 확인 전체."""
+    ga0 = 14 + embryo
+    day = lambda g: transfer + datetime.timedelta(days=g - ga0)
+    md = lambda g: f"{day(g).month}/{day(g).day}"
+    hb = [r for r in miles if r["outcome"] == "심장소리확인"]
+    born = [r for r in hb if r["case_id"] in birth_ids]
+    sets = [("출산 · 비슷한 수치", [r for r in born if r["case_id"] in sim_ids]), ("출산 케이스 전체", born),
+            ("심장소리 확인 전체", hb)]
+    sg = ga0 + (scan - transfer).days if scan else None
+    vals = lambda rs, k: sorted(ga_of(r[k]) for r in rs if ga_of(r[k]))
+
+    def first_any(r):
+        v = [ga_of(r[k]) for k, _, _ in MS if ga_of(r[k])]
+        return min(v) if v else None
+
+    head = "".join(f"<th>{n}</th>" for n, _ in sets)
+    t1, t2 = [], []
+    for k, name, _ in MS:
+        c1, c2 = [], []
+        for _, rs in sets:
+            v = vals(rs, k)
+            if len(v) >= 4:
+                q = statistics.quantiles(v, n=4, method="inclusive")
+                c1.append(f'<td><b>{gw(round(q[1]))} · {md(round(q[1]))}</b><br>'
+                          f'<span class="muted">{md(round(q[0]))}~{md(round(q[2]))} · {len(v)}</span></td>')
+            else:
+                c1.append(f'<td class="muted">{", ".join(md(g) for g in v) or "—"}</td>')
+            if sg:
+                sc = [r for r in rs if first_any(r) and first_any(r) <= sg]
+                ok = sum(1 for r in sc if ga_of(r[k]) and ga_of(r[k]) <= sg)
+                c2.append(f'<td class="num"><b>{pct(ok / len(sc)) if sc else "—"}</b> <span class="muted">{ok}/{len(sc)}</span></td>')
+        t1.append(f"<tr><td>{name}</td>{''.join(c1)}</tr>")
+        t2.append(f"<tr><td>{name}</td>{''.join(c2)}</tr>")
+    table = (f'<div class="tbl"><table><thead><tr><th>첫 확인 (중앙값 · 가운데 50% · 건수)</th>{head}</tr></thead>'
+             f'<tbody>{"".join(t1)}</tbody></table></div>')
+    if sg:
+        table += (f'<h3>{scan.month}/{scan.day} 초음파({gw(sg)})에서 볼 확률</h3>'
+                  f'<div class="tbl"><table><thead><tr><th>그 주수까지 초음파를 본 케이스 중 확인 비율</th>{head}</tr></thead>'
+                  f'<tbody>{"".join(t2)}</tbody></table></div>')
+
+    # 누적 곡선: 실선 = 출산 케이스 전체, 점선 = 심장소리 확인 전체
+    g0, g1 = ga0 + 14, ga0 + 35
+    w, h, left, right, top, bottom = 680, 250, 44, 20, 14, 46
+    x = lambda g: left + (w - left - right) * (g - g0) / (g1 - g0)
+    y = lambda p: top + (h - top - bottom) * (1 - p)
+    p = [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="주수별 누적 확인 비율" class="chart">']
+    for v in (0, .25, .5, .75, 1):
+        p.append(f'<line x1="{left}" y1="{y(v):.1f}" x2="{w - right}" y2="{y(v):.1f}" class="grid"/>'
+                 f'<text x="{left - 6}" y="{y(v) + 4:.1f}" class="tick" text-anchor="end">{int(v * 100)}%</text>')
+    for g in range(g0, g1 + 1):
+        if g % 7 == 0:
+            p.append(f'<text x="{x(g):.1f}" y="{h - 26}" class="tick" text-anchor="middle">{g // 7}주</text>'
+                     f'<text x="{x(g):.1f}" y="{h - 10}" class="tick" text-anchor="middle">{md(g)}</text>')
+    for rs, dash, wd in ((hb, "5 4", 1.5), (born, "", 2.5)):
+        for k, name, color in MS:
+            va = vals(rs, k)
+            pts = " ".join(f"{x(g):.1f},{y(sum(v <= g for v in va) / len(va)):.1f}" for g in range(g0, g1 + 1))
+            p.append(f'<polyline points="{pts}" style="fill:none;stroke:{color};stroke-width:{wd};stroke-dasharray:{dash or "none"}"/>')
+    if sg and g0 <= sg <= g1:
+        p.append(f'<line x1="{x(sg):.1f}" y1="{top}" x2="{x(sg):.1f}" y2="{h - bottom}" style="stroke:var(--fg);stroke-width:1.5;stroke-dasharray:4 3"/>'
+                 f'<text x="{x(sg) + 6:.1f}" y="{top + 12}" class="val">초음파 {md(sg)}</text>')
+    p.append("</svg>")
+    legend = '<div class="legend">' + "".join(f'<span><i style="background:{c}"></i>{n}</span>' for _, n, c in MS) + \
+             '<span>실선: 출산 케이스 · 점선: 심장소리 확인 전체 · 그 날까지 처음 확인한 비율</span></div>'
+    return table, legend + "".join(p), sg
+
+
+def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None):
     allv = [r for r in rows if r["values"]]
     slopes = [s for r in allv if r["group"] != "무심장" for s in [case_slope(parse(r["values"]))] if s and s > 0]
     S = statistics.median(slopes)
@@ -248,6 +324,23 @@ def build(rows, cases, miles, mine):
         return ('<div class="tbl"><table><thead><tr><th>조건</th><th>케이스</th><th>아기집</th><th>심장소리</th>'
                 f'<th>출산/(출산+유산)</th></tr></thead><tbody>{"".join(body)}</tbody></table></div>')
 
+    sched_html = ""
+    birth_status = {r["case_id"]: r["status"] for r in read_csv(os.path.join(DATA, "birth_log.csv"))}
+    if transfer:
+        table, chart, sg = schedule({r["case_id"] for r in sim}, {c for c, st in birth_status.items() if st == "출산"},
+                                    miles, transfer, embryo, scan)
+        scan_txt = (f"<p class=\"note\">{scan.month}/{scan.day} 초음파는 <b>임신 {gw(sg)}</b>입니다. 아래 표는 그 주수까지 초음파를 한 번이라도 본 케이스 중 해당 항목을 확인한 비율입니다(블로그에 안 적었을 뿐 본 경우가 있어 실제보다 낮게 나올 수 있음).</p>"
+                    if scan else "")
+        sched_html = f"""<section>
+  <h2>3. 예상 일정: 아기집·난황·심장</h2>
+  <p class="note">{embryo}일배 이식일 {transfer.month}/{transfer.day} = 임신 {gw(14 + embryo)}. 다른 케이스의 첫 확인 주수를 우리 날짜로 옮겼습니다. 기준은 <b>심장소리를 듣고 출산까지 간 케이스</b>이며, 비교로 심장소리 확인 전체를 함께 둡니다.</p>
+  <div class="panel">{table}{scan_txt}
+  <h3>주수별 누적 확인 비율</h3>{chart}
+  <p class="note">'출산 · 비슷한 수치'는 시기 기록이 있는 케이스가 4~8건뿐이라, 확률은 '출산 케이스 전체' 열을 기준으로 보는 편이 안정적입니다. 출산 케이스와 심장소리 확인 전체의 일정은 거의 같습니다.</p>
+  <p class="note">'첫 확인'은 병원에 간 날이라 실제로 보이기 시작한 시점보다 늦을 수 있습니다. 심장은 초음파 깜빡임 확인도 포함합니다.</p></div>
+</section>
+"""
+
     dt_hb = statistics.median(sum((dts[g] for g in ("출산", "심장후유산", "심장(진행·미상)")), []))
     css = CSS.replace("--mid:#8fb3dc;", "--mid:#8fb3dc;--hb:#1f8a5b;").replace("--mid:#35557d;", "--mid:#6f9bd1;--hb:#4cb782;")
     return f"""<title>우리 피검 수치 위치</title>
@@ -300,8 +393,9 @@ def build(rows, cases, miles, mine):
   <p class="note">비슷한 케이스에서 심장소리를 못 들은 경우: 계류 {P_sim['miss']}건, 화학적 유산 {P_sim['chem']}건, 자궁외 {P_sim['ect']}건.</p></div>
 </section>
 
+{sched_html}
 <section>
-  <h2>3. 일자별 피검 수치 (그룹별)</h2>
+  <h2>4. 일자별 피검 수치 (그룹별)</h2>
   <p class="note">셀: 중앙값, 회색은 가운데 50% 범위와 케이스 수. 3건 미만이면 값만 나열.</p>
   <div class="panel">{day_table()}</div>
 </section>
@@ -330,6 +424,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mine", required=True, help="5일배 기준 경과일:수치, 예) 9:90,14:1695")
     ap.add_argument("--out", default=os.path.join(RESULTS, "my_hcg_report.html"))
+    ap.add_argument("--transfer", help="이식일 YYYY-MM-DD (예상 일정 섹션)")
+    ap.add_argument("--embryo", type=int, default=5)
+    ap.add_argument("--scan", help="다음 초음파 날짜 YYYY-MM-DD")
     a = ap.parse_args()
     mine = {int(d): float(v) for d, v in (p.split(":") for p in a.mine.split(","))}
     rows = read_csv(os.path.join(DATA, "hcg_log.csv"))
@@ -338,7 +435,9 @@ def main():
     rows = [r for r in rows if r["case_id"] in ids]
     miles = read_csv(os.path.join(DATA, "milestone_log.csv"))
     with open(a.out, "w", encoding="utf-8") as f:
-        f.write(build(rows, cases, miles, mine))
+        f.write(build(rows, cases, miles, mine,
+                      datetime.date.fromisoformat(a.transfer) if a.transfer else None, a.embryo,
+                      datetime.date.fromisoformat(a.scan) if a.scan else None))
     print(f"→ {a.out}")
 
 
