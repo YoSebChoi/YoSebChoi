@@ -132,6 +132,42 @@ public class MainActivity extends BridgeActivity {
             call.resolve();
         }
 
+        /** AptNet.testNotify({text}) → the change notification right away, as the background check posts it. */
+        @PluginMethod
+        public void testNotify(PluginCall call) {
+            SnapshotWorker.notifyChanges(getContext(), call.getString("text", "시험 알림: 이렇게 와요"));
+            call.resolve();
+        }
+
+        /** AptNet.testChange() → {complexes}: forgets one flat from each complex's last background check and runs
+         *  a check now, so that check finds 「새 매물 1」 and notifies: the whole path, end to end. complexes is how
+         *  many had a last check to change (0: the background check has not run yet). */
+        @PluginMethod
+        public void testChange(PluginCall call) {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences(SnapshotWorker.PREFS, Context.MODE_PRIVATE);
+            android.content.SharedPreferences.Editor edit = prefs.edit();
+            int n = 0;
+            for (String key : prefs.getAll().keySet()) {
+                if (!key.startsWith("units_")) continue;
+                try {
+                    JSONObject units = new JSONObject(prefs.getString(key, "{}"));
+                    java.util.Iterator<String> it = units.keys();
+                    if (!it.hasNext()) continue;
+                    units.remove(it.next());
+                    edit.putString(key, units.toString());
+                    n++;
+                } catch (Exception ignored) {
+                    // a broken record: the next check writes a new one
+                }
+            }
+            edit.putBoolean("notify", true).apply();
+            WorkManager.getInstance(getContext()).enqueue(new OneTimeWorkRequest.Builder(SnapshotWorker.class)
+                .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build());
+            JSObject r = new JSObject();
+            r.put("complexes", n);
+            call.resolve(r);
+        }
+
         @PluginMethod
         public void collect(PluginCall call) {
             JSArray out = new JSArray();
