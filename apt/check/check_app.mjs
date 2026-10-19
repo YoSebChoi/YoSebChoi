@@ -123,6 +123,27 @@ const browser = await chromium.launch();
   await page.screenshot({ path: new URL("./app-settings.png", import.meta.url).pathname, fullPage: true });
 }
 
+// 3. the complex search comes back empty: the app says why, and 네트워크 진단 shows Naver's answer
+{
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  page.on("pageerror", e => fail.push("empty search: page error: " + e.message));
+  await page.addInitScript(() => {
+    const AptNet = {
+      async get({ url }) { return { status: 302, location: "https://fin.land.naver.com/", body: "" }; },
+      async schedule() {}, async collect() { return { snapshots: [] }; },
+    };
+    window.Capacitor = { isNativePlatform: () => true, Plugins: { AptNet, App: { addListener() {}, getInfo: async () => ({ build: "999" }) } } };
+  });
+  await page.goto("http://localhost:8766/apt/", { waitUntil: "networkidle" });
+  await page.waitForTimeout(1500);
+  if (!(await page.locator("#panel-home .note.warn", { hasText: "HTTP 302" }).count())) fail.push("empty search: home does not say why");
+  await page.click("#settingsBtn");
+  await page.click("text=네트워크 진단");
+  if (!(await page.locator("#settingsBody", { hasText: "fin.land.naver.com" }).count())) fail.push("empty search: 네트워크 진단 does not show the redirect");
+  await page.screenshot({ path: new URL("./app-diagnose.png", import.meta.url).pathname, fullPage: true });
+  await page.close();
+}
+
 await browser.close();
 server.close();
 if (fail.length) { console.error(fail.join("\n")); process.exit(1); }
