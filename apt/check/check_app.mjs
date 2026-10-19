@@ -150,6 +150,41 @@ const browser = await chromium.launch();
   await page.close();
 }
 
+// 5. KCC linked earlier without coordinates, the wide search leaves it out, and the complex list answers null:
+//    one search in small boxes finds its coordinates and the map list is read
+{
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  page.on("pageerror", e => fail.push("no coords: page error: " + e.message));
+  await page.addInitScript(() => {
+    localStorage.setItem("aw-cfg", JSON.stringify({ links: { kcc: { no: "1001", name: "동탄시범한빛마을KCC스위첸", hh: 484 } }, hours: 12, notify: true, askedNotify: true }));
+    window.__urls = [];
+    const AptNet = {
+      async get({ url }) {
+        window.__urls.push(url);
+        if (url.includes("complexList")) {
+          const q = new URL(url).searchParams, wide = +q.get("top") - +q.get("btm") > 0.01;
+          const others = Array.from({ length: 20 }, (_, i) => ({ hscpNo: String(3000 + i), hscpNm: i ? `다른단지${i}` : "동탄시범한빛마을동탄아이파크", lat: 37.2050, lng: 127.0740 }));
+          return { status: 200, body: JSON.stringify({ result: wide ? others : [{ hscpNo: "1001", hscpNm: "동탄시범한빛마을KCC스위첸", lat: 37.2046, lng: 127.0731 }] }) };
+        }
+        if (url.includes("getComplexArticleList")) return { status: 200, body: "null" };
+        if (url.includes("cluster/ajax/articleList")) return { status: 200, body: JSON.stringify({ code: "success", more: false, body: [
+          { atclNo: "1", atclNm: "동탄시범한빛마을KCC스위첸", tradTpCd: "A1", bildNm: "101동", flrInfo: "13/25", spc2: "84.65", prc: 85000, direction: "남향" }] }) };
+        return { status: 404, body: "" };
+      },
+      async schedule(o) { window.__scheduled = o; }, async collect() { return { snapshots: [] }; },
+    };
+    window.Capacitor = { isNativePlatform: () => true, Plugins: { AptNet, App: { addListener() {}, getInfo: async () => ({ build: "999" }) } } };
+  });
+  await page.goto("http://localhost:8766/apt/", { waitUntil: "networkidle" });
+  await page.waitForFunction(() => window.__scheduled, null, { timeout: 60000 }).catch(() => {});
+  const s = await page.evaluate(() => window.__aptwatch.S);
+  if (!Object.values(s.units).some(u => u.cx === "1001")) fail.push("no coords: KCC's listing not read from the map: " + JSON.stringify(s.snaps.slice(-3)));
+  const urls = await page.evaluate(() => window.__urls);
+  const wideSearches = urls.filter(u => u.includes("complexList") && (+new URL(u).searchParams.get("top") - +new URL(u).searchParams.get("btm")) > 0.01).length;
+  if (wideSearches > 2) fail.push(`no coords: the wide complex search ran ${wideSearches} times`);
+  await page.close();
+}
+
 // 4. the complex list comes back empty but the map shows listings: the app reads them from the map,
 //    keeps only this complex's, and points the background check at the map list
 {
