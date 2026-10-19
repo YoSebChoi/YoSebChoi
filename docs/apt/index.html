@@ -248,13 +248,14 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   function logNet(url, r, err) {
     const u = new URL(url);
     netlog.push({ t: Date.now(), path: u.host + u.pathname, status: r ? r.status : null, location: r && r.location || "",
-      head: r ? String(r.body || "").replace(/\s+/g, " ").slice(0, 200) : "", err: err || "" });
+      head: r ? String(r.body || "").replace(/\s+/g, " ").slice(0, u.host.startsWith("fin.") ? 500 : 200) : "", err: err || "" });
     netlog = netlog.slice(-12);
     lset("aw-netlog", netlog);
   }
-  async function netJson(url) {
+  // opts {method, body}: a POST with a JSON body (needs an app with AptNet.request)
+  async function netJson(url, opts) {
     let r;
-    try { r = await ncall("AptNet", "get", { url }); }
+    try { r = opts ? await ncall("AptNet", "request", { url, ...opts }) : await ncall("AptNet", "get", { url }); }
     catch (e) { logNet(url, null, e.message); throw new Error(`인터넷 연결 문제예요 (${e.message})`); }
     logNet(url, r);
     if (r.status !== 200) throw new Error(r.status >= 300 && r.status < 400 ? `네이버가 요청을 막았어요 (HTTP ${r.status}). 잠시 뒤 다시 해 보세요` : `HTTP ${r.status}`);
@@ -309,11 +310,25 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
 
   let lastDiscover = 0;
   // → {articles, src}: the complex list, or the map list when the first is empty
+  // a page the site itself opens first, for the cookies it would have (once per refresh per site)
+  const warmed = {};
+  async function warm(site, url) {
+    if (warmed[site] && Date.now() - warmed[site] < 10 * 60e3) return;
+    warmed[site] = Date.now();
+    try { await ncall("AptNet", "get", { url }); await sleep(600 + Math.random() * 600); } catch (e) { /* the list will say what is wrong */ }
+  }
+
   async function fetchListings(no, maxPages = 10) {
-    let list = [], complexErr = null;
+    let list = [], complexErr = null, finErr = null;
+    await warm("m", `https://m.land.naver.com/complex/info/${encodeURIComponent(no)}?tradTpCd=A1`);
     try { list = await fetchComplexList(no, maxPages); } catch (e) { complexErr = e; }
     if (list.length || (maxPages === 1 && !complexErr)) return { articles: list, src: "단지" };
     if (maxPages === 1) throw complexErr;
+    // the new site (fin.land.naver.com), which the mobile site's lists are giving way to
+    try {
+      const fin = await fetchFinList(no);
+      if (fin.length) return { articles: fin, src: "fin" };
+    } catch (e) { finErr = e; }
     const key = keyOfNo(no);
     let link = key && cfg.links[key];
     // coordinates come from the complex search, once per refresh for all complexes
@@ -321,12 +336,79 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       lastDiscover = Date.now();
       try { await sleep(1000); found = await discover(); autoLink(found); link = cfg.links[key]; } catch (e) { /* no coordinates: keep the empty answer */ }
     }
+    const errs = [complexErr, finErr].filter(Boolean).map(e => e.message);
     if (!link || !(link.lat && link.lng)) {
-      if (complexErr) throw new Error(`${complexErr.message} (지도 목록은 단지 좌표가 없어 못 읽었어요: 설정 → 주변 단지 찾기)`);
+      if (errs.length) throw new Error(`${errs.join(" / ")} (지도 목록은 단지 좌표가 없어 못 읽었어요: 설정 → 주변 단지 찾기)`);
       return { articles: list, src: "단지" };
     }
-    try { return { articles: await fetchMapList(link), src: "지도" }; }
-    catch (e) { throw new Error(complexErr ? `${complexErr.message} / ${e.message}` : e.message); }
+    try {
+      const m = await fetchMapList(link);
+      if (!m.length && errs.length) throw new Error("지도 목록도 비었어요");
+      return { articles: m, src: "지도" };
+    }
+    catch (e) { throw new Error([...errs, e.message].join(" / ")); }
+  }
+
+  /* --- the new site: fin.land.naver.com (네이버페이 부동산) ---
+     The list is a POST with the complex number; each item is one flat with the agents' copies grouped.
+     FIN_MAP says where each field we use sits, with fallbacks ("a.b|c"): the background check (SnapshotWorker)
+     gets the same map, so a change here reaches it without a new app. */
+  const FIN_LIST = "https://fin.land.naver.com/front-api/v1/complex/article/list";
+  const FIN_BODY = no => ({ complexNumber: String(no), tradeTypes: ["A1"], pyeongTypes: [], dongNumbers: [], userChannelType: "MOBILE",
+    articleSortType: "RANKING_DESC", seed: "", lastInfo: [], size: 30 });
+  const R = "representativeArticleInfo.";
+  const FIN_MAP = {
+    atclNo: `${R}articleNumber|articleNumber|articleNo`,
+    atclNm: `${R}complexName|complexName`,
+    bildNm: `${R}dongName|dongName|buildingName`,
+    flrInfo: `${R}articleDetail.floorInfo|articleDetail.floorInfo|floorInfo|${R}floorInfo`,
+    spc1: `${R}spaceInfo.supplySpace|spaceInfo.supplySpace|supplySpace`,
+    spc2: `${R}spaceInfo.exclusiveSpace|spaceInfo.exclusiveSpace|exclusiveSpace`,
+    prc: `${R}priceInfo.dealPrice|priceInfo.dealPrice|dealPrice|${R}priceInfo.price`,
+    direction: `${R}articleDetail.direction|articleDetail.direction|direction`,
+    rltrNm: `${R}brokerInfo.brokerageName|brokerInfo.brokerageName|brokerageName`,
+    atclFetrDesc: `${R}articleDetail.articleFeatureDescription|articleDetail.articleFeatureDescription|articleFeatureDescription`,
+    atclCfmYmd: `${R}verificationInfo.exposureStartDate|verificationInfo.exposureStartDate|exposureStartDate`,
+  };
+  const FIN_PATHS = { listPath: "result.list|result.articleList|list", nextPath: "result.hasNextPage|hasNextPage", cursorPath: "result.lastInfo|lastInfo", cursorKey: "lastInfo" };
+  // the same dotted paths as SnapshotWorker.path
+  const jpath = (o, spec) => {
+    for (const p of String(spec || "").split("|")) {
+      let v = o;
+      for (const k of p.split(".")) { v = v == null ? undefined : v[k]; if (v === null) v = undefined; }
+      if (v !== undefined) return v;
+    }
+    return undefined;
+  };
+  let finPriceDiv = 1;   // 원 → 만원 when the prices come in 원
+  function finToArticle(item) {
+    const a = { tradTpCd: "A1" };
+    for (const [k, p] of Object.entries(FIN_MAP)) { const v = jpath(item, p); if (v !== undefined && typeof v !== "object") a[k] = v; }
+    if (typeof a.prc === "number" && a.prc > 1e6) { finPriceDiv = 10000; a.prc = Math.round(a.prc / 10000); }
+    if (typeof a.prc === "number") a.hanPrc = fmt(a.prc);
+    return a;
+  }
+  async function fetchFinList(no, maxPages = 8) {
+    if (!(Cap.Plugins?.AptNet?.request)) throw new Error("새 네이버 목록은 앱 업데이트가 필요해요");
+    await warm("fin", `https://fin.land.naver.com/complexes/${encodeURIComponent(no)}?tab=article`);
+    const body = FIN_BODY(no), out = [];
+    for (let page = 1; page <= maxPages; page++) {
+      if (page > 1) await sleep(1200 + Math.random() * 1200);
+      const j = await netJson(FIN_LIST, { method: "POST", body });
+      const list = jpath(j, FIN_PATHS.listPath);
+      if (!Array.isArray(list)) throw new Error(`새 네이버 목록 형식이 달라요: ${shapeOf(j)}`);
+      for (const item of list) {
+        const a = finToArticle(item);
+        if (a.atclNo) out.push(a);
+        // the other agents' copies of the same flat count as more agents
+        const dups = jpath(item, "duplicatedArticleInfo.articleInfoList|duplicatedArticleInfoList");
+        if (Array.isArray(dups)) for (const d of dups) { const b = finToArticle(d); if (b.atclNo && b.atclNo !== a.atclNo) out.push({ ...a, ...b, bildNm: a.bildNm, flrInfo: a.flrInfo, spc2: a.spc2, direction: a.direction }); }
+      }
+      const cursor = jpath(j, FIN_PATHS.cursorPath);
+      if (!jpath(j, FIN_PATHS.nextPath) || cursor == null) break;
+      body.lastInfo = cursor;
+    }
+    return out;
   }
 
   // complexes around 시범한빛마을, from the mobile map
@@ -423,8 +505,9 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
           let arts = s.articles || [];
           // listings found on the map: keep this complex's own, and do not take an empty complex list
           // (from an older background check) as a sell-out
-          if (srcOf(s.cx) === "지도") {
-            arts = mineOnly(cfg.links[keyOfNo(s.cx)], arts);
+          const src = srcOf(s.cx);
+          if (src !== "단지") {
+            if (src === "지도") arts = mineOnly(cfg.links[keyOfNo(s.cx)], arts);
             if (!arts.length) continue;
           }
           tally(T.ingest(S, s.cx, s.t, arts));
@@ -474,9 +557,12 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     if (!native) return;
     const jobs = linked().map(c => {
       const l = cfg.links[c.key], no = String(l.no);
-      return srcOf(no) === "지도" && l.lat && l.lng
+      const src = srcOf(no);
+      if (src === "fin") return { cx: no, name: shortName(c), url: FIN_LIST, method: "POST", body: FIN_BODY(no), maxPages: 8,
+        seed: `https://fin.land.naver.com/complexes/${no}?tab=article`, map: FIN_MAP, priceDiv: finPriceDiv, ...FIN_PATHS };
+      return src === "지도" && l.lat && l.lng
         ? { cx: no, name: shortName(c), url: MAP_URL(l.lat, l.lng, l.approx || 0), maxPages: l.approx > 0.004 ? 12 : 6, hscpNo: no, only: squash(l.name) }
-        : { cx: no, name: shortName(c), url: LIST_URL(no), maxPages: 10 };
+        : { cx: no, name: shortName(c), url: LIST_URL(no), maxPages: 10, seed: `https://m.land.naver.com/complex/info/${no}?tradTpCd=A1` };
     });
     const sig = JSON.stringify([jobs, cfg.hours, cfg.notify]);
     // Android 13+ asks once before an app may notify
@@ -787,10 +873,10 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <h4 style="margin:20px 0 2px">기록</h4>
         <div class="tiny muted">매물 기록은 이 폰에만 있어요. 폰을 바꾸거나 앱을 지우기 전에 내보내 두세요.</div>
         <div class="btns" style="margin:8px 0"><button class="btn ghost" id="exportBtn">내보내기</button><label class="btn ghost" style="display:inline-block">가져오기<input type="file" id="importFile" accept="application/json,.json" hidden></label></div>
-        <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)${s.src === "지도" ? " · 지도 목록" : ""}`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
+        <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)${s.src === "지도" ? " · 지도 목록" : s.src === "fin" ? " · 새 네이버 목록" : ""}`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
         <details class="small"><summary>네트워크 진단 (네이버 답 ${netlog.length}개)</summary><ul class="list-plain">${netlog.slice().reverse().map(n => `<li>${new Date(n.t).toTimeString().slice(0, 5)} ${esc(n.path)} → ${n.err ? `<span class="up">${esc(n.err)}</span>` : `HTTP ${n.status}${n.location ? " → " + esc(n.location) : ""}`}<div class="tiny muted" style="word-break:break-all">${esc(n.head)}</div></li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 910b3d1011</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 4e608aa8af</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -943,7 +1029,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "910b3d1011" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "4e608aa8af" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }

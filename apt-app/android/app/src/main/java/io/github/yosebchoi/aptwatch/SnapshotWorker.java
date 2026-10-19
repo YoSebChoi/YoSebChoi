@@ -22,6 +22,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -59,18 +62,45 @@ public class SnapshotWorker extends Worker {
         String location;
     }
 
-    /** One GET like the mobile site's own page makes. Redirects are not followed: Naver answers a
-     *  blocked client with a redirect to an error page, and the caller should see that. */
+    /** Cookies like a browser keeps them (Naver's article lists can answer nothing to a client without them). */
+    static synchronized void cookies() {
+        if (!(CookieHandler.getDefault() instanceof CookieManager))
+            CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
+    }
+
+    /** One GET like the mobile site's own page makes. */
     static Response get(String url) throws Exception {
-        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        return send(url, "GET", null, null);
+    }
+
+    /** One request like the site's own page makes (GET, or POST with a JSON body). Redirects are not followed:
+     *  Naver answers a blocked client with a redirect to an error page, and the caller should see that. */
+    static Response send(String url, String method, String body, JSONObject headers) throws Exception {
+        cookies();
+        URL u = new URL(url);
+        boolean fin = u.getHost().startsWith("fin.");
+        HttpURLConnection c = (HttpURLConnection) u.openConnection();
         c.setInstanceFollowRedirects(false);
         c.setConnectTimeout(15000);
         c.setReadTimeout(20000);
+        c.setRequestMethod(method == null ? "GET" : method);
         c.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Mobile Safari/537.36");
         c.setRequestProperty("Accept", "application/json, text/javascript, */*; q=0.01");
         c.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9");
-        c.setRequestProperty("Referer", "https://m.land.naver.com/");
-        c.setRequestProperty("X-Requested-With", "XMLHttpRequest");
+        c.setRequestProperty("Referer", fin ? "https://fin.land.naver.com/" : "https://m.land.naver.com/");
+        if (fin) c.setRequestProperty("Origin", "https://fin.land.naver.com");
+        else c.setRequestProperty("X-Requested-With", "XMLHttpRequest");
+        if (headers != null) {
+            for (java.util.Iterator<String> it = headers.keys(); it.hasNext(); ) {
+                String k = it.next();
+                c.setRequestProperty(k, headers.optString(k));
+            }
+        }
+        if (body != null) {
+            c.setDoOutput(true);
+            c.setRequestProperty("Content-Type", "application/json");
+            try (java.io.OutputStream out = c.getOutputStream()) { out.write(body.getBytes(StandardCharsets.UTF_8)); }
+        }
         try {
             Response r = new Response();
             r.status = c.getResponseCode();
@@ -81,6 +111,23 @@ public class SnapshotWorker extends Worker {
         } finally {
             c.disconnect();
         }
+    }
+
+    /** A value inside a JSON answer by a dotted path ("result.list", "a.0.b"); several paths separated by "|"
+     *  give the first that is there. */
+    static Object path(Object o, String spec) {
+        if (spec == null || spec.isEmpty()) return null;
+        for (String p : spec.split("\\|")) {
+            Object v = o;
+            for (String k : p.split("\\.")) {
+                if (v instanceof JSONObject) v = ((JSONObject) v).opt(k);
+                else if (v instanceof JSONArray && k.matches("\\d+")) v = ((JSONArray) v).opt(Integer.parseInt(k));
+                else { v = null; break; }
+                if (v == JSONObject.NULL) v = null;
+            }
+            if (v != null) return v;
+        }
+        return null;
     }
 
     static String readAll(InputStream in) throws Exception {
@@ -124,25 +171,49 @@ public class SnapshotWorker extends Worker {
             JSONArray articles = new JSONArray();
             String err = null;
             try {
+                // a page to open first, for the cookies the site's own page would have
+                if (!job.optString("seed").isEmpty() && allowed(job.optString("seed"))) {
+                    get(job.optString("seed"));
+                    Thread.sleep(800 + (long) (Math.random() * 800));
+                }
+                JSONObject body = job.optJSONObject("body");
+                JSONObject map = job.optJSONObject("map");
                 for (int page = 1; page <= maxPages; page++) {
                     String pageUrl = url.replace("{page}", String.valueOf(page));
                     if (!allowed(pageUrl)) { err = "not land.naver.com"; break; }
                     if (page > 1 || i > 0) Thread.sleep(1500 + (long) (Math.random() * 1500));
-                    Response r = get(pageUrl);
+                    Response r = send(pageUrl, job.optString("method", "GET"), body == null ? null : body.toString(), job.optJSONObject("headers"));
                     if (r.status != 200) {
                         err = "HTTP " + r.status + (r.location != null ? " → " + r.location : "");
                         break;
                     }
-                    // the complex list answers {result: {list, moreDataYn}}, the map list {body: [...], more}
-                    JSONObject body = new JSONObject(r.body);
-                    JSONObject result = body.optJSONObject("result");
-                    JSONArray list = result != null ? result.optJSONArray("list") : body.optJSONArray("body");
+                    Object parsed = new org.json.JSONTokener(r.body).nextValue();
+                    if (!(parsed instanceof JSONObject)) { if (page == 1) err = "목록이 없는 답: " + r.body.substring(0, Math.min(60, r.body.length())); break; }
+                    JSONObject answer = (JSONObject) parsed;
+                    JSONArray list;
+                    boolean more;
+                    if (!job.optString("listPath").isEmpty()) {
+                        // a list described by the page (the new fin.land list): where the list, the next-page flag and the cursor are
+                        Object l = path(answer, job.optString("listPath"));
+                        list = l instanceof JSONArray ? (JSONArray) l : null;
+                        more = Boolean.TRUE.equals(path(answer, job.optString("nextPath")));
+                        Object cursor = path(answer, job.optString("cursorPath"));
+                        if (more && cursor != null && body != null) body.put(job.optString("cursorKey", "lastInfo"), cursor);
+                        else more = false;
+                    } else {
+                        // the complex list answers {result: {list, moreDataYn}}, the map list {body: [...], more}
+                        JSONObject result = answer.optJSONObject("result");
+                        list = result != null ? result.optJSONArray("list") : answer.optJSONArray("body");
+                        more = result != null ? "Y".equals(result.optString("moreDataYn")) : list != null && (list.length() >= 20 || answer.optBoolean("more"));
+                    }
                     if (list == null) { if (page == 1) err = "목록이 없는 답"; break; }
                     for (int k = 0; k < list.length(); k++) {
                         JSONObject a = list.optJSONObject(k);
-                        if (a != null && mine(job, a)) articles.put(a);
+                        if (a == null) continue;
+                        if (map != null) a = convert(a, map, job.optDouble("priceDiv", 1));
+                        if (mine(job, a)) articles.put(a);
                     }
-                    if (result != null ? !"Y".equals(result.optString("moreDataYn")) : (list.length() < 20 && !body.optBoolean("more"))) break;
+                    if (!more) break;
                 }
             } catch (Exception e) {
                 err = String.valueOf(e.getMessage());
@@ -180,6 +251,20 @@ public class SnapshotWorker extends Worker {
         Arrays.sort(files, (a, b) -> a.getName().compareTo(b.getName()));
         for (int i = 0; i < files.length - KEEP_FILES; i++) //noinspection ResultOfMethodCallIgnored
             files[i].delete();
+    }
+
+    /** A listing in another shape → the fields the page and the comparison use (map: field → path). */
+    static JSONObject convert(JSONObject item, JSONObject map, double priceDiv) throws Exception {
+        JSONObject out = new JSONObject();
+        for (java.util.Iterator<String> it = map.keys(); it.hasNext(); ) {
+            String k = it.next();
+            Object v = path(item, map.optString(k));
+            if (v == null) continue;
+            if (k.equals("prc") && v instanceof Number && priceDiv > 1) v = Math.round(((Number) v).doubleValue() / priceDiv);
+            out.put(k, v);
+        }
+        if (!out.has("tradTpCd")) out.put("tradTpCd", "A1");
+        return out;
     }
 
     /** The map list has the neighbours' listings too: keep this complex's (job.hscpNo / job.only, its name without spaces). */

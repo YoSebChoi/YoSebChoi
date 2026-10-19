@@ -44,7 +44,8 @@ public class MainActivity extends BridgeActivity {
 
     /**
      * Naver 부동산 from the phone. The page cannot read land.naver.com itself (another site), so it asks here:
-     *  - AptNet.get({url}) → {status, body, location}: one request, only to *.land.naver.com.
+     *  - AptNet.get({url}) → {status, body, location}: one request, only to *.land.naver.com (cookies kept like a browser).
+     *  - AptNet.request({url, method, body, headers}) → the same, also POST with a JSON body.
      *  - AptNet.schedule({jobs:[{cx, name, url, maxPages}], hours, notify}) → the background check (SnapshotWorker)
      *    reads those listing pages every `hours` hours while the app is closed (hours 0 stops it) and, with notify,
      *    tells the user when flats are gone, new or cheaper than at its last check.
@@ -65,6 +66,32 @@ public class MainActivity extends BridgeActivity {
             new Thread(() -> {
                 try {
                     SnapshotWorker.Response r = SnapshotWorker.get(url);
+                    JSObject o = new JSObject();
+                    o.put("status", r.status);
+                    o.put("body", r.body);
+                    o.put("location", r.location);
+                    call.resolve(o);
+                } catch (Exception e) {
+                    call.reject("network: " + e.getMessage());
+                }
+            }).start();
+        }
+
+        /** AptNet.request({url, method, body, headers}) → {status, body, location}: like get, also POST with a JSON body
+         *  (the new fin.land lists are read that way). */
+        @PluginMethod
+        public void request(PluginCall call) {
+            String url = call.getString("url");
+            if (!SnapshotWorker.allowed(url)) {
+                call.reject("only land.naver.com");
+                return;
+            }
+            String method = call.getString("method", "GET");
+            JSObject body = call.getObject("body", null);
+            JSObject headers = call.getObject("headers", null);
+            new Thread(() -> {
+                try {
+                    SnapshotWorker.Response r = SnapshotWorker.send(url, method, body == null ? null : body.toString(), headers);
                     JSObject o = new JSObject();
                     o.put("status", r.status);
                     o.put("body", r.body);
