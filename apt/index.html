@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>우리 단지 거래 추적</title>
+<meta name="description" content="시범한빛마을 KCC스위첸과 이웃 단지의 네이버 부동산 매물이 사라지는 것으로 거래를 추정하고, 국토교통부 실거래로 확인해요">
+<meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111418" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root {
+  --bg: #f4f6f8; --surface: #ffffff; --surface-2: #eef1f5; --ink: #18202a; --muted: #5f6b7a; --rule: #dde3ea;
+  --accent: #2f5d8a; --accent-ink: #ffffff; --accent-soft: #e3edf7;
+  --up: #d1453b; --down: #2a6fdb; --ok: #1f8a5b; --ok-soft: #e1f3ea; --warn: #b7791f; --warn-soft: #fbf0dc; --gray-soft: #eceff3;
+  --font: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111418; --surface: #1a1f26; --surface-2: #232a33; --ink: #e8ecf1; --muted: #9aa5b3; --rule: #2e3742;
+    --accent: #7fb0e0; --accent-ink: #0d1520; --accent-soft: #1d2d40;
+    --up: #f07a70; --down: #7aa8f5; --ok: #5cc794; --ok-soft: #173326; --warn: #e2b05a; --warn-soft: #3a2e17; --gray-soft: #262d36;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111418; --surface: #1a1f26; --surface-2: #232a33; --ink: #e8ecf1; --muted: #9aa5b3; --rule: #2e3742;
+  --accent: #7fb0e0; --accent-ink: #0d1520; --accent-soft: #1d2d40;
+  --up: #f07a70; --down: #7aa8f5; --ok: #5cc794; --ok-soft: #173326; --warn: #e2b05a; --warn-soft: #3a2e17; --gray-soft: #262d36;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font); -webkit-tap-highlight-color: transparent;
+  padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
+button, input, select { font: inherit; color: inherit; }
+a { color: var(--accent); }
+.wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+header { position: sticky; top: 0; z-index: 5; background: var(--bg); padding-top: env(safe-area-inset-top); border-bottom: 1px solid var(--rule); }
+header .wrap { display: flex; align-items: center; gap: 8px; min-height: 58px; }
+header h1 { font-size: 18px; margin: 0; letter-spacing: -0.02em; line-height: 1.25; }
+header .sub { font-size: 12px; color: var(--muted); }
+header .grow { flex: 1; min-width: 0; }
+.icon-btn { width: 40px; height: 40px; border: 0; border-radius: 12px; background: var(--surface-2); display: grid; place-items: center; cursor: pointer; flex: none; }
+.icon-btn svg { width: 20px; height: 20px; }
+.icon-btn.spin svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--rule); padding-bottom: env(safe-area-inset-bottom); }
+nav.tabs .wrap { display: flex; padding: 0 4px; }
+.tab { flex: 1; border: 0; background: none; padding: 9px 0 10px; font-size: 12px; color: var(--muted); display: grid; justify-items: center; gap: 2px; cursor: pointer; }
+.tab svg { width: 22px; height: 22px; }
+.tab[aria-selected="true"] { color: var(--accent); font-weight: 700; }
+main { padding: 14px 0 24px; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 16px; padding: 14px 16px; margin-bottom: 12px; }
+.card h2 { font-size: 15px; margin: 0 0 8px; display: flex; align-items: center; gap: 6px; }
+.card h2 .more { margin-left: auto; font-size: 13px; font-weight: 500; color: var(--accent); background: none; border: 0; cursor: pointer; padding: 4px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.tiny { font-size: 12px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat { background: var(--surface-2); border-radius: 12px; padding: 10px 12px; }
+.stat b { display: block; font-size: 18px; white-space: nowrap; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--rule); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.row { display: flex; gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--rule); }
+.row:first-child { border-top: 0; }
+.row.tap { cursor: pointer; }
+.row .main { flex: 1; min-width: 0; }
+.row .price { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.row .meta { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+.row .side { text-align: right; flex: none; font-size: 13px; }
+.badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 6px; vertical-align: 1px; white-space: nowrap; }
+.b-guess { background: var(--warn-soft); color: var(--warn); }
+.b-ok { background: var(--ok-soft); color: var(--ok); }
+.b-back { background: var(--gray-soft); color: var(--muted); }
+.b-new { background: var(--accent-soft); color: var(--accent); }
+.down { color: var(--down); } .up { color: var(--up); }
+.strike { text-decoration: line-through; color: var(--muted); }
+.empty { text-align: center; color: var(--muted); padding: 22px 8px; font-size: 14px; }
+.note { background: var(--accent-soft); border-radius: 14px; padding: 12px 14px; font-size: 13.5px; margin-bottom: 12px; }
+.note b { color: var(--accent); }
+.note.warn { background: var(--warn-soft); }
+.note.warn b { color: var(--warn); }
+.btn { border: 0; border-radius: 12px; padding: 10px 14px; background: var(--accent); color: var(--accent-ink); font-weight: 600; cursor: pointer; }
+.btn.ghost { background: var(--surface-2); color: var(--ink); }
+.btn[disabled] { opacity: .55; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+svg.chart { width: 100%; height: auto; display: block; }
+svg.chart text { fill: var(--muted); font-size: 10px; font-family: var(--font); }
+svg.chart .grid { stroke: var(--rule); stroke-width: 1; }
+svg.chart .dot { fill: var(--accent); fill-opacity: .8; }
+svg.chart .dot.hit { fill: var(--ok); }
+svg.chart .dot.cancel { fill: none; stroke: var(--muted); }
+svg.chart .ask { fill: var(--warn); }
+.legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: 0; }
+dialog { border: 0; padding: 0; background: var(--surface); color: var(--ink); width: min(640px, 100%); max-width: 100%; max-height: 88vh;
+  margin: auto auto 0; border-radius: 20px 20px 0 0; box-shadow: 0 -8px 30px rgba(0,0,0,.18); }
+dialog::backdrop { background: rgba(10, 16, 24, .45); }
+dialog .head { display: flex; align-items: center; gap: 8px; padding: 14px 16px 6px; position: sticky; top: 0; background: var(--surface); z-index: 1; }
+dialog .head h3 { margin: 0; font-size: 17px; flex: 1; }
+dialog .body { padding: 4px 16px calc(20px + env(safe-area-inset-bottom)); }
+dialog.center { margin: auto; border-radius: 18px; width: min(420px, calc(100% - 32px)); }
+label.field { display: block; margin: 10px 0; font-size: 13px; color: var(--muted); }
+label.field input, label.field select { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 10px; background: var(--bg); font-size: 15px; }
+.switch { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+.switch input { width: 20px; height: 20px; accent-color: var(--accent); }
+.bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+#toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(80px + env(safe-area-inset-bottom)); background: var(--ink); color: var(--bg);
+  padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 20; max-width: calc(100% - 32px); box-shadow: 0 6px 20px rgba(0,0,0,.2); }
+.spark { width: 100%; height: 46px; display: block; }
+.spark path { fill: none; stroke: var(--accent); stroke-width: 2; }
+.spark .area { fill: var(--accent-soft); stroke: none; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 14px; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; }
+.list-plain { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; }
+.list-plain li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="grow">
+      <h1 id="title">우리 단지 거래 추적</h1>
+      <div class="sub" id="status">불러오는 중…</div>
+    </div>
+    <button class="icon-btn" id="refreshBtn" aria-label="지금 매물 확인" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></svg>
+    </button>
+    <button class="icon-btn" id="settingsBtn" aria-label="설정">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="panel-home"></section>
+  <section id="panel-list" hidden></section>
+  <section id="panel-gone" hidden></section>
+  <section id="panel-trades" hidden></section>
+  <section id="panel-news" hidden></section>
+</main>
+
+<nav class="tabs" aria-label="화면">
+  <div class="wrap" role="tablist">
+    <button class="tab" role="tab" id="tab-home" data-tab="home" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>요약</button>
+    <button class="tab" role="tab" id="tab-list" data-tab="list" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 21V5l8-2v18M12 21h8V9l-8-2M7 8h2M7 12h2M7 16h2M15 12h2M15 16h2"/></svg>매물</button>
+    <button class="tab" role="tab" id="tab-gone" data-tab="gone" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 12h4l3 7 4-14 3 7h4"/></svg>거래 추정</button>
+    <button class="tab" role="tab" id="tab-trades" data-tab="trades" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg>실거래</button>
+    <button class="tab" role="tab" id="tab-news" data-tab="news" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 4h11l3 3v13H5zM8 9h8M8 13h8M8 17h5"/></svg>블로그</button>
+  </div>
+</nav>
+
+<dialog id="unitDlg"><div class="head"><h3 id="unitTitle"></h3><button class="icon-btn" data-close aria-label="닫기">✕</button></div><div class="body" id="unitBody"></div></dialog>
+
+<dialog id="settingsDlg">
+  <div class="head"><h3>설정</h3><button class="icon-btn" data-close aria-label="닫기">✕</button></div>
+  <div class="body" id="settingsBody"></div>
+</dialog>
+
+<dialog id="appUpdate" class="center">
+  <div class="head"><h3>새 버전이 있어요</h3></div>
+  <div class="body">
+    <p id="appUpdateText" class="small"></p>
+    <div class="bar" id="appUpdateBar" hidden><i></i></div>
+    <div class="btns" style="margin-top:14px"><button class="btn" id="appUpdateGo">지금 업데이트</button><button class="btn ghost" id="appUpdateLater">나중에</button></div>
+  </div>
+</dialog>
+
+<div id="toast" hidden role="status"></div>
+
+<script src="tracker.js"></script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const lget = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
+  const lset = (k, v) => { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const T = window.Tracker, DAY = T.DAY;
+
+  // inside the Android app (apt-app/, Capacitor) the injected native bridge adds AptNet: Naver 부동산 read from
+  // the phone, a background check twice a day, and the files it leaves for this page. The page does not
+  // bundle @capacitor/core, so plugins are called through the bridge itself.
+  const Cap = window.Capacitor;
+  const native = !!(Cap && Cap.isNativePlatform && Cap.isNativePlatform());
+  const ncall = (p, m, o = {}) => Cap.Plugins?.[p]?.[m] ? Cap.Plugins[p][m](o) : Cap.nativePromise(p, m, o);
+  const nlisten = (p, ev, cb) => Cap.Plugins?.[p]?.addListener ? Cap.Plugins[p].addListener(ev, cb) : Cap.nativeCallback(p, "addListener", { eventName: ev }, cb);
+
+  let toastTimer = null;
+  function toast(text) {
+    const t = $("#toast"); t.textContent = text; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3400);
+  }
+
+  /* ===================== state ===================== */
+  // the listing history lives only on this phone (aw-state); aw-cfg holds which Naver complexes are ours
+  let S = lget("aw-state", null) || T.emptyState();
+  let cfg = Object.assign({ links: {}, hours: 12, notify: true, scheduled: "" }, lget("aw-cfg", {}));
+  let DATA = { complexes: [], trades: [], blog: [], otherNames: [] };
+  const saveState = () => { if (!lset("aw-state", S)) toast("저장 공간이 부족해요. 설정에서 기록을 내보내 두세요."); };
+  const saveCfg = () => lset("aw-cfg", cfg);
+
+  const mainCx = () => DATA.complexes.find(c => c.main) || DATA.complexes[0];
+  const byKey = k => DATA.complexes.find(c => c.key === k);
+  const linked = () => DATA.complexes.filter(c => cfg.links[c.key]?.no);
+  const keyOfNo = no => Object.keys(cfg.links).find(k => String(cfg.links[k].no) === String(no));
+  const shortName = c => c ? c.name.replace(/^시범한빛마을\s*/, "") : "";
+  const nameOfNo = no => shortName(byKey(keyOfNo(no))) || cfg.links[keyOfNo(no)]?.name || no;
+
+  const fmt = T.formatPrice;
+  const dshort = t => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()}`; };
+  const dfull = t => { const d = new Date(t); return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`; };
+  const ago = t => {
+    const m = Math.round((Date.now() - t) / 60000);
+    if (m < 1) return "방금"; if (m < 60) return `${m}분 전`;
+    const h = Math.round(m / 60); if (h < 24) return `${h}시간 전`;
+    return `${Math.round(h / 24)}일 전`;
+  };
+  const days = (a, b) => Math.max(0, Math.round((b - a) / DAY));
+  // 평 as people say it (공급면적 기준: 84㎡ 전용 = 32평); without 공급면적 only the 전용 ㎡
+  const sizeLabel = (area, supply) => supply ? `${Math.round(supply / 3.3058)}평` : area ? `${Math.round(area)}㎡` : "";
+  const unitLabel = u => `${u.dong || "동 미공개"} ${u.floor}층${u.floorTotal ? `/${u.floorTotal}` : ""}`;
+  const areaLabel = (a, supply) => a ? `전용 ${a.toFixed(1)}㎡${supply ? ` · ${sizeLabel(a, supply)}` : ""}` : "";
+  const STATUS = { "거래 추정": "b-guess", "실거래 확인": "b-ok", "재등록": "b-back" };
+
+  /* ===================== Naver 부동산 (phone only) ===================== */
+  const LIST_URL = no => `https://m.land.naver.com/complex/getComplexArticleList?hscpNo=${encodeURIComponent(no)}&tradTpCd=A1&order=date_&showR0=N&page={page}`;
+  const NAVER_ARTICLE = no => `https://fin.land.naver.com/articles/${encodeURIComponent(no)}`;
+  const NAVER_COMPLEX = no => `https://fin.land.naver.com/complexes/${encodeURIComponent(no)}`;
+
+  async function netJson(url) {
+    const r = await ncall("AptNet", "get", { url });
+    if (r.status !== 200) throw new Error(r.status >= 300 && r.status < 400 ? `네이버가 요청을 막았어요 (HTTP ${r.status}). 잠시 뒤 다시 해 보세요` : `HTTP ${r.status}`);
+    try { return JSON.parse(r.body); } catch (e) { throw new Error("네이버 답이 예상한 형식이 아니에요"); }
+  }
+
+  async function fetchListings(no, maxPages = 10) {
+    const all = [];
+    for (let page = 1; page <= maxPages; page++) {
+      if (page > 1) await sleep(1200 + Math.random() * 1200);
+      const j = await netJson(LIST_URL(no).replace("{page}", page));
+      const res = j && j.result;
+      if (!res || !Array.isArray(res.list)) throw new Error("네이버 매물 목록 형식이 바뀌었어요");
+      all.push(...res.list);
+      if (res.moreDataYn !== "Y") break;
+    }
+    return all;
+  }
+
+  // complexes around 시범한빛마을, from the mobile map
+  async function discover() {
+    const c = DATA.center || { lat: 37.2045, lng: 127.0725 }, d = 0.012;
+    const url = `https://m.land.naver.com/cluster/ajax/complexList?view=atcl&rletTpCd=APT&tradTpCd=A1&z=16&lat=${c.lat}&lon=${c.lng}` +
+      `&btm=${c.lat - d}&lft=${c.lng - d}&top=${c.lat + d}&rgt=${c.lng + d}`;
+    const j = await netJson(url);
+    const list = Array.isArray(j.result) ? j.result : (j.result?.list || j.list || []);
+    return list.map(x => ({ no: String(x.hscpNo || x.complexNo), name: x.hscpNm || x.complexName || "", hh: x.totHsehCnt || x.totalHouseholdCount || null,
+      lat: +x.lat, lng: +x.lng, deals: x.dealCnt ?? null })).filter(x => x.no && x.name);
+  }
+
+  function autoLink(found) {
+    let n = 0;
+    for (const c of DATA.complexes) {
+      if (cfg.links[c.key]?.no) continue;
+      const re = new RegExp(c.naverName, "i");
+      const hit = found.find(f => re.test(f.name) && /한빛/.test(f.name));
+      if (hit) { cfg.links[c.key] = { no: hit.no, name: hit.name, hh: hit.hh }; n++; }
+    }
+    saveCfg();
+    return n;
+  }
+
+  const parseNaverLink = s => {
+    const m = String(s || "").match(/complexes\/(\d+)|complex\/info\/(\d+)|hscpNo=(\d+)|complexNo=(\d+)|^\s*(\d{3,})\s*$/);
+    return m ? (m[1] || m[2] || m[3] || m[4] || m[5]) : null;
+  };
+
+  // the background check's saved snapshots, then a fresh look at each complex not checked in the last 30 minutes
+  let busy = false;
+  async function refresh(force = false) {
+    if (!native || busy) return;
+    busy = true; $("#refreshBtn").classList.add("spin");
+    let changes = { added: 0, gone: 0, back: 0, priced: 0 };
+    const tally = r => { for (const k in changes) changes[k] += r[k] || 0; };
+    try {
+      try {
+        const got = await ncall("AptNet", "collect");
+        for (const s of (got && got.snapshots) || []) {
+          if (!keyOfNo(s.cx)) continue;
+          if (s.ok) tally(T.ingest(S, s.cx, s.t, s.articles || [])); else T.recordFailure(S, s.cx, s.t, s.err);
+        }
+      } catch (e) { /* an older app without the background check */ }
+      if (!linked().length) {
+        setStatus("네이버 부동산 단지를 찾는 중…");
+        try { autoLink(await discover()); } catch (e) { T.recordFailure(S, "discover", Date.now(), e.message); }
+      }
+      const cxs = linked();
+      for (let i = 0; i < cxs.length; i++) {
+        const no = String(cfg.links[cxs[i].key].no);
+        const last = [...S.snaps].reverse().find(s => s.cx === no && s.ok);
+        if (!force && last && Date.now() - last.t < 30 * 60e3) continue;
+        setStatus(`${shortName(cxs[i])} 매물 확인 중… (${i + 1}/${cxs.length})`);
+        try {
+          if (i) await sleep(1500 + Math.random() * 1000);
+          tally(T.ingest(S, no, Date.now(), await fetchListings(no)));
+        } catch (e) { T.recordFailure(S, no, Date.now(), e.message); }
+      }
+      matchTrades();
+      saveState();
+      scheduleBackground();
+      const parts = [];
+      if (changes.gone) parts.push(`사라진 집 ${changes.gone}`);
+      if (changes.added) parts.push(`새 매물 ${changes.added}`);
+      if (changes.priced) parts.push(`가격 변경 ${changes.priced}`);
+      if (changes.back) parts.push(`다시 올라옴 ${changes.back}`);
+      if (parts.length) toast(parts.join(" · "));
+      const fails = cxs.map(c => [...S.snaps].reverse().find(s => s.cx === String(cfg.links[c.key].no))).filter(s => s && !s.ok);
+      if (fails.length) toast(`확인하지 못한 단지가 있어요: ${fails[0].err}`);
+    } finally {
+      busy = false; $("#refreshBtn").classList.remove("spin");
+      renderAll();
+    }
+  }
+
+  // the background check reads the same pages (SnapshotWorker); set again only when something changed
+  async function scheduleBackground() {
+    if (!native) return;
+    const jobs = linked().map(c => ({ cx: String(cfg.links[c.key].no), name: shortName(c), url: LIST_URL(cfg.links[c.key].no), maxPages: 10 }));
+    const sig = JSON.stringify([jobs, cfg.hours]);
+    if (sig === cfg.scheduled) return;
+    try { await ncall("AptNet", "schedule", { jobs, hours: cfg.hours }); cfg.scheduled = sig; saveCfg(); } catch (e) { /* older app */ }
+  }
+
+  function tradesForMatching() {
+    return DATA.trades.map(t => {
+      const no = cfg.links[t.cx]?.no;
+      if (!no) return null;
+      const x = { date: t.date, cx: String(no), area: t.area, floor: t.floor, price: t.price, dong: t.aptDong, cancelled: t.cancelled };
+      x.id = T.tradeId(x);
+      return x;
+    }).filter(Boolean);
+  }
+  const matchTrades = () => T.matchTrades(S, tradesForMatching());
+
+  /* ===================== rendering ===================== */
+  function setStatus(text) { $("#status").textContent = text; }
+  function statusLine() {
+    const m = mainCx();
+    const tr = DATA.tradesUpdated ? `실거래 ${DATA.tradesUpdated} 기준` : "실거래 자료 없음";
+    if (!native) return `${tr} · 블로그 ${DATA.blogUpdated || "-"}`;
+    if (!linked().length) return "설정에서 네이버 부동산 단지를 연결해 주세요";
+    const oks = S.snaps.filter(s => s.ok);
+    const last = oks.length ? oks[oks.length - 1].t : null;
+    return last ? `매물 확인 ${ago(last)} · ${tr}` : "아직 매물을 확인하지 않았어요";
+  }
+
+  let filterCx = null;   // complex shown on 매물 / 거래 추정 (Naver no)
+  let tradeKey = null, tradeArea = "all", goneFilter = "all", newsKey = "all", newsDeal = true;
+
+  function cxChips(sel, withAll = false) {
+    const cs = linked();
+    if (cs.length < 2 && !withAll) return "";
+    const chips = (withAll ? [`<button class="chip" data-cx="" aria-pressed="${!sel}">전체</button>`] : [])
+      .concat(cs.map(c => { const no = String(cfg.links[c.key].no); return `<button class="chip" data-cx="${esc(no)}" aria-pressed="${sel === no}">${esc(shortName(c))}</button>`; }));
+    return `<div class="chips" data-chips>${chips.join("")}</div>`;
+  }
+  function bindChips(root, attr, fn) {
+    root.querySelectorAll(`[data-${attr}]`).forEach(b => b.addEventListener("click", () => fn(b.dataset[attr])));
+  }
+
+  const unitsOf = no => Object.values(S.units).filter(u => !no || u.cx === no);
+  const listingsOf = u => u.articles.map(n => S.listings[n]).filter(Boolean);
+
+  function appNote() {
+    return `<div class="note"><b>매물 추적은 Android 앱에서 돼요.</b> 네이버 부동산 매물은 내 폰이 직접 확인하고 기록도 폰에만 남겨요.
+      웹에서는 실거래와 블로그 글을 볼 수 있어요.<br><a href="https://github.com/YoSebChoi/YoSebChoi/releases/download/apt-apk/apt-watch.apk">앱 받기 (apt-watch.apk)</a></div>`;
+  }
+
+  function sparkline(no) {
+    const d = S.daily[no] || {};
+    const keys = Object.keys(d).sort().slice(-60);
+    if (keys.length < 2) return "";
+    const vals = keys.map(k => d[k]), max = Math.max(...vals, 1), min = Math.min(...vals, 0);
+    const W = 300, H = 46, x = i => (i / (keys.length - 1)) * W, y = v => H - 4 - ((v - min) / Math.max(1, max - min)) * (H - 10);
+    const line = vals.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("");
+    return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="매물 수 추이"><path class="area" d="${line}L${W},${H}L0,${H}Z"/><path d="${line}"/></svg>
+      <div class="tiny muted" style="display:flex;justify-content:space-between"><span>${esc(keys[0].slice(5).replace("-", "/"))}</span><span>매물 수(집) ${min}~${max}</span><span>${esc(keys.at(-1).slice(5).replace("-", "/"))}</span></div>`;
+  }
+
+  function eventRow(e) {
+    const u = e.unit.split("|"), label = `${nameOfNo(e.cx)} ${u[1] !== "?" ? u[1] : ""} ${u[2]}층 ${u[3] !== "?" ? Math.round(+u[3]) + "㎡" : ""}`;
+    const kinds = {
+      gone: [`<span class="badge b-guess">사라짐</span>`, `${fmt(e.price)}에 있던 매물 · 거래됐을 수 있어요`],
+      trade: [`<span class="badge b-ok">실거래</span>`, `${fmt(e.price)} 거래 신고 (${esc(e.date)})`],
+      back: [`<span class="badge b-back">다시 올라옴</span>`, `${fmt(e.price)} · 거래가 아니었어요`],
+      new: [`<span class="badge b-new">새 매물</span>`, fmt(e.price)],
+      price: [`<span class="badge ${e.to < e.from ? "b-new" : "b-guess"}">${e.to < e.from ? "가격 내림" : "가격 올림"}</span>`, `${fmt(e.from)} → <b class="${e.to < e.from ? "down" : "up"}">${fmt(e.to)}</b>`],
+    }[e.type];
+    return `<div class="row"><div class="main"><div>${kinds[0]} <span class="small">${esc(label)}</span></div><div class="meta">${kinds[1]}</div></div><div class="side muted">${dshort(e.t)}</div></div>`;
+  }
+
+  function renderHome() {
+    const el = $("#panel-home"), m = mainCx();
+    let h = native ? "" : appNote();
+    if (native && !linked().length) {
+      h += `<div class="note warn"><b>네이버 부동산 단지를 아직 연결하지 않았어요.</b> 설정 → 단지 연결에서 「주변 단지 찾기」를 눌러 주세요.</div>`;
+    }
+    const mainNo = m && cfg.links[m.key]?.no ? String(cfg.links[m.key].no) : null;
+    if (native && mainNo) {
+      const us = unitsOf(mainNo), ps = us.map(u => u.lastPrice).filter(Boolean);
+      const since = Date.now() - 30 * DAY;
+      const gone30 = S.gone.filter(g => g.cx === mainNo && g.lastSeen >= since && g.status !== "재등록");
+      h += `<div class="card"><h2>${esc(shortName(m))} 지금 매물<button class="more" data-go="list">전체 보기</button></h2>
+        <div class="stats">
+          <div class="stat"><b>${us.length}</b><span>매물 (집 기준)</span></div>
+          <div class="stat"><b>${ps.length ? fmt(Math.min(...ps)) : "-"}</b><span>최저 호가</span></div>
+          <div class="stat"><b>${gone30.length}</b><span>30일 거래 추정</span></div>
+        </div>
+        <div style="margin-top:10px">${sparkline(mainNo)}</div></div>`;
+    }
+    if (native) {
+      const evs = S.events.filter(e => e.type !== "new" || Date.now() - e.t < 7 * DAY).slice(-12).reverse();
+      h += `<div class="card"><h2>최근 변화<button class="more" data-go="gone">거래 추정 보기</button></h2>
+        ${evs.length ? evs.map(eventRow).join("") : `<div class="empty">아직 변화가 없어요. 매물이 사라지거나 가격이 바뀌면 여기에 보여요.</div>`}</div>`;
+    }
+    const recent = DATA.trades.filter(t => t.cx === (m && m.key)).slice(-5).reverse();
+    h += `<div class="card"><h2>${esc(shortName(m) || "우리 단지")} 최근 실거래<button class="more" data-go="trades">더 보기</button></h2>
+      ${recent.length ? recent.map(tradeRow).join("") : `<div class="empty">${DATA.tradeMonths && DATA.tradeMonths.length ? "최근 거래가 없어요" : "실거래 자료를 아직 받지 않았어요 (저장소 Secret MOLIT_KEY 필요)"}</div>`}</div>`;
+    const posts = DATA.blog.filter(p => p.deal && p.cx.includes(m && m.key)).slice(0, 3);
+    if (posts.length) h += `<div class="card"><h2>블로그에서<button class="more" data-go="news">더 보기</button></h2>${posts.map(postRow).join("")}</div>`;
+    el.innerHTML = h;
+    el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.go)));
+  }
+
+  function renderList() {
+    const el = $("#panel-list");
+    if (!native) { el.innerHTML = appNote(); return; }
+    const cs = linked();
+    if (!cs.length) { el.innerHTML = `<div class="empty">설정에서 네이버 부동산 단지를 연결하면 매물이 보여요.</div>`; return; }
+    if (!filterCx || !cs.some(c => String(cfg.links[c.key].no) === filterCx)) filterCx = String(cfg.links[(cs.find(c => c.main) || cs[0]).key].no);
+    const us = unitsOf(filterCx).sort((a, b) => (a.lastPrice || 9e9) - (b.lastPrice || 9e9));
+    const now = Date.now();
+    const rows = us.map(u => {
+      const ls = listingsOf(u), first = ls[0] || {};
+      const cut = ls.flatMap(l => l.history.length > 1 ? [[l.history[0].price, l.history.at(-1).price]] : []).find(([a, b]) => a !== b);
+      const tags = [...new Set(ls.flatMap(l => l.tags || []))].slice(0, 3);
+      return `<div class="row tap" data-unit="${esc(u.key)}"><div class="main">
+          <div class="price">${fmt(u.lastPrice)} ${cut ? `<span class="small ${cut[1] < cut[0] ? "down" : "up"}">${cut[1] < cut[0] ? "▼" : "▲"}${fmt(Math.abs(cut[0] - cut[1]))}</span>` : ""}</div>
+          <div class="meta">${esc(unitLabel(u))} · ${esc(sizeLabel(u.area, first.supply))}${u.dir ? " · " + esc(u.dir) : ""}</div>
+          <div class="meta tiny">${tags.map(esc).join(" · ")}</div></div>
+        <div class="side"><div>${days(u.firstSeen, now)}일째</div><div class="muted tiny">중개 ${ls.length}곳</div></div></div>`;
+    }).join("");
+    const last = [...S.snaps].reverse().find(s => s.cx === filterCx);
+    el.innerHTML = cxChips(filterCx) +
+      `<div class="card"><h2>매매 매물 ${us.length}집 <span class="muted small">(${Object.values(S.listings).filter(l => l.cx === filterCx).length}건)</span>
+        <a class="more" href="${NAVER_COMPLEX(filterCx)}" target="_blank" rel="noopener">네이버에서</a></h2>
+        <div class="tiny muted" style="margin-bottom:4px">같은 집을 여러 중개사가 올리면 한 집으로 묶어요. ${last ? `마지막 확인 ${ago(last.t)}${last.ok ? "" : " (실패: " + esc(last.err) + ")"}` : ""}</div>
+        ${rows || `<div class="empty">지금 올라온 매물이 없어요</div>`}</div>`;
+    bindChips(el, "cx", v => { filterCx = v; renderList(); });
+    el.querySelectorAll("[data-unit]").forEach(r => r.addEventListener("click", () => openUnit(r.dataset.unit)));
+  }
+
+  function openUnit(key) {
+    const u = S.units[key] || S.gone.slice().reverse().find(g => g.unit === key);
+    if (!u) return;
+    const ls = S.units[key] ? listingsOf(u) : [];
+    $("#unitTitle").textContent = `${nameOfNo(u.cx)} ${unitLabel(u)}`;
+    const hist = ls.flatMap(l => l.history.map(h => ({ ...h, by: l.realtor }))).sort((a, b) => a.t - b.t);
+    const trades = DATA.trades.filter(t => cfg.links[t.cx] && String(cfg.links[t.cx].no) === u.cx && Math.abs(t.area - (u.area || 0)) <= 1).slice(-6).reverse();
+    const supply = (ls[0] || {}).supply || u.supply;
+    $("#unitBody").innerHTML = `
+      <dl class="kv"><dt>면적</dt><dd>${esc(areaLabel(u.area, supply))}</dd><dt>방향</dt><dd>${esc(u.dir || "-")}</dd>
+        <dt>처음 본 날</dt><dd>${dfull(u.firstSeen)} (${fmt(u.firstPrice)})</dd><dt>마지막 본 날</dt><dd>${dfull(u.lastSeen)} (${fmt(u.lastPrice)})</dd>
+        ${u.status ? `<dt>상태</dt><dd><span class="badge ${STATUS[u.status]}">${esc(u.status)}</span>${u.trade ? ` ${esc(u.trade.date)} ${fmt(u.trade.price)} · ${u.trade.floor}층` : ""}</dd>` : ""}</dl>
+      ${ls.length ? `<h4 style="margin:16px 0 4px">올린 중개사 ${ls.length}곳</h4>` + ls.map(l => `<div class="row"><div class="main">
+          <div><b>${esc(l.priceText)}</b> <span class="small muted">${esc(l.realtor)}</span></div>
+          <div class="meta">${esc(l.desc || "")}</div><div class="meta tiny">확인 ${esc(l.confirmed)}</div></div>
+          <a class="small" href="${NAVER_ARTICLE(l.no)}" target="_blank" rel="noopener">보기</a></div>`).join("") : ""}
+      ${hist.length > ls.length ? `<h4 style="margin:16px 0 4px">가격 기록</h4><ul class="list-plain">${hist.map(h => `<li>${dfull(h.t)} ${fmt(h.price)} <span class="muted">${esc(h.by)}</span></li>`).join("")}</ul>` : ""}
+      ${trades.length ? `<h4 style="margin:16px 0 4px">같은 면적 실거래</h4>${trades.map(tradeRow).join("")}` : ""}`;
+    $("#unitDlg").showModal();
+  }
+
+  function renderGone() {
+    const el = $("#panel-gone");
+    if (!native) { el.innerHTML = appNote() + explainGone(); return; }
+    const sel = filterCx && linked().length > 1 ? filterCx : null;
+    let gs = S.gone.filter(g => keyOfNo(g.cx) && (!sel || g.cx === sel));
+    const counts = { all: gs.length, "거래 추정": 0, "실거래 확인": 0, "재등록": 0 };
+    gs.forEach(g => counts[g.status]++);
+    if (goneFilter !== "all") gs = gs.filter(g => g.status === goneFilter);
+    gs = gs.slice().sort((a, b) => b.lastSeen - a.lastSeen);
+    const rows = gs.map(g => `<div class="row tap" data-gone="${esc(g.unit)}"><div class="main">
+        <div><span class="badge ${STATUS[g.status]}">${esc(g.status)}</span> <b class="price" style="font-size:15px">${fmt(g.lastPrice)}</b>
+          ${g.firstPrice && g.lastPrice && g.firstPrice !== g.lastPrice ? `<span class="tiny muted">(처음 ${fmt(g.firstPrice)})</span>` : ""}</div>
+        <div class="meta">${esc(nameOfNo(g.cx))} ${esc(unitLabel(g))} · ${esc(sizeLabel(g.area, g.supply))}</div>
+        <div class="meta tiny">${g.trade ? `실거래 ${esc(g.trade.date)} ${fmt(g.trade.price)} (${g.trade.floor}층)` : g.status === "재등록" ? `${dshort(g.backAt)} 다시 올라옴` : "실거래 신고를 기다리는 중 (계약 후 30일 안)"}</div></div>
+      <div class="side"><div>${dshort(g.lastSeen)}</div><div class="muted tiny">${days(g.firstSeen, g.lastSeen)}일 걸림</div></div></div>`).join("");
+    el.innerHTML = cxChips(sel, true) +
+      `<div class="chips">${[["all", "전체"], ["거래 추정", "거래 추정"], ["실거래 확인", "실거래 확인"], ["재등록", "재등록"]].map(([k, l]) =>
+        `<button class="chip" data-gf="${k}" aria-pressed="${goneFilter === k}">${l} ${counts[k]}</button>`).join("")}</div>
+      <div class="card">${rows || `<div class="empty">아직 사라진 매물이 없어요.<br>매일 한 번쯤 앱을 열거나 백그라운드 확인을 켜 두면 기록이 쌓여요.</div>`}</div>` + explainGone();
+    bindChips(el, "cx", v => { filterCx = v || null; renderGone(); });
+    bindChips(el, "gf", v => { goneFilter = v; renderGone(); });
+    el.querySelectorAll("[data-gone]").forEach(r => r.addEventListener("click", () => openUnit(r.dataset.gone)));
+  }
+
+  function explainGone() {
+    return `<div class="card small"><h2>어떻게 추정하나요?</h2><ul class="list-plain">
+      <li>같은 동·층·면적·방향 매물은 중개사가 여럿이어도 <b>한 집</b>으로 봐요.</li>
+      <li>그 집의 매물이 모두 <b>두 번 연속, 20시간 넘게</b> 안 보이면 <span class="badge b-guess">거래 추정</span>이에요.</li>
+      <li>그 무렵(30일 전~20일 뒤) 같은 면적·층에서 호가의 85~103%로 신고된 실거래가 있으면 <span class="badge b-ok">실거래 확인</span>이에요.</li>
+      <li>3주 안에 다시 올라오면 거래가 아니라 내렸다 올린 것이라 <span class="badge b-back">재등록</span>으로 바꿔요.</li>
+      <li>네이버가 잠깐 막아서 0건이 오면 바로 믿지 않고 다음 확인까지 기다려요.</li></ul></div>`;
+  }
+
+  function tradeRow(t) {
+    const c = byKey(t.cx);
+    return `<div class="row"><div class="main"><div class="price ${t.cancelled ? "strike" : ""}" style="font-size:15px">${fmt(t.price)}
+        ${t.cancelled ? `<span class="badge b-back">해제 ${esc(t.cancelDate || "")}</span>` : ""}${t.gbn === "직거래" ? ` <span class="badge b-back">직거래</span>` : ""}</div>
+      <div class="meta">${esc(shortName(c))} ${t.aptDong ? esc(t.aptDong) + "동 " : ""}${t.floor}층 · ${t.area.toFixed(1)}㎡</div></div>
+      <div class="side muted">${esc(t.date.replace(/-/g, "."))}</div></div>`;
+  }
+
+  function areaGroups(trades) {
+    const g = {};
+    for (const t of trades) { const k = Math.round(t.area); g[k] = (g[k] || 0) + 1; }
+    return Object.keys(g).map(Number).sort((a, b) => a - b);
+  }
+
+  function tradeChart(trades, asks) {
+    if (trades.length < 2) return "";
+    const W = 340, H = 180, L = 40, R = 8, Tp = 10, B = 22;
+    const now = Date.now(), from = now - 3 * 365 * DAY;
+    const pts = trades.filter(t => Date.parse(t.date) >= from && t.price);
+    if (pts.length < 2) return "";
+    const prices = pts.map(t => t.price).concat(asks.map(a => a.price));
+    let lo = Math.min(...prices), hi = Math.max(...prices);
+    const pad = Math.max(1000, (hi - lo) * 0.1); lo -= pad; hi += pad;
+    const x = t => L + ((t - from) / (now - from)) * (W - L - R), y = p => Tp + (1 - (p - lo) / (hi - lo)) * (H - Tp - B);
+    let g = "";
+    for (let i = 0; i <= 3; i++) {
+      const p = lo + (hi - lo) * i / 3;
+      g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(p).toFixed(1)}" y2="${y(p).toFixed(1)}"/><text x="${L - 4}" y="${(y(p) + 3).toFixed(1)}" text-anchor="end">${(p / 10000).toFixed(1)}억</text>`;
+    }
+    for (let k = 0; k <= 3; k++) {
+      const yr = new Date(from).getFullYear() + k, t = Date.parse(`${yr}-01-01`);
+      if (t > from && t < now) g += `<text x="${x(t).toFixed(1)}" y="${H - 6}" text-anchor="middle">${yr}</text>`;
+    }
+    const hitIds = new Set(S.gone.filter(g => g.trade).map(g => g.trade.date + "|" + g.trade.price + "|" + g.trade.floor));
+    const dots = pts.map(t => `<circle class="dot ${t.cancelled ? "cancel" : hitIds.has(t.date + "|" + t.price + "|" + t.floor) ? "hit" : ""}" cx="${x(Date.parse(t.date)).toFixed(1)}" cy="${y(t.price).toFixed(1)}" r="3.6"><title>${esc(t.date)} ${fmt(t.price)} ${t.floor}층</title></circle>`).join("");
+    const askDots = asks.map(a => `<rect class="ask" x="${(W - R - 4).toFixed(1)}" y="${(y(a.price) - 1.5).toFixed(1)}" width="8" height="3"><title>호가 ${fmt(a.price)}</title></rect>`).join("");
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 3년 실거래가">${g}${dots}${askDots}</svg>
+      <div class="legend"><span><i style="background:var(--accent)"></i>실거래</span><span><i style="background:var(--ok)"></i>사라진 매물과 맞은 거래</span>
+      <span><i style="border:1px solid var(--muted)"></i>해제</span>${asks.length ? `<span><i style="background:var(--warn);border-radius:1px"></i>지금 호가</span>` : ""}</div>`;
+  }
+
+  function renderTrades() {
+    const el = $("#panel-trades");
+    if (!tradeKey) tradeKey = mainCx() ? mainCx().key : null;
+    const all = DATA.trades.filter(t => t.cx === tradeKey);
+    const groups = areaGroups(all);
+    if (tradeArea !== "all" && !groups.includes(+tradeArea)) tradeArea = "all";
+    const ts = all.filter(t => tradeArea === "all" || Math.round(t.area) === +tradeArea);
+    const no = cfg.links[tradeKey]?.no ? String(cfg.links[tradeKey].no) : null;
+    const asks = no ? unitsOf(no).filter(u => u.lastPrice && (tradeArea === "all" || Math.round(u.area) === +tradeArea)).map(u => ({ price: u.lastPrice })) : [];
+    const y1 = ts.filter(t => !t.cancelled && Date.parse(t.date) > Date.now() - 365 * DAY);
+    let h = `<div class="chips">${DATA.complexes.map(c => `<button class="chip" data-tk="${esc(c.key)}" aria-pressed="${c.key === tradeKey}">${esc(shortName(c))}</button>`).join("")}</div>`;
+    if (groups.length > 1) h += `<div class="chips"><button class="chip" data-ta="all" aria-pressed="${tradeArea === "all"}">전체 면적</button>${groups.map(a => `<button class="chip" data-ta="${a}" aria-pressed="${String(a) === String(tradeArea)}">전용 ${a}㎡</button>`).join("")}</div>`;
+    h += `<div class="card"><h2>실거래 ${ts.length}건</h2>
+      <div class="stats" style="margin-bottom:10px"><div class="stat"><b>${y1.length}</b><span>최근 1년 거래</span></div>
+        <div class="stat"><b>${y1.length ? fmt(Math.max(...y1.map(t => t.price))) : "-"}</b><span>1년 최고</span></div>
+        <div class="stat"><b>${ts.length ? fmt(ts.filter(t => !t.cancelled).at(-1)?.price) : "-"}</b><span>마지막 거래</span></div></div>
+      ${tradeChart(ts, asks)}</div>
+      <div class="card">${ts.slice().reverse().slice(0, 120).map(tradeRow).join("") || `<div class="empty">${DATA.tradeMonths && DATA.tradeMonths.length ? "거래 기록이 없어요" : "실거래 자료를 아직 받지 않았어요.<br>저장소 Secret에 MOLIT_KEY를 넣으면 매일 받아요 (apt/README.md)."}</div>`}</div>
+      <div class="tiny muted">국토교통부 아파트 매매 실거래가 (공공데이터포털). 계약 후 30일 안에 신고돼서 최근 거래는 늦게 보여요.</div>`;
+    el.innerHTML = h;
+    bindChips(el, "tk", v => { tradeKey = v; tradeArea = "all"; renderTrades(); });
+    bindChips(el, "ta", v => { tradeArea = v; renderTrades(); });
+  }
+
+  function postRow(p) {
+    return `<div class="row"><div class="main"><a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">
+      <div class="small" style="font-weight:600">${esc(p.title)}</div></a><div class="meta tiny">${esc(p.blog)} · ${p.cx.map(k => esc(shortName(byKey(k)))).join(", ")}</div></div>
+      <div class="side muted tiny">${esc(p.date.replace(/(\d{4})(\d\d)(\d\d)/, "$1.$2.$3"))}</div></div>`;
+  }
+
+  function renderNews() {
+    const el = $("#panel-news");
+    const ps = DATA.blog.filter(p => (newsKey === "all" || p.cx.includes(newsKey)) && (!newsDeal || p.deal));
+    el.innerHTML = `<div class="chips"><button class="chip" data-nk="all" aria-pressed="${newsKey === "all"}">전체</button>${DATA.complexes.map(c =>
+        `<button class="chip" data-nk="${esc(c.key)}" aria-pressed="${newsKey === c.key}">${esc(shortName(c))}</button>`).join("")}</div>
+      <label class="switch small"><input type="checkbox" id="newsDeal" ${newsDeal ? "checked" : ""}> 매매·시세 이야기만 (인테리어·청소 글 빼기)</label>
+      <div class="card">${ps.slice(0, 150).map(postRow).join("") || `<div class="empty">글이 없어요</div>`}</div>
+      <div class="tiny muted">네이버 블로그 검색 (${esc(DATA.blogUpdated || "-")}) · 제목과 링크만 모아요.</div>`;
+    bindChips(el, "nk", v => { newsKey = v; renderNews(); });
+    $("#newsDeal").addEventListener("change", e => { newsDeal = e.target.checked; renderNews(); });
+  }
+
+  /* ===================== settings ===================== */
+  let found = null;
+  function renderSettings() {
+    const b = $("#settingsBody");
+    const linkRows = DATA.complexes.map(c => {
+      const l = cfg.links[c.key];
+      return `<div class="row"><div class="main"><div class="small"><b>${esc(c.name)}</b>${c.main ? ' <span class="badge b-new">우리 단지</span>' : ""}</div>
+        <div class="meta tiny">${l?.no ? `네이버 ${esc(l.name || "")} (${esc(l.no)})${l.hh ? " · " + l.hh + "세대" : ""}` : "연결 안 됨"}</div></div>
+        ${native ? `<button class="btn ghost small" data-unlink="${esc(c.key)}" ${l?.no ? "" : "hidden"}>끊기</button>` : ""}</div>`;
+    }).join("");
+    const snaps = S.snaps.slice(-15).reverse();
+    b.innerHTML = `
+      <h4 style="margin:6px 0 2px">단지 연결</h4>
+      <div class="tiny muted">네이버 부동산의 단지와 이어 주면 그 단지 매물을 추적해요.</div>
+      ${linkRows}
+      ${native ? `<div class="btns" style="margin:8px 0"><button class="btn" id="findBtn">주변 단지 찾기</button></div>
+        <div id="foundList"></div>
+        <label class="field">또는 네이버 부동산 단지 링크(공유하기로 복사)나 단지 번호
+          <input id="linkInput" placeholder="https://fin.land.naver.com/complexes/…" inputmode="url"></label>
+        <label class="field">이 링크를 어느 단지에 연결할까요?
+          <select id="linkKey">${DATA.complexes.map(c => `<option value="${esc(c.key)}">${esc(c.name)}</option>`).join("")}</select></label>
+        <button class="btn ghost" id="linkBtn">연결하기</button>` : appNote()}
+      ${native ? `<h4 style="margin:20px 0 2px">앱을 닫아 둬도 확인</h4>
+        <label class="field">확인 간격 (한 번에 단지마다 몇 쪽씩, 몇 초 간격으로 천천히 읽어요)
+          <select id="hoursSel">${[[0, "끄기 (앱을 열 때만)"], [6, "6시간마다"], [12, "12시간마다 (추천)"], [24, "하루 한 번"]].map(([v, l]) => `<option value="${v}" ${cfg.hours === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <label class="switch small"><input type="checkbox" id="notifyChk" ${cfg.notify ? "checked" : ""}> 매물이 안 보이면 알림 받기</label>
+        <h4 style="margin:20px 0 2px">기록</h4>
+        <div class="tiny muted">매물 기록은 이 폰에만 있어요. 폰을 바꾸거나 앱을 지우기 전에 내보내 두세요.</div>
+        <div class="btns" style="margin:8px 0"><button class="btn ghost" id="exportBtn">내보내기</button><label class="btn ghost" style="display:inline-block">가져오기<input type="file" id="importFile" accept="application/json,.json" hidden></label></div>
+        <details class="small"><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? `매물 ${s.count}건 (${s.units}집)` : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
+      <h4 style="margin:20px 0 2px">자료</h4>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 __VERSION__</div>
+      ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
+      <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
+    b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
+    if (!native) return;
+    $("#findBtn").onclick = async () => {
+      $("#findBtn").disabled = true; $("#foundList").innerHTML = `<div class="small muted">찾는 중…</div>`;
+      try { found = await discover(); const n = autoLink(found); toast(n ? `${n}개 단지를 연결했어요` : "주변 단지를 찾았어요"); renderSettings(); showFound(); refresh(); }
+      catch (e) { $("#foundList").innerHTML = `<div class="small up">${esc(e.message)}</div>`; $("#findBtn").disabled = false; }
+    };
+    if (found) showFound();
+    $("#linkBtn").onclick = async () => {
+      const no = parseNaverLink($("#linkInput").value);
+      if (!no) { toast("링크에서 단지 번호를 찾지 못했어요"); return; }
+      const key = $("#linkKey").value;
+      let name = "";
+      try { const ls = await fetchListings(no, 1); name = ls[0]?.atclNm || ""; } catch (e) { /* still link it */ }
+      cfg.links[key] = { no, name }; saveCfg(); toast(`${byKey(key).name} ← ${name || no}`); renderSettings(); refresh(true);
+    };
+    $("#hoursSel").onchange = e => { cfg.hours = +e.target.value; saveCfg(); scheduleBackground(); };
+    $("#notifyChk").onchange = async e => {
+      cfg.notify = e.target.checked; saveCfg();
+      if (cfg.notify) { try { await ncall("LocalNotifications", "requestPermissions"); } catch (x) {} }
+    };
+    $("#exportBtn").onclick = exportState;
+    $("#importFile").onchange = e => importState(e.target.files[0]);
+  }
+  function showFound() {
+    const used = new Set(Object.values(cfg.links).map(l => String(l.no)));
+    $("#foundList").innerHTML = `<div class="tiny muted" style="margin-top:4px">주변 단지 ${found.length}곳 (눌러서 위 「어느 단지」에 연결)</div>` +
+      found.map(f => `<div class="row tap" data-pick="${esc(f.no)}"><div class="main small">${esc(f.name)} ${used.has(f.no) ? '<span class="badge b-ok">연결됨</span>' : ""}</div><div class="side tiny muted">${f.hh ? f.hh + "세대" : ""}${f.deals != null ? ` · 매매 ${f.deals}` : ""}</div></div>`).join("");
+    $("#foundList").querySelectorAll("[data-pick]").forEach(r => r.addEventListener("click", () => {
+      const f = found.find(x => x.no === r.dataset.pick), key = $("#linkKey").value;
+      cfg.links[key] = { no: f.no, name: f.name, hh: f.hh }; saveCfg(); toast(`${byKey(key).name} ← ${f.name}`); renderSettings(); refresh(true);
+    }));
+  }
+
+  async function exportState() {
+    const text = JSON.stringify({ app: "apt-watch", at: new Date().toISOString(), cfg: { links: cfg.links }, state: S });
+    const name = `apt-watch-${new Date().toISOString().slice(0, 10)}.json`;
+    try {
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = name; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    } catch (e) { /* below */ }
+    if (native) { try { await ncall("Share", "share", { title: name, text }); } catch (e) {} }
+  }
+  async function importState(file) {
+    if (!file) return;
+    try {
+      const j = JSON.parse(await file.text());
+      if (j.app !== "apt-watch" || !j.state || !j.state.units) throw new Error();
+      if (!confirm("지금 기록을 이 파일 내용으로 바꿀까요?")) return;
+      S = Object.assign(T.emptyState(), j.state); cfg.links = Object.assign({}, j.cfg?.links || {}); cfg.scheduled = "";
+      saveState(); saveCfg(); toast("기록을 가져왔어요"); renderSettings(); renderAll(); scheduleBackground();
+    } catch (e) { toast("이 앱에서 내보낸 파일이 아니에요"); }
+  }
+
+  /* ===================== app update (Android) ===================== */
+  const RELEASE_API = "https://api.github.com/repos/YoSebChoi/YoSebChoi/releases/tags/apt-apk";
+  let lastCheck = 0;
+  async function checkAppUpdate() {
+    if (!native || Date.now() - lastCheck < 10 * 60 * 1000 || $("#appUpdate").open) return;
+    lastCheck = Date.now();
+    try {
+      const info = await ncall("App", "getInfo");
+      const cur = parseInt(info && info.build, 10) || 0;
+      const res = await fetch(RELEASE_API, { cache: "no-store", headers: { Accept: "application/vnd.github+json" } });
+      if (!res.ok) return;
+      const rel = await res.json();
+      const m = /빌드\s*(\d+)/.exec(rel.body || ""), latest = m ? +m[1] : 0;
+      const apk = (rel.assets || []).find(a => a.name === "apt-watch.apk");
+      if (!apk || latest <= cur) return;
+      showAppUpdate(apk.browser_download_url);
+    } catch (e) { /* offline or rate-limited: try again next time */ }
+  }
+  function showAppUpdate(url) {
+    const dlg = $("#appUpdate"), go = $("#appUpdateGo"), text = $("#appUpdateText"), bar = $("#appUpdateBar");
+    text.textContent = "업데이트해도 매물 기록과 설정은 그대로 남아요. 설치 화면이 뜨면 「업데이트」를 눌러 주세요.";
+    bar.hidden = true; go.disabled = false; go.textContent = "지금 업데이트";
+    dlg.showModal();
+    $("#appUpdateLater").onclick = () => dlg.close();
+    go.onclick = async () => {
+      go.disabled = true; go.textContent = "받는 중…"; bar.hidden = false;
+      let sub = null;
+      try {
+        sub = await nlisten("AptUpdate", "progress", p => {
+          if (p && p.percent >= 0) { bar.firstElementChild.style.width = p.percent + "%"; go.textContent = `받는 중… ${p.percent}%`; }
+        });
+        const r = await ncall("AptUpdate", "install", { url });
+        if (r && r.needsPermission) {
+          text.textContent = "처음 한 번만, 열린 설정 화면에서 「이 출처 허용」을 켜고 돌아와 다시 눌러 주세요.";
+          bar.hidden = true; go.disabled = false; go.textContent = "지금 업데이트";
+        } else {
+          text.textContent = "설치 화면에서 「업데이트」를 누르면 끝나요.";
+          go.textContent = "설치 화면 열림";
+        }
+      } catch (e) {
+        text.textContent = "새 버전을 받지 못했어요. 인터넷 연결을 확인하고 다시 눌러 주세요.";
+        bar.hidden = true; go.disabled = false; go.textContent = "다시 시도";
+      } finally { try { sub && sub.remove && sub.remove(); } catch (e) {} }
+    };
+  }
+
+  /* ===================== tabs ===================== */
+  const TABS = ["home", "list", "gone", "trades", "news"];
+  let tab = "home";
+  const RENDER = { home: renderHome, list: renderList, gone: renderGone, trades: renderTrades, news: renderNews };
+  function showTab(name) {
+    tab = name;
+    for (const t of TABS) { $("#panel-" + t).hidden = t !== name; $("#tab-" + t).setAttribute("aria-selected", String(t === name)); }
+    RENDER[name]();
+    window.scrollTo({ top: 0 });
+  }
+  function renderAll() {
+    const m = mainCx();
+    $("#title").textContent = m ? shortName(m) + " 거래 추적" : "우리 단지 거래 추적";
+    setStatus(statusLine());
+    RENDER[tab]();
+  }
+  document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+  document.querySelectorAll("dialog [data-close]").forEach(b => b.addEventListener("click", () => b.closest("dialog").close()));
+  document.querySelectorAll("dialog").forEach(d => d.addEventListener("click", e => { if (e.target === d && d.id !== "appUpdate") d.close(); }));
+  $("#settingsBtn").addEventListener("click", () => { renderSettings(); $("#settingsDlg").showModal(); });
+  $("#refreshBtn").addEventListener("click", () => refresh(true));
+  if (native) {
+    $("#refreshBtn").hidden = false;
+    nlisten("App", "backButton", () => {
+      if (!$("#toast").hidden) $("#toast").hidden = true;
+      const open = document.querySelector("dialog[open]");
+      if (open) { open.close(); return; }
+      if (tab !== "home") { showTab("home"); return; }
+      ncall("App", "minimizeApp").catch(() => {});
+    });
+    nlisten("App", "resume", () => { refresh(); checkAppUpdate(); });
+  }
+
+  /* ===================== start ===================== */
+  (async () => {
+    try {
+      const res = await fetch("data.json", { cache: "no-cache" });
+      DATA = Object.assign(DATA, await res.json());
+    } catch (e) { toast("자료를 불러오지 못했어요"); }
+    renderAll();
+    if (native) { matchTrades(); saveState(); refresh(); setTimeout(checkAppUpdate, 3000); }
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  })();
+  window.__aptwatch = { get S() { return S; }, get cfg() { return cfg; }, refresh };
+})();
+</script>
+
+<script>
+// offline copy for the browser; the Android app (apt-app/) always loads the live page so the native bridge is injected
+(() => {
+  if (!("serviceWorker" in navigator)) return;
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+    return;
+  }
+  addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "id": "./",
+  "name": "우리 단지 거래 추적",
+  "short_name": "단지 거래",
+  "description": "시범한빛마을 KCC스위첸과 이웃 단지의 매물이 사라지는 것으로 거래를 추정하고 실거래로 확인해요",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#2f5d8a",
+  "theme_color": "#f4f6f8",
+  "icons": [
+    {
+      "src": "icon-192.8c2d2dca.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.c1fc28bb.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.042826e3.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
