@@ -132,11 +132,63 @@ public class MainActivity extends BridgeActivity {
             call.resolve();
         }
 
-        /** AptNet.testNotify({text}) → the change notification right away, as the background check posts it. */
+        /** AptNet.testNotify({text}) → {sent}: the change notification right away, as the background check posts it. */
         @PluginMethod
         public void testNotify(PluginCall call) {
-            SnapshotWorker.notifyChanges(getContext(), call.getString("text", "시험 알림: 이렇게 와요"));
-            call.resolve();
+            boolean sent = SnapshotWorker.notifyChanges(getContext(), call.getString("text", "시험 알림: 이렇게 와요"));
+            JSObject r = notifyState();
+            r.put("sent", sent);
+            call.resolve(r);
+        }
+
+        private JSObject notifyState() {
+            Context ctx = getContext();
+            JSObject r = new JSObject();
+            boolean perm = Build.VERSION.SDK_INT < 33
+                || androidx.core.content.ContextCompat.checkSelfPermission(ctx, "android.permission.POST_NOTIFICATIONS") == android.content.pm.PackageManager.PERMISSION_GRANTED;
+            r.put("permission", perm);
+            r.put("enabled", SnapshotWorker.notificationsOn(ctx));
+            return r;
+        }
+
+        /** AptNet.notifyStatus() → {permission, enabled}: may this app notify, and is the 「매물 변화」 channel on. */
+        @PluginMethod
+        public void notifyStatus(PluginCall call) {
+            call.resolve(notifyState());
+        }
+
+        /** AptNet.askNotify() → asks Android for the notification permission (Android 13+) the first time, and opens
+         *  this app's notification settings when it was refused or a channel is off. */
+        @PluginMethod
+        public void askNotify(PluginCall call) {
+            JSObject st = notifyState();
+            JSObject r = new JSObject();
+            if (!st.getBool("permission") && !prefsAsked()) {
+                getContext().getSharedPreferences(SnapshotWorker.PREFS, Context.MODE_PRIVATE).edit().putBoolean("asked_notify", true).apply();
+                androidx.core.app.ActivityCompat.requestPermissions(getActivity(), new String[]{"android.permission.POST_NOTIFICATIONS"}, 7001);
+                r.put("asked", true);
+            } else if (!st.getBool("enabled")) {
+                Intent open = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                open.putExtra(Settings.EXTRA_APP_PACKAGE, getContext().getPackageName());
+                open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(open);
+                r.put("opened", true);
+            }
+            call.resolve(r);
+        }
+
+        private boolean prefsAsked() {
+            return getContext().getSharedPreferences(SnapshotWorker.PREFS, Context.MODE_PRIVATE).getBoolean("asked_notify", false);
+        }
+
+        /** AptNet.workerStatus() → {start, last}: when the background check last started, and what its last run did. */
+        @PluginMethod
+        public void workerStatus(PluginCall call) {
+            android.content.SharedPreferences prefs = getContext().getSharedPreferences(SnapshotWorker.PREFS, Context.MODE_PRIVATE);
+            JSObject r = new JSObject();
+            r.put("start", prefs.getLong("last_start", 0));
+            try { r.put("last", new JSONObject(prefs.getString("last_run", "{}"))); } catch (Exception e) { r.put("last", new JSONObject()); }
+            call.resolve(r);
         }
 
         /** AptNet.testChange() → {complexes}: forgets one flat from each complex's last background check and runs
@@ -160,7 +212,7 @@ public class MainActivity extends BridgeActivity {
                     // a broken record: the next check writes a new one
                 }
             }
-            edit.putBoolean("notify", true).apply();
+            edit.putBoolean("notify", true).putBoolean("test_pending", true).apply();
             WorkManager.getInstance(getContext()).enqueue(new OneTimeWorkRequest.Builder(SnapshotWorker.class)
                 .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build()).build());
             JSObject r = new JSObject();

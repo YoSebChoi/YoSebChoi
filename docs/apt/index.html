@@ -879,13 +879,15 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
           <button class="btn ghost small" id="testChangeBtn">백그라운드 확인부터 알림까지 시험</button>
         </div>
         <div class="tiny muted" id="testNote"></div>
+        <div class="small" id="notifyState" style="margin-top:8px"></div>
+        <div class="small" id="workerState" style="margin-top:4px"></div>
         <h4 style="margin:20px 0 2px">기록</h4>
         <div class="tiny muted">매물 기록은 이 폰에만 있어요. 폰을 바꾸거나 앱을 지우기 전에 내보내 두세요.</div>
         <div class="btns" style="margin:8px 0"><button class="btn ghost" id="exportBtn">내보내기</button><label class="btn ghost" style="display:inline-block">가져오기<input type="file" id="importFile" accept="application/json,.json" hidden></label></div>
         <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)${s.src === "지도" ? " · 지도 목록" : s.src === "fin" ? " · 새 네이버 목록" : ""}`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
         <details class="small"><summary>네트워크 진단 (네이버 답 ${netlog.length}개)</summary><ul class="list-plain">${netlog.slice().reverse().map(n => `<li>${new Date(n.t).toTimeString().slice(0, 5)} ${esc(n.path)} → ${n.err ? `<span class="up">${esc(n.err)}</span>` : `HTTP ${n.status}${n.location ? " → " + esc(n.location) : ""}`}<div class="tiny muted" style="word-break:break-all">${esc(n.head)}</div></li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 2c62fd0d82</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 b59c8f21e5</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -917,11 +919,17 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     };
     const askPermission = async () => {
       try {
+        const st = await ncall("AptNet", "notifyStatus");
+        if (st && !st.enabled) { await ncall("AptNet", "askNotify"); showNotifyState(); return false; }
+        return true;
+      } catch (e) { /* an older app */ }
+      try {
         const r = await ncall("LocalNotifications", "requestPermissions");
         if (r && r.display && r.display !== "granted") { $("#testNote").textContent = "알림이 꺼져 있어요: 폰 설정 → 애플리케이션 → 우리 단지 거래 추적 → 알림을 켜 주세요."; return false; }
       } catch (e) {}
       return true;
     };
+    showNotifyState(); showWorkerState();
     $("#testNotifyBtn").onclick = async () => {
       if (!(await askPermission())) return;
       try { await ncall("AptNet", "testNotify", { text: "시험 알림 · KCC스위첸: 사라짐 1 · 새 매물 1 (이렇게 와요)" }); $("#testNote").textContent = "알림을 보냈어요. 안 보이면 폰 설정에서 이 앱의 알림을 켜 주세요."; }
@@ -932,18 +940,49 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       try {
         await scheduleBackground();
         const r = await ncall("AptNet", "testChange");
-        $("#testNote").textContent = r && r.complexes
-          ? `단지 ${r.complexes}곳의 지난 기록에서 한 집씩 빼고 지금 확인을 돌렸어요. 1~3분 안에 「새 매물 1」 알림이 오면 끝까지 잘 되는 거예요 (앱을 닫아 둬도 돼요).`
-          : "백그라운드 확인이 아직 한 번도 안 돌아서 비교할 기록이 없어요. 「지금 한 번 확인해 보기」를 누르고 3분쯤 뒤에 다시 눌러 주세요.";
+        $("#testNote").textContent = "백그라운드 확인을 지금 돌렸어요. 1~3분 안에 「백그라운드 확인 시험」 알림이 와요. 알림에 단지마다 몇 건 읽었는지, 오류가 있었는지 적혀 있어요"
+          + (r && r.complexes ? ` (지난 기록에서 단지 ${r.complexes}곳의 한 집씩을 빼 두어서 「새 매물 1」도 잡혀야 해요).` : ".");
+        watchWorker(Date.now());
       } catch (e) { $("#testNote").textContent = "이 앱 버전에는 없는 기능이에요. 앱을 업데이트해 주세요."; }
     };
-    $("#runNowBtn").onclick = async () => {
+    $("#runNowBtn").onclick = async () => { watchWorker(Date.now());
       try { await scheduleBackground(); await ncall("AptNet", "runNow"); toast("몇 분 안에 확인해요. 지난번과 달라진 게 있으면 알림이 와요"); }
       catch (e) { toast("이 앱 버전에는 없는 기능이에요. 앱을 업데이트해 주세요"); }
     };
     $("#exportBtn").onclick = exportState;
     $("#importFile").onchange = e => importState(e.target.files[0]);
   }
+  async function showNotifyState() {
+    const el = $("#notifyState"); if (!el) return;
+    try {
+      const st = await ncall("AptNet", "notifyStatus");
+      el.innerHTML = st.enabled ? `알림: <b class="down">켜져 있어요</b>`
+        : `알림: <b class="up">꺼져 있어요</b> ${st.permission ? "(「매물 변화」 알림 채널이 꺼져 있어요)" : "(알림 권한이 없어요)"} <button class="btn ghost small" id="notifyOnBtn">알림 켜기</button>`;
+      const b = $("#notifyOnBtn");
+      if (b) b.onclick = async () => { await ncall("AptNet", "askNotify"); setTimeout(showNotifyState, 4000); };
+    } catch (e) { el.textContent = ""; }
+  }
+  async function showWorkerState() {
+    const el = $("#workerState"); if (!el) return null;
+    try {
+      const w = await ncall("AptNet", "workerStatus"), l = w.last || {};
+      if (!l.t) { el.textContent = w.start ? `백그라운드 확인: ${ago(w.start)} 시작, 아직 끝난 기록이 없어요` : "백그라운드 확인: 아직 한 번도 안 돌았어요"; return w; }
+      const jobs = (l.jobs || []).map(j => `${esc(j.name)} ${j.ok ? `${j.count}건${j.change ? " · " + esc(j.change) : ""}` : `<span class="up">오류 ${esc(j.err)}</span>`}`).join(" / ");
+      el.innerHTML = `백그라운드 확인: ${ago(l.t)} · ${jobs || "단지 없음"} · ${l.sent ? "알림 보냄" : l.wanted ? '<span class="up">알림을 못 보냈어요</span>' : "알림 없음(변화 없음)"}`;
+      return w;
+    } catch (e) { el.textContent = ""; return null; }
+  }
+  // after a test: show the background check's result as soon as it lands (for 3 minutes)
+  let watchTimer = null;
+  function watchWorker(since) {
+    clearInterval(watchTimer);
+    const stop = Date.now() + 180e3;
+    watchTimer = setInterval(async () => {
+      const w = await showWorkerState();
+      if (!$("#settingsDlg").open || Date.now() > stop || (w && w.last && w.last.t > since)) clearInterval(watchTimer);
+    }, 5000);
+  }
+
   function showFound() {
     const used = new Set(Object.values(cfg.links).map(l => String(l.no)));
     $("#foundList").innerHTML = `<div class="tiny muted" style="margin-top:4px">주변 단지 ${found.length}곳 (눌러서 위 「어느 단지」에 연결)</div>` +
@@ -1060,7 +1099,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "2c62fd0d82" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "b59c8f21e5" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }
