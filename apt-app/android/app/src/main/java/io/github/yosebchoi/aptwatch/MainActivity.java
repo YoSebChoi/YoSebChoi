@@ -45,8 +45,9 @@ public class MainActivity extends BridgeActivity {
     /**
      * Naver 부동산 from the phone. The page cannot read land.naver.com itself (another site), so it asks here:
      *  - AptNet.get({url}) → {status, body, location}: one request, only to *.land.naver.com.
-     *  - AptNet.schedule({jobs:[{cx, url, maxPages}], hours}) → the background check (SnapshotWorker) reads
-     *    those listing pages every `hours` hours while the app is closed; hours 0 stops it.
+     *  - AptNet.schedule({jobs:[{cx, name, url, maxPages}], hours, notify}) → the background check (SnapshotWorker)
+     *    reads those listing pages every `hours` hours while the app is closed (hours 0 stops it) and, with notify,
+     *    tells the user when flats are gone, new or cheaper than at its last check.
      *  - AptNet.runNow() → one background check right away (for testing the schedule).
      *  - AptNet.collect() → {snapshots:[{cx, t, ok, articles, err}]}: what the background checks saved,
      *    handed over once (the page compares them in order, as if it had fetched them itself).
@@ -81,7 +82,9 @@ public class MainActivity extends BridgeActivity {
             int hours = call.getInt("hours", 12);
             Context ctx = getContext();
             ctx.getSharedPreferences(SnapshotWorker.PREFS, Context.MODE_PRIVATE).edit()
-                .putString("jobs", jobs.toString()).apply();
+                .putString("jobs", jobs.toString())
+                .putBoolean("notify", call.getBoolean("notify", true))
+                .apply();
             WorkManager wm = WorkManager.getInstance(ctx);
             if (hours <= 0 || jobs.length() == 0) {
                 wm.cancelUniqueWork(SnapshotWorker.NAME);

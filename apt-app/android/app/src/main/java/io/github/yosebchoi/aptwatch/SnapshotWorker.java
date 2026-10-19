@@ -26,13 +26,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * The background listing check: reads each complex's 매매 listing pages (jobs set by the page through
  * AptNet.schedule) and saves them in files for the page to compare when it opens next. It also tells
- * the user when listings that were there last time are gone, the moment a flat may have sold.
+ * the user what changed since its last check: flats gone (the moment one may have sold), new flats, price cuts.
  * Requests go one at a time, a couple of seconds apart, a few pages per complex, twice a day.
  */
 public class SnapshotWorker extends Worker {
@@ -116,7 +114,6 @@ public class SnapshotWorker extends Worker {
             return Result.success();
         }
         StringBuilder news = new StringBuilder();
-        int goneTotal = 0;
         for (int i = 0; i < jobs.length(); i++) {
             JSONObject job = jobs.optJSONObject(i);
             if (job == null) continue;
@@ -159,29 +156,16 @@ public class SnapshotWorker extends Worker {
             } catch (Exception ignored) {
                 // a lost snapshot is only a skipped check
             }
-            if (err == null && articles.length() > 0) {
-                // which articles that were there last time are gone (the page later groups agents' copies
-                // of one flat; here it is only the nudge to open the app)
-                Set<String> now = new HashSet<>();
-                for (int k = 0; k < articles.length(); k++) {
-                    JSONObject a = articles.optJSONObject(k);
-                    if (a != null) now.add(a.optString("atclNo"));
-                }
-                String before = prefs.getString("ids_" + cx, null);
-                int gone = 0;
-                if (before != null && !before.isEmpty()) {
-                    for (String id : before.split(",")) if (!now.contains(id)) gone++;
-                }
-                prefs.edit().putString("ids_" + cx, String.join(",", now)).apply();
-                if (gone > 0) {
-                    goneTotal += gone;
-                    if (news.length() > 0) news.append(", ");
-                    news.append(job.optString("name", cx)).append(" ").append(gone).append("건");
+            if (err == null) {
+                String change = compare(prefs, cx, articles);
+                if (change != null) {
+                    if (news.length() > 0) news.append("\n");
+                    news.append(job.optString("name", cx)).append(": ").append(change);
                 }
             }
         }
         prune(ctx);
-        if (goneTotal > 0 && prefs.getBoolean("notify", true)) notifyGone(ctx, news.toString());
+        if (news.length() > 0 && prefs.getBoolean("notify", true)) notifyChanges(ctx, news.toString());
         return Result.success();
     }
 
@@ -193,25 +177,70 @@ public class SnapshotWorker extends Worker {
             files[i].delete();
     }
 
-    private static void notifyGone(Context ctx, String text) {
+    /** A flat: 동 + floor + 전용면적 + direction, the same grouping as the page (apt/tracker.js), so one
+     *  agent re-listing a flat or a second agent adding it is not news. */
+    private static String unitKey(JSONObject a) {
+        String floor = a.optString("flrInfo").split("/")[0].trim();
+        return a.optString("bildNm").trim() + "|" + floor + "|" + a.optString("spc2").trim() + "|" + a.optString("direction").trim();
+    }
+
+    /** Compares this check with the last background check of the complex: flats gone, new flats and price
+     *  cuts, as "사라짐 1 · 새 매물 2 · 가격 내림 1", or null when nothing changed or this is the first check. */
+    static String compare(SharedPreferences prefs, String cx, JSONArray articles) {
+        JSONObject now = new JSONObject();
+        try {
+            for (int k = 0; k < articles.length(); k++) {
+                JSONObject a = articles.optJSONObject(k);
+                if (a == null) continue;
+                String key = unitKey(a);
+                long price = a.optLong("prc", 0);
+                if (price > 0 && (!now.has(key) || now.getLong(key) == 0 || price < now.getLong(key))) now.put(key, price);
+                else if (!now.has(key)) now.put(key, 0);
+            }
+            String saved = prefs.getString("units_" + cx, null);
+            JSONObject before = saved == null ? null : new JSONObject(saved);
+            // an empty answer where there were many flats is more likely a block than a sell-out: wait for the next one
+            if (before != null && now.length() == 0 && before.length() >= 5) return null;
+            prefs.edit().putString("units_" + cx, now.toString()).apply();
+            if (before == null) return null;
+            int gone = 0, added = 0, cut = 0;
+            for (java.util.Iterator<String> it = before.keys(); it.hasNext(); ) if (!now.has(it.next())) gone++;
+            for (java.util.Iterator<String> it = now.keys(); it.hasNext(); ) {
+                String key = it.next();
+                if (!before.has(key)) added++;
+                else if (now.getLong(key) > 0 && before.getLong(key) > 0 && now.getLong(key) < before.getLong(key)) cut++;
+            }
+            StringBuilder b = new StringBuilder();
+            if (gone > 0) b.append("사라짐 ").append(gone);
+            if (added > 0) b.append(b.length() > 0 ? " · " : "").append("새 매물 ").append(added);
+            if (cut > 0) b.append(b.length() > 0 ? " · " : "").append("가격 내림 ").append(cut);
+            return b.length() > 0 ? b.toString() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static void notifyChanges(Context ctx, String text) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel ch = new NotificationChannel(CHANNEL, "매물 변화", NotificationManager.IMPORTANCE_DEFAULT);
-            ch.setDescription("지난번에 있던 매물이 안 보일 때");
+            ch.setDescription("매물이 사라지거나, 새로 올라오거나, 가격이 내렸을 때");
             ctx.getSystemService(NotificationManager.class).createNotificationChannel(ch);
         }
         Intent open = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
         PendingIntent pi = PendingIntent.getActivity(ctx, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        String first = text.split("\n")[0];
         NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_apt)
             .setColor(0xFF2F5D8A)
-            .setContentTitle("안 보이는 매물이 있어요")
-            .setContentText(text + " — 거래됐는지 열어서 확인해 보세요")
+            .setContentTitle("매물에 변화가 있어요")
+            .setContentText(first)
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(text + "\n사라진 집은 거래됐을 수 있어요. 열어서 확인해 보세요."))
             .setContentIntent(pi)
             .setAutoCancel(true);
         try {
             NotificationManagerCompat.from(ctx).notify(1, b.build());
         } catch (SecurityException ignored) {
-            // notifications not allowed: the page shows it on the next opening anyway
+            // notifications not allowed: the page shows the changes on the next opening anyway
         }
     }
 }

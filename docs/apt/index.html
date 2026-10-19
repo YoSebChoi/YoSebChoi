@@ -387,9 +387,14 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function scheduleBackground() {
     if (!native) return;
     const jobs = linked().map(c => ({ cx: String(cfg.links[c.key].no), name: shortName(c), url: LIST_URL(cfg.links[c.key].no), maxPages: 10 }));
-    const sig = JSON.stringify([jobs, cfg.hours]);
+    const sig = JSON.stringify([jobs, cfg.hours, cfg.notify]);
+    // Android 13+ asks once before an app may notify
+    if (cfg.notify && cfg.hours && jobs.length && !cfg.askedNotify) {
+      cfg.askedNotify = true; saveCfg();
+      try { await ncall("LocalNotifications", "requestPermissions"); } catch (e) {}
+    }
     if (sig === cfg.scheduled) return;
-    try { await ncall("AptNet", "schedule", { jobs, hours: cfg.hours }); cfg.scheduled = sig; saveCfg(); } catch (e) { /* older app */ }
+    try { await ncall("AptNet", "schedule", { jobs, hours: cfg.hours, notify: cfg.notify }); cfg.scheduled = sig; saveCfg(); } catch (e) { /* older app */ }
   }
 
   function tradesForMatching() {
@@ -685,14 +690,16 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       ${native ? `<h4 style="margin:20px 0 2px">앱을 닫아 둬도 확인</h4>
         <label class="field">확인 간격 (한 번에 단지마다 몇 쪽씩, 몇 초 간격으로 천천히 읽어요)
           <select id="hoursSel">${[[0, "끄기 (앱을 열 때만)"], [6, "6시간마다"], [12, "12시간마다 (추천)"], [24, "하루 한 번"]].map(([v, l]) => `<option value="${v}" ${cfg.hours === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
-        <label class="switch small"><input type="checkbox" id="notifyChk" ${cfg.notify ? "checked" : ""}> 매물이 안 보이면 알림 받기</label>
+        <label class="switch small"><input type="checkbox" id="notifyChk" ${cfg.notify ? "checked" : ""}> 매물에 변화가 있으면 알림 받기 (사라짐 · 새 매물 · 가격 내림)</label>
+        <div class="tiny muted">앱을 닫아 둔 동안 확인할 때마다 지난번과 비교해서 알려 줘요. 맨 처음 확인은 기준만 잡아요.</div>
+        <button class="btn ghost small" id="runNowBtn" style="margin-top:8px">지금 한 번 확인해 보기</button>
         <h4 style="margin:20px 0 2px">기록</h4>
         <div class="tiny muted">매물 기록은 이 폰에만 있어요. 폰을 바꾸거나 앱을 지우기 전에 내보내 두세요.</div>
         <div class="btns" style="margin:8px 0"><button class="btn ghost" id="exportBtn">내보내기</button><label class="btn ghost" style="display:inline-block">가져오기<input type="file" id="importFile" accept="application/json,.json" hidden></label></div>
         <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
         <details class="small"><summary>네트워크 진단 (네이버 답 ${netlog.length}개)</summary><ul class="list-plain">${netlog.slice().reverse().map(n => `<li>${new Date(n.t).toTimeString().slice(0, 5)} ${esc(n.path)} → ${n.err ? `<span class="up">${esc(n.err)}</span>` : `HTTP ${n.status}${n.location ? " → " + esc(n.location) : ""}`}<div class="tiny muted" style="word-break:break-all">${esc(n.head)}</div></li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 642cd88020</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 e1df67ea21</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -720,6 +727,11 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     $("#notifyChk").onchange = async e => {
       cfg.notify = e.target.checked; saveCfg();
       if (cfg.notify) { try { await ncall("LocalNotifications", "requestPermissions"); } catch (x) {} }
+      scheduleBackground();
+    };
+    $("#runNowBtn").onclick = async () => {
+      try { await scheduleBackground(); await ncall("AptNet", "runNow"); toast("몇 분 안에 확인해요. 지난번과 달라진 게 있으면 알림이 와요"); }
+      catch (e) { toast("이 앱 버전에는 없는 기능이에요. 앱을 업데이트해 주세요"); }
     };
     $("#exportBtn").onclick = exportState;
     $("#importFile").onchange = e => importState(e.target.files[0]);
