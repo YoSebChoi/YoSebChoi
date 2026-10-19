@@ -1,0 +1,20 @@
+{
+  "appId": "io.github.yosebchoi.aptwatch",
+  "appName": "우리 단지 거래 추적",
+  "webDir": "www",
+  "backgroundColor": "#f4f6f8",
+  "appendUserAgent": "AptWatchApp",
+  "server": {
+    "url": "https://yosebchoi.github.io/YoSebChoi/apt/index.html",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_apt",
+      "iconColor": "#2F5D8A"
+    }
+  }
+}

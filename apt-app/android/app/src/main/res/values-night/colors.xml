@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- dark mode: the page's night ground (the bg token in apt/index.html) -->
+    <color name="apt_ground">#111418</color>
+    <bool name="apt_light_bars">false</bool>
+</resources>

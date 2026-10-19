@@ -1,0 +1,75 @@
+# Refreshes 우리 단지 거래 추적's public data and rebuilds docs/apt/, committing the result back:
+#   - 국토교통부 아파트 매매 실거래가 for 반송동 (secret MOLIT_KEY: a data.go.kr key for
+#     「국토교통부_아파트 매매 실거래가 자료」; without it the trades already in apt/data/ are kept)
+#   - 네이버 블로그 posts about our complexes, titles and links only (secrets NCP_API_KEY_ID / NCP_API_KEY:
+#     NAVER API HUB on Naver Cloud; without them the posts already in apt/data/ are kept)
+# Naver 부동산 listings are not fetched here: the Android app reads them on the phone and keeps them there.
+name: 우리 단지 거래 추적 데이터
+
+on:
+  push:
+    paths:
+      - "apt/**"
+      - ".github/workflows/apt-data.yml"
+  workflow_dispatch:
+  # daily: 실거래 reports arrive every day (within 30 days of the contract)
+  schedule:
+    - cron: "17 21 * * *"   # 06:17 KST
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apt-data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+      - run: pip install pillow
+      - name: Tracker tests
+        run: node --test apt/tests/tracker.test.mjs
+      - name: 실거래 (국토교통부)
+        env:
+          MOLIT_KEY: ${{ secrets.MOLIT_KEY }}
+        run: |
+          if [ -z "$MOLIT_KEY" ]; then
+            echo "::warning::MOLIT_KEY is not set: the app keeps the trades it has (see apt/README.md)"
+          fi
+          python3 apt/fetch_trades.py
+      - name: 블로그 (네이버 검색)
+        env:
+          NCP_API_KEY_ID: ${{ secrets.NCP_API_KEY_ID }}
+          NCP_API_KEY: ${{ secrets.NCP_API_KEY }}
+        run: |
+          if [ -z "$NCP_API_KEY_ID" ]; then
+            echo "::warning::NCP_API_KEY_ID is not set: the app keeps the blog posts it has (see apt/README.md)"
+          else
+            python3 apt/fetch_blog.py
+          fi
+      - name: Build the page
+        run: python3 apt/build.py
+      - name: Check the page in a browser
+        working-directory: apt/check
+        run: |
+          npm install --no-audit --no-fund playwright@1.48.2 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          node check_app.mjs
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/apt apt/data
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit -m "apt: refresh 실거래 and blog data"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

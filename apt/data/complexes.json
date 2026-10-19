@@ -1,0 +1,26 @@
+{
+ "about": "추적할 단지. main은 우리 단지. naver: 네이버 부동산 단지 번호(앱의 단지 찾기로 채워져요. 알면 여기 적어도 돼요). molit: 국토교통부 실거래 단지명(aptNm)에 맞는 정규식 (반송동엔 시범나루마을 한화꿈에그린 같은 비슷한 이름이 있어 「한빛」을 꼭 넣어요; 안 맞는 이름은 앱 설정 맨 아래에 보여요). dong: 법정동",
+ "center": {"lat": 37.2045, "lng": 127.0725},
+ "complexes": [
+  {"key": "kcc", "name": "시범한빛마을 KCC스위첸", "main": true, "naver": null, "dong": "반송동", "jibun": "19",
+   "naverName": "KCC|케이씨씨|스위첸", "molit": "한빛.*(케이씨씨|KCC|스위첸)",
+   "blogQueries": ["시범한빛마을KCC스위첸", "시범한빛마을 케이씨씨", "한빛마을 KCC 매매", "시범한빛마을 KCC"],
+   "blogTitle": "한빛.*(KCC|케이씨씨|스위첸)|(KCC|케이씨씨|스위첸).*한빛"},
+  {"key": "ipark", "name": "시범한빛마을 동탄아이파크", "naver": null, "dong": "반송동",
+   "naverName": "아이파크", "molit": "한빛.*아이파크",
+   "blogQueries": ["시범한빛마을동탄아이파크", "시범한빛 아이파크 매매"],
+   "blogTitle": "한빛.*아이파크"},
+  {"key": "kumho", "name": "시범한빛마을 금호어울림", "naver": null, "dong": "반송동",
+   "naverName": "금호|어울림", "molit": "한빛.*(금호|어울림)",
+   "blogQueries": ["시범한빛마을금호어울림", "시범한빛 금호어울림 매매"],
+   "blogTitle": "한빛.*(금호|어울림)"},
+  {"key": "sambu", "name": "시범한빛마을 삼부르네상스", "naver": null, "dong": "반송동",
+   "naverName": "삼부|르네상스", "molit": "한빛.*(삼부|르네상스)",
+   "blogQueries": ["시범한빛마을삼부르네상스"],
+   "blogTitle": "한빛.*(삼부|르네상스)"},
+  {"key": "hanwha", "name": "시범한빛마을 한화꿈에그린", "naver": null, "dong": "반송동",
+   "naverName": "한화|꿈에그린", "molit": "한빛.*(한화|꿈에그린)",
+   "blogQueries": ["시범한빛마을한화꿈에그린"],
+   "blogTitle": "한빛.*(한화|꿈에그린)"}
+ ]
+}
