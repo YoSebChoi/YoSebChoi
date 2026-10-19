@@ -2,7 +2,7 @@
 
 - 키: 공공데이터포털(data.go.kr) 「국토교통부_아파트 매매 실거래가 자료」 활용 신청 → 일반 인증키를
   저장소 Secret MOLIT_KEY에 넣어요 (Decoding 키, Encoding 키 둘 다 돼요). 키가 없으면 있던 기록을 그대로 둬요.
-- 지역코드: 화성시는 41590. 2026년 2월 동탄구가 생기면서 코드가 바뀌었을 수 있어, 그 달에 반송동 거래가
+- 지역코드: 2026년 2월 동탄구가 생기면서 41597이 됐고, 지난 거래도 이 코드로 나와요. 코드가 또 바뀌어도 반송동 거래가
   나오는 코드를 찾아 기록해 둬요.
 - 지난 달까지는 한 번 받으면 끝이고, 최근 4개월은 매번 다시 받아요 (신고는 계약 후 30일 안, 해제도 나중에 붙어요).
 
@@ -120,25 +120,25 @@ def main():
         by_month.setdefault(t["date"][:7].replace("-", ""), []).append(t)
 
     errors = 0
+    # the code that answered most recently: the API files even old months under the new 동탄구 code
+    latest = next((done[m]["lawd"] for m in sorted(done, reverse=True) if done[m].get("lawd")), None)
     for ym in all_months:
-        if ym in done and ym not in fresh:
+        entry = done.get(ym)
+        # a month that came back empty under only some of the codes is asked again
+        settled = entry and (entry.get("lawd") or set(entry.get("tried", [])) >= set(CANDIDATES))
+        if settled and ym not in fresh:
             continue
-        # 지난번에 맞았던 코드부터, 그다음 화성시, 그다음 후보들
+        # 지난번에 맞았던 코드부터, 그다음 최근에 맞은 코드, 그다음 후보들
         tried, got = [], None
-        order = [done.get(ym, {}).get("lawd")] if done.get(ym, {}).get("lawd") else []
-        prev = next((done[m]["lawd"] for m in sorted(done, reverse=True) if m < ym and done[m].get("lawd")), None)
-        order += [c for c in [prev] + CANDIDATES if c and c not in order]
-        if ym < "202602":
-            order = [HWASEONG]
+        order = [c for c in [(entry or {}).get("lawd"), latest] + CANDIDATES if c]
+        order = list(dict.fromkeys(order))
         try:
             for lawd in order:
                 tried.append(lawd)
                 total, rows = fetch_month(key, lawd, ym, dong)
                 if rows:
                     got = (lawd, rows)
-                    break
-                if total and lawd == HWASEONG and ym < "202602":
-                    got = (lawd, [])
+                    latest = lawd
                     break
         except RuntimeError as e:
             print(e, file=sys.stderr)
