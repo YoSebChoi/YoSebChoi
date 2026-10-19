@@ -318,7 +318,7 @@ public class SnapshotWorker extends Worker {
         }
     }
 
-    private static void notifyChanges(Context ctx, String text) {
+    static void notifyChanges(Context ctx, String text) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel ch = new NotificationChannel(CHANNEL, "매물 변화", NotificationManager.IMPORTANCE_DEFAULT);
             ch.setDescription("매물이 사라지거나, 새로 올라오거나, 가격이 내렸을 때");

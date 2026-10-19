@@ -873,14 +873,19 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
           <select id="hoursSel">${[[0, "끄기 (앱을 열 때만)"], [6, "6시간마다"], [12, "12시간마다 (추천)"], [24, "하루 한 번"]].map(([v, l]) => `<option value="${v}" ${cfg.hours === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label class="switch small"><input type="checkbox" id="notifyChk" ${cfg.notify ? "checked" : ""}> 매물에 변화가 있으면 알림 받기 (사라짐 · 새 매물 · 가격 내림)</label>
         <div class="tiny muted">앱을 닫아 둔 동안 확인할 때마다 지난번과 비교해서 알려 줘요. 맨 처음 확인은 기준만 잡아요.</div>
-        <button class="btn ghost small" id="runNowBtn" style="margin-top:8px">지금 한 번 확인해 보기</button>
+        <div class="btns" style="margin-top:8px">
+          <button class="btn ghost small" id="runNowBtn">지금 한 번 확인해 보기</button>
+          <button class="btn ghost small" id="testNotifyBtn">알림 바로 보내 보기</button>
+          <button class="btn ghost small" id="testChangeBtn">백그라운드 확인부터 알림까지 시험</button>
+        </div>
+        <div class="tiny muted" id="testNote"></div>
         <h4 style="margin:20px 0 2px">기록</h4>
         <div class="tiny muted">매물 기록은 이 폰에만 있어요. 폰을 바꾸거나 앱을 지우기 전에 내보내 두세요.</div>
         <div class="btns" style="margin:8px 0"><button class="btn ghost" id="exportBtn">내보내기</button><label class="btn ghost" style="display:inline-block">가져오기<input type="file" id="importFile" accept="application/json,.json" hidden></label></div>
         <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)${s.src === "지도" ? " · 지도 목록" : s.src === "fin" ? " · 새 네이버 목록" : ""}`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
         <details class="small"><summary>네트워크 진단 (네이버 답 ${netlog.length}개)</summary><ul class="list-plain">${netlog.slice().reverse().map(n => `<li>${new Date(n.t).toTimeString().slice(0, 5)} ${esc(n.path)} → ${n.err ? `<span class="up">${esc(n.err)}</span>` : `HTTP ${n.status}${n.location ? " → " + esc(n.location) : ""}`}<div class="tiny muted" style="word-break:break-all">${esc(n.head)}</div></li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 bad030f714</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 2a9930171a</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -909,6 +914,28 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       cfg.notify = e.target.checked; saveCfg();
       if (cfg.notify) { try { await ncall("LocalNotifications", "requestPermissions"); } catch (x) {} }
       scheduleBackground();
+    };
+    const askPermission = async () => {
+      try {
+        const r = await ncall("LocalNotifications", "requestPermissions");
+        if (r && r.display && r.display !== "granted") { $("#testNote").textContent = "알림이 꺼져 있어요: 폰 설정 → 애플리케이션 → 우리 단지 거래 추적 → 알림을 켜 주세요."; return false; }
+      } catch (e) {}
+      return true;
+    };
+    $("#testNotifyBtn").onclick = async () => {
+      if (!(await askPermission())) return;
+      try { await ncall("AptNet", "testNotify", { text: "시험 알림 · KCC스위첸: 사라짐 1 · 새 매물 1 (이렇게 와요)" }); $("#testNote").textContent = "알림을 보냈어요. 안 보이면 폰 설정에서 이 앱의 알림을 켜 주세요."; }
+      catch (e) { $("#testNote").textContent = "이 앱 버전에는 없는 기능이에요. 앱을 업데이트해 주세요."; }
+    };
+    $("#testChangeBtn").onclick = async () => {
+      if (!(await askPermission())) return;
+      try {
+        await scheduleBackground();
+        const r = await ncall("AptNet", "testChange");
+        $("#testNote").textContent = r && r.complexes
+          ? `단지 ${r.complexes}곳의 지난 기록에서 한 집씩 빼고 지금 확인을 돌렸어요. 1~3분 안에 「새 매물 1」 알림이 오면 끝까지 잘 되는 거예요 (앱을 닫아 둬도 돼요).`
+          : "백그라운드 확인이 아직 한 번도 안 돌아서 비교할 기록이 없어요. 「지금 한 번 확인해 보기」를 누르고 3분쯤 뒤에 다시 눌러 주세요.";
+      } catch (e) { $("#testNote").textContent = "이 앱 버전에는 없는 기능이에요. 앱을 업데이트해 주세요."; }
     };
     $("#runNowBtn").onclick = async () => {
       try { await scheduleBackground(); await ncall("AptNet", "runNow"); toast("몇 분 안에 확인해요. 지난번과 달라진 게 있으면 알림이 와요"); }
@@ -1033,7 +1060,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "bad030f714" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "2a9930171a" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }
