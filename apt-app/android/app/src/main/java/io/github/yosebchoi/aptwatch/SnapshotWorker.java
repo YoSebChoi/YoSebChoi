@@ -133,11 +133,16 @@ public class SnapshotWorker extends Worker {
                         err = "HTTP " + r.status + (r.location != null ? " → " + r.location : "");
                         break;
                     }
-                    JSONObject result = new JSONObject(r.body).optJSONObject("result");
-                    JSONArray list = result == null ? null : result.optJSONArray("list");
+                    // the complex list answers {result: {list, moreDataYn}}, the map list {body: [...], more}
+                    JSONObject body = new JSONObject(r.body);
+                    JSONObject result = body.optJSONObject("result");
+                    JSONArray list = result != null ? result.optJSONArray("list") : body.optJSONArray("body");
                     if (list == null) { if (page == 1) err = "목록이 없는 답"; break; }
-                    for (int k = 0; k < list.length(); k++) articles.put(list.get(k));
-                    if (!"Y".equals(result.optString("moreDataYn"))) break;
+                    for (int k = 0; k < list.length(); k++) {
+                        JSONObject a = list.optJSONObject(k);
+                        if (a != null && mine(job, a)) articles.put(a);
+                    }
+                    if (result != null ? !"Y".equals(result.optString("moreDataYn")) : (list.length() < 20 && !body.optBoolean("more"))) break;
                 }
             } catch (Exception e) {
                 err = String.valueOf(e.getMessage());
@@ -175,6 +180,14 @@ public class SnapshotWorker extends Worker {
         Arrays.sort(files, (a, b) -> a.getName().compareTo(b.getName()));
         for (int i = 0; i < files.length - KEEP_FILES; i++) //noinspection ResultOfMethodCallIgnored
             files[i].delete();
+    }
+
+    /** The map list has the neighbours' listings too: keep this complex's (job.hscpNo / job.only, its name without spaces). */
+    static boolean mine(JSONObject job, JSONObject a) {
+        String no = job.optString("hscpNo"), only = job.optString("only");
+        if (no.isEmpty() && only.isEmpty()) return true;
+        if (!no.isEmpty() && no.equals(a.optString("hscpNo"))) return true;
+        return !only.isEmpty() && only.equals(a.optString("atclNm").replaceAll("\\s+", "").toLowerCase());
     }
 
     /** A flat: 동 + floor + 전용면적 + direction, the same grouping as the page (apt/tracker.js), so one

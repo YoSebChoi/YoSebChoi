@@ -150,6 +150,42 @@ const browser = await chromium.launch();
   await page.close();
 }
 
+// 4. the complex list comes back empty but the map shows listings: the app reads them from the map,
+//    keeps only this complex's, and points the background check at the map list
+{
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  page.on("pageerror", e => fail.push("map list: page error: " + e.message));
+  await page.addInitScript(() => {
+    const art = (no, o = {}) => ({ atclNo: no, atclNm: "동탄시범한빛마을KCC스위첸", tradTpCd: "A1", bildNm: "101동", flrInfo: "13/25", spc1: "106.3", spc2: "84.65",
+      prc: 85000, hanPrc: "8억 5,000", direction: "남향", rltrNm: "한빛공인", ...o });
+    window.__urls = [];
+    const AptNet = {
+      async get({ url }) {
+        window.__urls.push(url);
+        if (url.includes("complexList")) return { status: 200, body: JSON.stringify({ result: [
+          { hscpNo: "1001", hscpNm: "동탄시범한빛마을KCC스위첸", totHsehCnt: 484, lat: 37.2046, lng: 127.0731, dealCnt: 3 }] }) };
+        if (url.includes("getComplexArticleList")) return { status: 200, body: JSON.stringify({ code: "success", result: { list: [], moreDataYn: "N", totAtclCnt: 0 } }) };
+        if (url.includes("cluster/ajax/articleList")) return { status: 200, body: JSON.stringify({ code: "success", more: false, body: [
+          art("1"), art("2", { bildNm: "103동", flrInfo: "5/25" }), art("3", { bildNm: "104동", flrInfo: "7/25" }),
+          art("8", { atclNm: "동탄시범한빛마을동탄아이파크", bildNm: "201동" })] }) };
+        return { status: 404, body: "" };
+      },
+      async schedule(o) { window.__scheduled = o; }, async collect() { return { snapshots: [] }; },
+    };
+    window.Capacitor = { isNativePlatform: () => true, Plugins: { AptNet, App: { addListener() {}, getInfo: async () => ({ build: "999" }) } } };
+  });
+  await page.goto("http://localhost:8766/apt/", { waitUntil: "networkidle" });
+  await page.waitForFunction(() => window.__scheduled, null, { timeout: 30000 }).catch(() => {});
+  const s = await page.evaluate(() => window.__aptwatch.S);
+  const units = Object.values(s.units).filter(u => u.cx === "1001");
+  if (units.length !== 3) fail.push(`map list: expected KCC's 3 flats (not the neighbour's), got ${units.length}`);
+  const snap = s.snaps.filter(x => x.cx === "1001").at(-1);
+  if (!snap || snap.src !== "지도") fail.push("map list: snapshot not marked 지도: " + JSON.stringify(snap));
+  const job = (await page.evaluate(() => window.__scheduled))?.jobs?.find(j => j.cx === "1001");
+  if (!job || !job.url.includes("articleList") || job.hscpNo !== "1001") fail.push("map list: background job not on the map list: " + JSON.stringify(job));
+  await page.close();
+}
+
 await browser.close();
 server.close();
 if (fail.length) { console.error(fail.join("\n")); process.exit(1); }
