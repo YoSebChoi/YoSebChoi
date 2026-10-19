@@ -304,6 +304,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   // where this complex's listings were last found: "지도" when the complex list came back empty
   const srcOf = no => ([...S.snaps].reverse().find(s => s.cx === String(no) && s.ok) || {}).src || "단지";
 
+  let lastDiscover = 0;
   // → {articles, src}: the complex list, or the map list when the first is empty
   async function fetchListings(no, maxPages = 10) {
     let list = [], complexErr = null;
@@ -312,8 +313,10 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     if (maxPages === 1) throw complexErr;
     const key = keyOfNo(no);
     let link = key && cfg.links[key];
-    if (link && !(link.lat && link.lng)) {
-      try { await sleep(1000); autoLink(await discover()); link = cfg.links[key]; } catch (e) { /* no coordinates: keep the empty answer */ }
+    // coordinates come from the complex search, once per refresh for all complexes
+    if (link && !(link.lat && link.lng) && Date.now() - lastDiscover > 10 * 60e3) {
+      lastDiscover = Date.now();
+      try { await sleep(1000); found = await discover(); autoLink(found); link = cfg.links[key]; } catch (e) { /* no coordinates: keep the empty answer */ }
     }
     if (!link || !(link.lat && link.lng)) {
       if (complexErr) throw new Error(`${complexErr.message} (지도 목록은 단지 좌표가 없어 못 읽었어요: 설정 → 주변 단지 찾기)`);
@@ -342,7 +345,12 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     const add = list => list.forEach(f => all.has(f.no) || all.set(f.no, f));
     const first = await discoverBox(center, 0.012);
     add(first);
-    const missing = () => DATA.complexes.some(c => !cfg.links[c.key]?.no && ![...all.values()].some(f => ours(c, f)));
+    // ours not found yet: unlinked and no match, or linked without coordinates and its number not seen
+    const missing = () => DATA.complexes.some(c => {
+      const l = cfg.links[c.key];
+      if (l?.no) return !(l.lat && l.lng) && !all.has(String(l.no));
+      return ![...all.values()].some(f => ours(c, f));
+    });
     if (first.length >= 20 && missing()) {
       const hb = [...all.values()].filter(f => /한빛/.test(f.name) && f.lat && f.lng);
       const mid = hb.length ? { lat: hb.reduce((a, f) => a + f.lat, 0) / hb.length, lng: hb.reduce((a, f) => a + f.lng, 0) / hb.length } : center;
