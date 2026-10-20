@@ -162,6 +162,8 @@ public class SnapshotWorker extends Worker {
         }
         StringBuilder news = new StringBuilder();
         JSONArray runLog = new JSONArray();
+        StringBuilder morning = new StringBuilder();
+        boolean daily = getInputData().getBoolean("daily", false);
         prefs.edit().putLong("last_start", System.currentTimeMillis()).apply();
         for (int i = 0; i < jobs.length(); i++) {
             JSONObject job = jobs.optJSONObject(i);
@@ -243,6 +245,14 @@ public class SnapshotWorker extends Worker {
                 }
             }
             try {
+                if (err == null) {
+                    long[] sum = summary(articles);
+                    morning.append(job.optString("name", cx)).append(" ").append(sum[0]).append("집")
+                        .append(sum[1] > 0 ? " · 최저 " + won(sum[1]) : "")
+                        .append(" · ").append(change == null ? "변화 없음" : change).append("\n");
+                } else {
+                    morning.append(job.optString("name", cx)).append(" · 확인 못 함 (").append(err).append(")\n");
+                }
                 runLog.put(new JSONObject().put("name", job.optString("name", cx)).put("ok", err == null)
                     .put("count", articles.length()).put("err", err == null ? "" : err).put("change", change == null ? "" : change));
             } catch (Exception ignored) {
@@ -269,6 +279,14 @@ public class SnapshotWorker extends Worker {
             text = t.toString().trim();
             want = true;
         }
+        // the morning summary (설정 → 매일 아침 요약): always, with or without changes; then the next morning is booked
+        if (daily) {
+            if (prefs.getBoolean("daily_on", true)) {
+                text = ("아침 매물 요약\n" + (morning.length() > 0 ? morning.toString() : "확인할 단지가 없어요 (앱에서 단지를 연결해 주세요)")).trim();
+                want = true;
+            }
+            scheduleDaily(ctx);
+        }
         boolean sent = want && notifyChanges(ctx, text);
         // what this run did, for 설정 → 백그라운드 확인 (AptNet.workerStatus)
         try {
@@ -286,6 +304,51 @@ public class SnapshotWorker extends Worker {
         Arrays.sort(files, (a, b) -> a.getName().compareTo(b.getName()));
         for (int i = 0; i < files.length - KEEP_FILES; i++) //noinspection ResultOfMethodCallIgnored
             files[i].delete();
+    }
+
+    static final String DAILY = "aptwatch-daily";
+
+    /** Books the next morning summary at the hour set in 설정 (prefs daily_hour/daily_minute, 9:00 by default),
+     *  or cancels it when it is turned off. A one-time job each day, booked again by the run itself. */
+    static void scheduleDaily(Context ctx) {
+        SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        androidx.work.WorkManager wm = androidx.work.WorkManager.getInstance(ctx);
+        if (!prefs.getBoolean("daily_on", true)) { wm.cancelUniqueWork(DAILY); return; }
+        java.util.Calendar next = java.util.Calendar.getInstance();
+        next.set(java.util.Calendar.HOUR_OF_DAY, prefs.getInt("daily_hour", 9));
+        next.set(java.util.Calendar.MINUTE, prefs.getInt("daily_minute", 0));
+        next.set(java.util.Calendar.SECOND, 0);
+        next.set(java.util.Calendar.MILLISECOND, 0);
+        if (next.getTimeInMillis() <= System.currentTimeMillis() + 60_000) next.add(java.util.Calendar.DAY_OF_MONTH, 1);
+        androidx.work.OneTimeWorkRequest req = new androidx.work.OneTimeWorkRequest.Builder(SnapshotWorker.class)
+            .setInitialDelay(next.getTimeInMillis() - System.currentTimeMillis(), java.util.concurrent.TimeUnit.MILLISECONDS)
+            .setInputData(new androidx.work.Data.Builder().putBoolean("daily", true).build())
+            .setConstraints(new androidx.work.Constraints.Builder().setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build())
+            .build();
+        wm.enqueueUniqueWork(DAILY, androidx.work.ExistingWorkPolicy.REPLACE, req);
+        prefs.edit().putLong("daily_next", next.getTimeInMillis()).apply();
+    }
+
+    /** {flats, lowest price in 만원} of one complex's listings, flats grouped as in compare. */
+    static long[] summary(JSONArray articles) {
+        java.util.Set<String> flats = new java.util.HashSet<>();
+        long min = 0;
+        for (int k = 0; k < articles.length(); k++) {
+            JSONObject a = articles.optJSONObject(k);
+            if (a == null) continue;
+            flats.add(unitKey(a));
+            long p = a.optLong("prc", 0);
+            if (p > 1_000_000L) p = Math.round(p / 10000.0);
+            if (p > 0 && (min == 0 || p < min)) min = p;
+        }
+        return new long[]{flats.size(), min};
+    }
+
+    /** 85000 → "8억 5,000" */
+    static String won(long manwon) {
+        long eok = manwon / 10000, rest = manwon % 10000;
+        if (eok == 0) return String.format(java.util.Locale.KOREA, "%,d만", rest);
+        return rest == 0 ? eok + "억" : String.format(java.util.Locale.KOREA, "%d억 %,d", eok, rest);
     }
 
     /** A listing in another shape → the fields the page and the comparison use (map: field → path). */
@@ -380,15 +443,15 @@ public class SnapshotWorker extends Worker {
         }
         Intent open = ctx.getPackageManager().getLaunchIntentForPackage(ctx.getPackageName());
         PendingIntent pi = PendingIntent.getActivity(ctx, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        boolean test = text.startsWith("시험 결과");
+        boolean test = text.startsWith("시험 결과"), am = text.startsWith("아침 매물 요약");
         String[] lines = text.split("\n");
-        String first = test && lines.length > 1 ? lines[1] : lines[0];
+        String first = (test || am) && lines.length > 1 ? lines[1] : lines[0];
         NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_apt)
             .setColor(0xFF2F5D8A)
-            .setContentTitle(test ? "백그라운드 확인 시험" : "매물에 변화가 있어요")
+            .setContentTitle(test ? "백그라운드 확인 시험" : am ? "아침 매물 요약" : "매물에 변화가 있어요")
             .setContentText(first)
-            .setStyle(new NotificationCompat.BigTextStyle().bigText(test ? text : text + "\n사라진 집은 거래됐을 수 있어요. 열어서 확인해 보세요."))
+            .setStyle(new NotificationCompat.BigTextStyle().bigText(test || am ? text.substring(text.indexOf('\n') + 1) : text + "\n사라진 집은 거래됐을 수 있어요. 열어서 확인해 보세요."))
             .setContentIntent(pi)
             .setAutoCancel(true);
         try {

@@ -132,6 +132,21 @@ public class MainActivity extends BridgeActivity {
             call.resolve();
         }
 
+        /** AptNet.daily({on, hour, minute}) → {next}: the morning summary, every day at that time (9:00 by default),
+         *  with or without changes; next is when the next one is booked (ms). */
+        @PluginMethod
+        public void daily(PluginCall call) {
+            Context ctx = getContext();
+            ctx.getSharedPreferences(SnapshotWorker.PREFS, Context.MODE_PRIVATE).edit()
+                .putBoolean("daily_on", call.getBoolean("on", true))
+                .putInt("daily_hour", call.getInt("hour", 9))
+                .putInt("daily_minute", call.getInt("minute", 0)).apply();
+            SnapshotWorker.scheduleDaily(ctx);
+            JSObject r = new JSObject();
+            r.put("next", ctx.getSharedPreferences(SnapshotWorker.PREFS, Context.MODE_PRIVATE).getLong("daily_next", 0));
+            call.resolve(r);
+        }
+
         /** AptNet.testNotify({text}) → {sent}: the change notification right away, as the background check posts it. */
         @PluginMethod
         public void testNotify(PluginCall call) {
