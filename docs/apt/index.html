@@ -761,10 +761,29 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     el.innerHTML = cxChips(sel, true) +
       `<div class="chips">${[["all", "전체"], ["거래 추정", "거래 추정"], ["실거래 확인", "실거래 확인"], ["재등록", "재등록"]].map(([k, l]) =>
         `<button class="chip" data-gf="${k}" aria-pressed="${goneFilter === k}">${l} ${counts[k]}</button>`).join("")}</div>
+      ${watching(sel)}
       <div class="card">${rows || `<div class="empty">아직 사라진 매물이 없어요.<br>매일 한 번쯤 앱을 열거나 백그라운드 확인을 켜 두면 기록이 쌓여요.</div>`}</div>` + explainGone();
     bindChips(el, "cx", v => { filterCx = v || null; renderGone(); });
     bindChips(el, "gf", v => { goneFilter = v; renderGone(); });
     el.querySelectorAll("[data-gone]").forEach(r => r.addEventListener("click", () => openUnit(r.dataset.gone)));
+  }
+
+  // flats missing from the latest checks but not yet long enough to be 「거래 추정」 (what a 「사라짐」 alert is about)
+  function watching(sel) {
+    const now = Date.now();
+    const us = Object.values(S.units).filter(u => u.misses > 0 && keyOfNo(u.cx) && (!sel || u.cx === sel))
+      .sort((a, b) => a.lastSeen - b.lastSeen);
+    if (!us.length) return "";
+    return `<div class="card"><h2>지켜보는 중 <span class="muted small">${us.length}집</span></h2>
+      <div class="tiny muted" style="margin-bottom:4px">최근 확인에서 안 보인 집이에요. 두 번 연속, 20시간 넘게 안 보이면 「거래 추정」으로 옮겨요. 그 전에 다시 보이면 목록에 그대로 있어요.</div>
+      ${us.map(u => {
+        const h = Math.floor((now - u.lastSeen) / 3600e3), left = Math.max(0, 20 - h);
+        return `<div class="row tap" data-gone="${esc(u.key)}"><div class="main">
+          <div><span class="badge b-back">안 보임</span> <b class="price" style="font-size:15px">${fmt(u.lastPrice)}</b></div>
+          <div class="meta">${esc(nameOfNo(u.cx))} ${esc(unitLabel(u))} · ${esc(sizeLabel(u.area, u.supply))}</div>
+          <div class="meta tiny">${h}시간째 안 보여요 (확인 ${u.misses}번)${u.misses >= 2 && left === 0 ? " · 다음 확인에서 거래 추정" : ` · ${u.misses < 2 ? "한 번 더 확인하고" : ""}${left ? ` 약 ${left}시간 뒤` : ""} 거래 추정`}</div></div>
+          <div class="side muted">${dshort(u.lastSeen)}</div></div>`;
+      }).join("")}</div>`;
   }
 
   function explainGone() {
@@ -900,7 +919,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <details class="small" ${snaps[0] && !snaps[0].ok ? "open" : ""}><summary>최근 확인 기록</summary><ul class="list-plain">${snaps.map(s => `<li>${dfull(s.t)} ${new Date(s.t).toTimeString().slice(0, 5)} ${esc(s.cx === "discover" ? "단지 찾기" : nameOfNo(s.cx))}: ${s.ok ? (s.cx === "discover" ? `단지 ${s.count}곳, 새로 연결 ${s.units}` : `매물 ${s.count}건 (${s.units}집)${s.src === "지도" ? " · 지도 목록" : s.src === "fin" ? " · 새 네이버 목록" : ""}`) : `<span class="up">${esc(s.err)}</span>`}</li>`).join("") || "<li>아직 없어요</li>"}</ul></details>
         <details class="small"><summary>네트워크 진단 (네이버 답 ${netlog.length}개)</summary><ul class="list-plain">${netlog.slice().reverse().map(n => `<li>${new Date(n.t).toTimeString().slice(0, 5)} ${esc(n.path)} → ${n.err ? `<span class="up">${esc(n.err)}</span>` : `HTTP ${n.status}${n.location ? " → " + esc(n.location) : ""}`}<div class="tiny muted" style="word-break:break-all">${esc(n.head)}</div></li>`).join("") || "<li>아직 없어요</li>"}</ul></details>` : ""}
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 27ae85a8d5</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 478707a247</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -1112,7 +1131,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "27ae85a8d5" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "478707a247" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }

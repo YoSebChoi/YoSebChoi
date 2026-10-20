@@ -65,6 +65,7 @@ const browser = await chromium.launch();
       1: [art("3", { bildNm: "103동", flrInfo: "5/25", prc: 77000, hanPrc: "7억 7,000" }), art("4", { bildNm: "105동", flrInfo: "고/25", prc: 92000, hanPrc: "9억 2,000" })],
       2: [art("3", { bildNm: "103동", flrInfo: "5/25", prc: 77000, hanPrc: "7억 7,000" })],
       3: [art("3", { bildNm: "103동", flrInfo: "5/25", prc: 77000, hanPrc: "7억 7,000" }), art("9", { bildNm: "105동", flrInfo: "고/25", prc: 90000, hanPrc: "9억", rltrNm: "새공인" })],
+      4: [art("9", { bildNm: "105동", flrInfo: "고/25", prc: 90000, hanPrc: "9억", rltrNm: "새공인" })],
     };
     window.__phase = 0;
     window.__calls = [];
@@ -125,6 +126,13 @@ const browser = await chromium.launch();
     await page.screenshot({ path: new URL(`./app-${t}.png`, import.meta.url).pathname, fullPage: true });
   }
   if (!(await page.locator("#panel-gone .badge.b-ok").count())) fail.push("app: no 실거래 확인 badge on 거래 추정 tab");
+  // one more check without 103동: it is watched, not yet gone
+  await page.evaluate(() => { window.__phase = 2; });
+  await page.evaluate(() => { const S = window.__aptwatch.S; Object.values(S.units).forEach(u => { if (u.dong === "103동") u.misses = 0; }); });
+  await page.evaluate(() => { window.__phase = 4; });
+  await page.clock.setSystemTime(t0 + 6.2 * DAY); await run();
+  await page.click("#tab-home"); await page.click("#tab-gone");
+  if (!(await page.locator("#panel-gone", { hasText: "지켜보는 중" }).count())) fail.push("app: 지켜보는 중 not shown for a flat missing once");
   await page.click("#settingsBtn");
   await page.screenshot({ path: new URL("./app-settings.png", import.meta.url).pathname, fullPage: true });
 }
