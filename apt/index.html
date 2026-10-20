@@ -761,10 +761,29 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     el.innerHTML = cxChips(sel, true) +
       `<div class="chips">${[["all", "전체"], ["거래 추정", "거래 추정"], ["실거래 확인", "실거래 확인"], ["재등록", "재등록"]].map(([k, l]) =>
         `<button class="chip" data-gf="${k}" aria-pressed="${goneFilter === k}">${l} ${counts[k]}</button>`).join("")}</div>
+      ${watching(sel)}
       <div class="card">${rows || `<div class="empty">아직 사라진 매물이 없어요.<br>매일 한 번쯤 앱을 열거나 백그라운드 확인을 켜 두면 기록이 쌓여요.</div>`}</div>` + explainGone();
     bindChips(el, "cx", v => { filterCx = v || null; renderGone(); });
     bindChips(el, "gf", v => { goneFilter = v; renderGone(); });
     el.querySelectorAll("[data-gone]").forEach(r => r.addEventListener("click", () => openUnit(r.dataset.gone)));
+  }
+
+  // flats missing from the latest checks but not yet long enough to be 「거래 추정」 (what a 「사라짐」 alert is about)
+  function watching(sel) {
+    const now = Date.now();
+    const us = Object.values(S.units).filter(u => u.misses > 0 && keyOfNo(u.cx) && (!sel || u.cx === sel))
+      .sort((a, b) => a.lastSeen - b.lastSeen);
+    if (!us.length) return "";
+    return `<div class="card"><h2>지켜보는 중 <span class="muted small">${us.length}집</span></h2>
+      <div class="tiny muted" style="margin-bottom:4px">최근 확인에서 안 보인 집이에요. 두 번 연속, 20시간 넘게 안 보이면 「거래 추정」으로 옮겨요. 그 전에 다시 보이면 목록에 그대로 있어요.</div>
+      ${us.map(u => {
+        const h = Math.floor((now - u.lastSeen) / 3600e3), left = Math.max(0, 20 - h);
+        return `<div class="row tap" data-gone="${esc(u.key)}"><div class="main">
+          <div><span class="badge b-back">안 보임</span> <b class="price" style="font-size:15px">${fmt(u.lastPrice)}</b></div>
+          <div class="meta">${esc(nameOfNo(u.cx))} ${esc(unitLabel(u))} · ${esc(sizeLabel(u.area, u.supply))}</div>
+          <div class="meta tiny">${h}시간째 안 보여요 (확인 ${u.misses}번)${u.misses >= 2 && left === 0 ? " · 다음 확인에서 거래 추정" : ` · ${u.misses < 2 ? "한 번 더 확인하고" : ""}${left ? ` 약 ${left}시간 뒤` : ""} 거래 추정`}</div></div>
+          <div class="side muted">${dshort(u.lastSeen)}</div></div>`;
+      }).join("")}</div>`;
   }
 
   function explainGone() {
