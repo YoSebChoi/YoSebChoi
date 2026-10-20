@@ -219,7 +219,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   /* ===================== state ===================== */
   // the listing history lives only on this phone (aw-state); aw-cfg holds which Naver complexes are ours
   let S = lget("aw-state", null) || T.emptyState();
-  let cfg = Object.assign({ links: {}, hours: 12, notify: true, scheduled: "" }, lget("aw-cfg", {}));
+  let cfg = Object.assign({ links: {}, hours: 12, notify: true, scheduled: "", daily: true, dailyAt: "09:00" }, lget("aw-cfg", {}));
   let DATA = { complexes: [], trades: [], blog: [], otherNames: [] };
   const saveState = () => { if (!lset("aw-state", S)) toast("저장 공간이 부족해요. 설정에서 기록을 내보내 두세요."); };
   const saveCfg = () => lset("aw-cfg", cfg);
@@ -596,6 +596,12 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       cfg.askedNotify = true; saveCfg();
       try { await ncall("LocalNotifications", "requestPermissions"); } catch (e) {}
     }
+    // the morning summary: each run books the next day itself; booking it again on every opening (same time,
+    // replaced) keeps the chain going even if a run was killed
+    {
+      const [hour, minute] = cfg.dailyAt.split(":").map(Number);
+      try { await ncall("AptNet", "daily", { on: cfg.daily, hour, minute }); } catch (e) { /* older app */ }
+    }
     if (sig === cfg.scheduled) return;
     try { await ncall("AptNet", "schedule", { jobs, hours: cfg.hours, notify: cfg.notify }); cfg.scheduled = sig; saveCfg(); } catch (e) { /* older app */ }
   }
@@ -914,6 +920,9 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
           <select id="hoursSel">${[[0, "끄기 (앱을 열 때만)"], [6, "6시간마다"], [12, "12시간마다 (추천)"], [24, "하루 한 번"]].map(([v, l]) => `<option value="${v}" ${cfg.hours === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <label class="switch small"><input type="checkbox" id="notifyChk" ${cfg.notify ? "checked" : ""}> 매물에 변화가 있으면 알림 받기 (사라짐 · 새 매물 · 가격 내림)</label>
         <div class="tiny muted">앱을 닫아 둔 동안 확인할 때마다 지난번과 비교해서 알려 줘요. 맨 처음 확인은 기준만 잡아요.</div>
+        <label class="switch small"><input type="checkbox" id="dailyChk" ${cfg.daily ? "checked" : ""}> 매일 아침 요약 알림 (변화가 없어도 단지별 매물 수·최저 호가·변화)</label>
+        <label class="field">요약 시간
+          <select id="dailyAt">${["07:00", "08:00", "09:00", "10:00", "12:00", "18:00", "21:00"].map(t => `<option ${cfg.dailyAt === t ? "selected" : ""}>${t}</option>`).join("")}</select></label>
         <div class="btns" style="margin-top:8px">
           <button class="btn ghost small" id="runNowBtn">지금 한 번 확인해 보기</button>
           <button class="btn ghost small" id="testNotifyBtn">알림 바로 보내 보기</button>
@@ -931,7 +940,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       <label class="field">화면 밝기
         <select id="themeSel">${[["light", "밝게"], ["dark", "어둡게"], ["auto", "폰 설정 따라"]].map(([v, l]) => `<option value="${v}" ${(lget("aw-theme", "light")) === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 39fc191a3d</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 996cd26f3c</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -961,6 +970,8 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       try { const ls = (await fetchListings(no, 1)).articles; name = ls[0]?.atclNm || ""; } catch (e) { /* still link it */ }
       cfg.links[key] = { no, name }; saveCfg(); toast(`${byKey(key).name} ← ${name || no}`); renderSettings(); refresh(true);
     };
+    $("#dailyChk").onchange = e => { cfg.daily = e.target.checked; saveCfg(); scheduleBackground(); };
+    $("#dailyAt").onchange = e => { cfg.dailyAt = e.target.value; saveCfg(); scheduleBackground(); toast(`매일 ${cfg.dailyAt}에 요약을 보내요`); };
     $("#hoursSel").onchange = e => { cfg.hours = +e.target.value; saveCfg(); scheduleBackground(); };
     $("#notifyChk").onchange = async e => {
       cfg.notify = e.target.checked; saveCfg();
@@ -1149,7 +1160,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "39fc191a3d" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "996cd26f3c" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }
