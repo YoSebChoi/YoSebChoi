@@ -1,6 +1,6 @@
 """data/hcg_log.csv → 피검 수치 보고서(그룹별 일자별 수치, 내 수치의 위치, 비슷한 케이스의 결과 확률)
 
-사용: python hcg_report.py --mine 9:90,14:1695 [--transfer 2026-09-30 --embryo 5 --scan 2026-10-21] [--out ...]
+사용: python hcg_report.py --mine 9:90,14:1695 [--transfer 2026-09-30 --embryo 5 --scan 2026-10-21 --seen '아기집 확인 1.02cm' --next 2026-11-05] [--out ...]
 --mine 은 5일배 기준 경과일(이식일 = 0일):수치. 개인 수치가 들어간 결과 파일은 커밋하지 않는다(.gitignore).
 """
 import argparse
@@ -136,7 +136,7 @@ def gw(g):
     return f"{g // 7}주 {g % 7}일"
 
 
-def schedule(sim_ids, birth_ids, miles, transfer, embryo, scan):
+def schedule(sim_ids, birth_ids, miles, transfer, embryo, scan, nxt=None, seen=""):
     """첫 확인 주수를 우리 날짜로 옮긴 예상 일정. 기준: 심장소리 → 출산 케이스(비슷한 수치 / 전체), 심장소리 확인 전체."""
     ga0 = 14 + embryo
     day = lambda g: transfer + datetime.timedelta(days=g - ga0)
@@ -146,6 +146,7 @@ def schedule(sim_ids, birth_ids, miles, transfer, embryo, scan):
     sets = [("출산 · 비슷한 수치", [r for r in born if r["case_id"] in sim_ids]), ("출산 케이스 전체", born),
             ("심장소리 확인 전체", hb)]
     sg = ga0 + (scan - transfer).days if scan else None
+    ng = ga0 + (nxt - transfer).days if nxt else None
     vals = lambda rs, k: sorted(ga_of(r[k]) for r in rs if ga_of(r[k]))
 
     def first_any(r):
@@ -173,12 +174,23 @@ def schedule(sim_ids, birth_ids, miles, transfer, embryo, scan):
     table = (f'<div class="tbl"><table><thead><tr><th>첫 확인 (중앙값 · 가운데 50% · 건수)</th>{head}</tr></thead>'
              f'<tbody>{"".join(t1)}</tbody></table></div>')
     if sg:
-        table += (f'<h3>{scan.month}/{scan.day} 초음파({gw(sg)})에서 볼 확률</h3>'
+        table += (f'<h3>{scan.month}/{scan.day} 초음파({gw(sg)}) — 다른 케이스는 이 주수까지 무엇을 봤나'
+                  + (f' · <span style="color:var(--hb)">우리 결과: {html.escape(seen)}</span>' if seen else "") + '</h3>'
                   f'<div class="tbl"><table><thead><tr><th>그 주수까지 초음파를 본 케이스 중 확인 비율</th>{head}</tr></thead>'
                   f'<tbody>{"".join(t2)}</tbody></table></div>')
 
+    if ng:
+        cells = []
+        for _, rs in sets:
+            v = vals(rs, "hb")
+            ok = sum(x <= ng for x in v)
+            cells.append(f'<td class="num"><b>{pct(ok / len(v)) if v else "—"}</b> <span class="muted">{ok}/{len(v)}</span></td>')
+        table += (f'<h3>{nxt.month}/{nxt.day} 심장소리 예정({gw(ng)}) — 이 주수까지 심장을 처음 확인한 비율</h3>'
+                  f'<div class="tbl"><table><thead><tr><th>심장소리 확인 케이스 중</th>{head}</tr></thead>'
+                  f'<tbody><tr><td>심장</td>{"".join(cells)}</tr></tbody></table></div>')
+
     # 누적 곡선: 실선 = 출산 케이스 전체, 점선 = 심장소리 확인 전체
-    g0, g1 = ga0 + 14, ga0 + 35
+    g0, g1 = ga0 + 14, max(ga0 + 35, (ng or 0) + 3)
     w, h, left, right, top, bottom = 680, 250, 44, 20, 14, 46
     x = lambda g: left + (w - left - right) * (g - g0) / (g1 - g0)
     y = lambda p: top + (h - top - bottom) * (1 - p)
@@ -198,13 +210,16 @@ def schedule(sim_ids, birth_ids, miles, transfer, embryo, scan):
     if sg and g0 <= sg <= g1:
         p.append(f'<line x1="{x(sg):.1f}" y1="{top}" x2="{x(sg):.1f}" y2="{h - bottom}" style="stroke:var(--fg);stroke-width:1.5;stroke-dasharray:4 3"/>'
                  f'<text x="{x(sg) + 6:.1f}" y="{top + 12}" class="val">초음파 {md(sg)}</text>')
+    if ng and g0 <= ng <= g1:
+        p.append(f'<line x1="{x(ng):.1f}" y1="{top}" x2="{x(ng):.1f}" y2="{h - bottom}" style="stroke:var(--hb);stroke-width:1.5;stroke-dasharray:4 3"/>'
+                 f'<text x="{x(ng) - 6:.1f}" y="{top + 12}" class="val" text-anchor="end">심장 예정 {md(ng)}</text>')
     p.append("</svg>")
     legend = '<div class="legend">' + "".join(f'<span><i style="background:{c}"></i>{n}</span>' for _, n, c in MS) + \
              '<span>실선: 출산 케이스 · 점선: 심장소리 확인 전체 · 그 날까지 처음 확인한 비율</span></div>'
     return table, legend + "".join(p), sg
 
 
-def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None):
+def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None, nxt=None, seen=""):
     allv = [r for r in rows if r["values"]]
     slopes = [s for r in allv if r["group"] != "무심장" for s in [case_slope(parse(r["values"]))] if s and s > 0]
     S = statistics.median(slopes)
@@ -273,6 +288,12 @@ def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None):
 
     hb_sim = rate(*P_sim["hb"])
     p_birth = hb_sim[0] * p_birth_given_hb
+    # 초음파에서 자궁 안 아기집을 확인했다면: 심장소리 ÷ (심장소리 + 아기집만 계류)
+    sac_seen = "아기집" in seen
+    hb_sac_sim = (P_sim["hb"][0], P_sim["hb"][0] + P_sim["miss"])
+    hb_sac_all = (P_all["hb"][0], P_all["hb"][0] + P_all["miss"])
+    hs = rate(*hb_sac_sim)
+    p_birth_sac = hs[0] * p_birth_given_hb
     today = datetime.date.today().isoformat()
     legend = ('<div class="legend">' + f'<span><i style="background:var(--accent)"></i>심장소리 들음 (출산·유산·진행 모두)</span>'
               f'<span><i style="background:var(--low)"></i>심장소리 못 들음</span><span><i style="background:var(--fg)"></i>우리 수치</span>'
@@ -328,8 +349,8 @@ def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None):
     birth_status = {r["case_id"]: r["status"] for r in read_csv(os.path.join(DATA, "birth_log.csv"))}
     if transfer:
         table, chart, sg = schedule({r["case_id"] for r in sim}, {c for c, st in birth_status.items() if st == "출산"},
-                                    miles, transfer, embryo, scan)
-        scan_txt = (f"<p class=\"note\">{scan.month}/{scan.day} 초음파는 <b>임신 {gw(sg)}</b>입니다. 아래 표는 그 주수까지 초음파를 한 번이라도 본 케이스 중 해당 항목을 확인한 비율입니다(블로그에 안 적었을 뿐 본 경우가 있어 실제보다 낮게 나올 수 있음).</p>"
+                                    miles, transfer, embryo, scan, nxt, seen)
+        scan_txt = (f"<p class=\"note\">{scan.month}/{scan.day} 초음파는 <b>임신 {gw(sg)}</b>입니다. 위 표의 확인 비율은 그 주수까지 초음파를 한 번이라도 본 케이스 중 해당 항목을 확인한 비율입니다(블로그에 안 적었을 뿐 본 경우가 있어 실제보다 낮게 나올 수 있음).</p>"
                     if scan else "")
         sched_html = f"""<section>
   <h2>3. 예상 일정: 아기집·난황·심장</h2>
@@ -359,8 +380,8 @@ def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None):
 <div class="kpis">
   <div class="kpi"><b>{pct(pctile(hb_all[d2], mine[d2]) / 100)}</b><span>{d2}일 수치 위치 (심장소리 들은 케이스 중 백분위)</span></div>
   <div class="kpi"><b>{f'{dt_mine:.1f}일' if dt_mine else '—'}</b><span>우리 더블링 시간 (심장소리 케이스 중앙값 {dt_hb:.1f}일)</span></div>
-  <div class="kpi"><b>{pct(hb_sim[0])}</b><span>심장소리 확률 (비슷한 {d2}일 수치 {P_sim['n']}건)</span></div>
-  <div class="kpi"><b>{pct(p_birth)}</b><span>출산 확률 (추정)</span></div>
+  <div class="kpi"><b>{pct(hs[0] if sac_seen else hb_sim[0])}</b><span>심장소리 확률 ({"아기집 확인 후, " if sac_seen else ""}비슷한 {d2}일 수치)</span></div>
+  <div class="kpi"><b>{pct(p_birth_sac if sac_seen else p_birth)}</b><span>출산 확률 (추정{", 아기집 확인 후" if sac_seen else ""})</span></div>
 </div>
 
 <div class="key"><b>핵심 결과</b>
@@ -369,6 +390,8 @@ def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None):
   <li><b>{d2}일 {fmtn(mine[d2])}</b>은 심장소리를 들은 케이스 중 상위 {pct(1 - pctile(hb_all[d2], mine[d2]) / 100)}, 심장소리를 못 들은 케이스 중에서는 {pct(pctile(by['무심장'][d2], mine[d2]) / 100)} 위치입니다. 더블링 {f'{dt_mine:.2f}일' if dt_mine else '—'}은 심장소리 케이스 중앙값({dt_hb:.2f}일)보다 빠릅니다.</li>
   <li>{d2}일 수치가 비슷했던(×0.5~×2) {P_sim['n']}건 중 <b>{P_sim['hb'][0]}건({pct(hb_sim[0])})이 심장소리</b>를 들었습니다. 수치 하나로 본 모델 추정은 {pct(lg[0])} (95% {pct(lg[1])}–{pct(lg[2])})입니다.</li>
   <li>심장소리를 들은 뒤 출산 비율 {pct(p_birth_given_hb)}({birth_src})를 곱하면 <b>출산까지 약 {pct(p_birth)}</b>입니다.</li>
+  {f"<li><b>{scan.month}/{scan.day} 초음파: {html.escape(seen)}</b>. 자궁 안 아기집을 확인해 자궁외 임신·화학적 유산 가능성이 빠졌습니다. 비슷한 수치에서 아기집을 본 {hb_sac_sim[1]}건 중 {hb_sac_sim[0]}건이 심장소리를 들어 <b>심장소리 {pct(hs[0])}, 출산까지 약 {pct(p_birth_sac)}</b>로 올라갑니다.</li>" if sac_seen and scan else ""}
+  {f"<li>{nxt.month}/{nxt.day} 심장소리 예정일은 임신 {gw(14 + embryo + (nxt - transfer).days)}로, 심장소리를 들은 케이스 대부분이 이미 첫 확인을 마친 시점입니다.</li>" if nxt and transfer else ""}
 </ul></div>
 
 <section>
@@ -387,7 +410,9 @@ def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None):
   {prob_row("난황 확인", P_sim["yolk"], P_all["yolk"], "심장소리 + 계류 중 난황 기록")}
   {prob_row("심장소리 확인", P_sim["hb"], P_all["hb"], f"모델 {pct(lg[0])} ({pct(lg[1])}–{pct(lg[2])}), {d1}일 값만으로는 {pct(lg1[0])}")}
   {prob_row("심장소리 후 출산", born_sim, born_all, "예정일 지난 케이스 중 출산 ÷ (출산+유산)")}
-  <tr class="total"><td><b>출산까지</b></td><td class="num"><b>{pct(p_birth)}</b></td><td class="num">{pct(rate(*P_all['hb'])[0] * born_all[0] / born_all[1])}</td><td class="muted">심장소리 확률 × 심장소리 후 출산 비율({birth_src})</td></tr>
+  {(prob_row(f"{scan.month}/{scan.day} 아기집 확인 후 → 심장소리", hb_sac_sim, hb_sac_all, "심장소리 ÷ (심장소리 + 아기집만 계류)") if sac_seen and scan else "")}
+  {(f'<tr class="total"><td><b>아기집 확인 후 출산까지</b></td><td class="num"><b>{pct(p_birth_sac)}</b></td><td class="num">{pct(rate(*hb_sac_all)[0] * born_all[0] / born_all[1])}</td><td class="muted">아기집 확인 후 심장소리 × 심장소리 후 출산</td></tr>') if sac_seen and scan else ""}
+  <tr class="total"><td><b>출산까지 (피검만 기준)</b></td><td class="num"><b>{pct(p_birth)}</b></td><td class="num">{pct(rate(*P_all['hb'])[0] * born_all[0] / born_all[1])}</td><td class="muted">심장소리 확률 × 심장소리 후 출산 비율({birth_src})</td></tr>
   </tbody></table></div>
   <h3>조건을 바꿔 본 경우 (비슷한 케이스 중)</h3>{sens_table()}
   <p class="note">비슷한 케이스에서 심장소리를 못 들은 경우: 계류 {P_sim['miss']}건, 화학적 유산 {P_sim['chem']}건, 자궁외 {P_sim['ect']}건.</p></div>
@@ -426,7 +451,9 @@ def main():
     ap.add_argument("--out", default=os.path.join(RESULTS, "my_hcg_report.html"))
     ap.add_argument("--transfer", help="이식일 YYYY-MM-DD (예상 일정 섹션)")
     ap.add_argument("--embryo", type=int, default=5)
-    ap.add_argument("--scan", help="다음 초음파 날짜 YYYY-MM-DD")
+    ap.add_argument("--scan", help="초음파 날짜 YYYY-MM-DD")
+    ap.add_argument("--seen", default="", help="그 초음파 결과, 예) '아기집 확인 1.02cm (5주 5일 크기)'")
+    ap.add_argument("--next", help="다음 초음파(심장소리) 날짜 YYYY-MM-DD")
     a = ap.parse_args()
     mine = {int(d): float(v) for d, v in (p.split(":") for p in a.mine.split(","))}
     rows = read_csv(os.path.join(DATA, "hcg_log.csv"))
@@ -437,7 +464,8 @@ def main():
     with open(a.out, "w", encoding="utf-8") as f:
         f.write(build(rows, cases, miles, mine,
                       datetime.date.fromisoformat(a.transfer) if a.transfer else None, a.embryo,
-                      datetime.date.fromisoformat(a.scan) if a.scan else None))
+                      datetime.date.fromisoformat(a.scan) if a.scan else None,
+                      datetime.date.fromisoformat(a.next) if a.next else None, a.seen))
     print(f"→ {a.out}")
 
 

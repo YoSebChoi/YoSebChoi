@@ -51,5 +51,5 @@ python milestones.py set < 판정줄               # case_id|아기집|난황|�
 python milestone_report.py                     # 시기 보고서 HTML → results/milestone_report.html
 python hcg.py collect                          # 피검 수치·측정일 추출(5일배 기준 경과일) → data/hcg_log.csv
 python hcg.py review / set                     # 범위 밖·역행 값 확인, 수동 기록
-python hcg_report.py --mine 9:90,14:1695 --transfer 2026-09-30 --scan 2026-10-21  # 내 수치 위치·확률·예상 일정 → results/my_hcg_report.html (커밋 안 함)
+python hcg_report.py --mine 9:90,14:1695 --transfer 2026-09-30 --scan 2026-10-21 --seen '아기집 확인' --next 2026-11-05  # 내 수치 위치·확률·예상 일정 → results/my_hcg_report.html (커밋 안 함)
 ```
