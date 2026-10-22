@@ -46,6 +46,19 @@ public class SnapshotWorker extends Worker {
         super(context, params);
     }
 
+    /** Expedited work (the morning summary) runs as a foreground service before Android 12: what it shows meanwhile. */
+    @NonNull
+    @Override
+    public androidx.work.ForegroundInfo getForegroundInfo() {
+        Context ctx = getApplicationContext();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel ch = new NotificationChannel("checking", "매물 확인 중", NotificationManager.IMPORTANCE_MIN);
+            ctx.getSystemService(NotificationManager.class).createNotificationChannel(ch);
+        }
+        return new androidx.work.ForegroundInfo(2, new NotificationCompat.Builder(ctx, "checking")
+            .setSmallIcon(R.drawable.ic_stat_apt).setContentTitle("매물 확인 중").setOngoing(true).build());
+    }
+
     static boolean allowed(String url) {
         try {
             URL u = new URL(url);
@@ -306,27 +319,15 @@ public class SnapshotWorker extends Worker {
             files[i].delete();
     }
 
-    static final String DAILY = "aptwatch-daily";
+    static final String DAILY = "aptwatch-daily";          // the old delayed morning job (waited for the phone to wake up)
+    static final String DAILY_NOW = "aptwatch-daily-now";  // the morning check the alarm starts
 
-    /** Books the next morning summary at the hour set in 설정 (prefs daily_hour/daily_minute, 9:00 by default),
-     *  or cancels it when it is turned off. A one-time job each day, booked again by the run itself. */
+    /** Sets the next morning summary at the hour set in 설정 (prefs daily_hour/daily_minute, 9:00 by default),
+     *  or cancels it when it is turned off: an alarm (DailyAlarm) that starts the check. */
     static void scheduleDaily(Context ctx) {
-        SharedPreferences prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        androidx.work.WorkManager wm = androidx.work.WorkManager.getInstance(ctx);
-        if (!prefs.getBoolean("daily_on", true)) { wm.cancelUniqueWork(DAILY); return; }
-        java.util.Calendar next = java.util.Calendar.getInstance();
-        next.set(java.util.Calendar.HOUR_OF_DAY, prefs.getInt("daily_hour", 9));
-        next.set(java.util.Calendar.MINUTE, prefs.getInt("daily_minute", 0));
-        next.set(java.util.Calendar.SECOND, 0);
-        next.set(java.util.Calendar.MILLISECOND, 0);
-        if (next.getTimeInMillis() <= System.currentTimeMillis() + 60_000) next.add(java.util.Calendar.DAY_OF_MONTH, 1);
-        androidx.work.OneTimeWorkRequest req = new androidx.work.OneTimeWorkRequest.Builder(SnapshotWorker.class)
-            .setInitialDelay(next.getTimeInMillis() - System.currentTimeMillis(), java.util.concurrent.TimeUnit.MILLISECONDS)
-            .setInputData(new androidx.work.Data.Builder().putBoolean("daily", true).build())
-            .setConstraints(new androidx.work.Constraints.Builder().setRequiredNetworkType(androidx.work.NetworkType.CONNECTED).build())
-            .build();
-        wm.enqueueUniqueWork(DAILY, androidx.work.ExistingWorkPolicy.REPLACE, req);
-        prefs.edit().putLong("daily_next", next.getTimeInMillis()).apply();
+        // the old delayed job (it waited for the phone to wake up): replaced by the alarm
+        androidx.work.WorkManager.getInstance(ctx).cancelUniqueWork(DAILY);
+        DailyAlarm.arm(ctx);
     }
 
     /** {flats, lowest price in 만원} of one complex's listings, flats grouped as in compare. */

@@ -33,6 +33,13 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+        <!-- the morning summary: an alarm at the set time (DailyAlarm), set again after a restart or an update -->
+        <receiver android:name=".DailyAlarm" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 
     <!-- Permissions -->
@@ -41,6 +48,12 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- 「매물이 사라졌어요」 alerts from the background check -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- the morning summary at its time, also when the phone sleeps: an exact alarm (granted on install for
+         Android 13+ with USE_EXACT_ALARM; SCHEDULE_EXACT_ALARM covers Android 12), set again after a restart -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- in-app update: the new APK from the GitHub release is handed to Android's installer -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

@@ -579,6 +579,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   }
 
   // the background check reads the same pages (SnapshotWorker); set again only when something changed
+  let dailyState = null;   // {next, exact, battery} from the last AptNet.daily
   async function scheduleBackground() {
     if (!native) return;
     const jobs = linked().map(c => {
@@ -600,7 +601,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     // replaced) keeps the chain going even if a run was killed
     {
       const [hour, minute] = cfg.dailyAt.split(":").map(Number);
-      try { await ncall("AptNet", "daily", { on: cfg.daily, hour, minute }); } catch (e) { /* older app */ }
+      try { dailyState = await ncall("AptNet", "daily", { on: cfg.daily, hour, minute }); } catch (e) { /* older app */ }
     }
     if (sig === cfg.scheduled) return;
     try { await ncall("AptNet", "schedule", { jobs, hours: cfg.hours, notify: cfg.notify }); cfg.scheduled = sig; saveCfg(); } catch (e) { /* older app */ }
@@ -923,6 +924,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <label class="switch small"><input type="checkbox" id="dailyChk" ${cfg.daily ? "checked" : ""}> 매일 아침 요약 알림 (변화가 없어도 단지별 매물 수·최저 호가·변화)</label>
         <label class="field">요약 시간
           <select id="dailyAt">${["07:00", "08:00", "09:00", "10:00", "12:00", "18:00", "21:00"].map(t => `<option ${cfg.dailyAt === t ? "selected" : ""}>${t}</option>`).join("")}</select></label>
+        <div class="small" id="dailyState"></div>
         <div class="btns" style="margin-top:8px">
           <button class="btn ghost small" id="runNowBtn">지금 한 번 확인해 보기</button>
           <button class="btn ghost small" id="testNotifyBtn">알림 바로 보내 보기</button>
@@ -940,7 +942,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       <label class="field">화면 밝기
         <select id="themeSel">${[["light", "밝게"], ["dark", "어둡게"], ["auto", "폰 설정 따라"]].map(([v, l]) => `<option value="${v}" ${(lget("aw-theme", "light")) === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 4bc90a901f</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 9bf6b8a005</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -970,8 +972,8 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       try { const ls = (await fetchListings(no, 1)).articles; name = ls[0]?.atclNm || ""; } catch (e) { /* still link it */ }
       cfg.links[key] = { no, name }; saveCfg(); toast(`${byKey(key).name} ← ${name || no}`); renderSettings(); refresh(true);
     };
-    $("#dailyChk").onchange = e => { cfg.daily = e.target.checked; saveCfg(); scheduleBackground(); };
-    $("#dailyAt").onchange = e => { cfg.dailyAt = e.target.value; saveCfg(); scheduleBackground(); toast(`매일 ${cfg.dailyAt}에 요약을 보내요`); };
+    $("#dailyChk").onchange = e => { cfg.daily = e.target.checked; saveCfg(); scheduleBackground().then(showDailyState); };
+    $("#dailyAt").onchange = e => { cfg.dailyAt = e.target.value; saveCfg(); scheduleBackground().then(showDailyState); toast(`매일 ${cfg.dailyAt}에 요약을 보내요`); };
     $("#hoursSel").onchange = e => { cfg.hours = +e.target.value; saveCfg(); scheduleBackground(); };
     $("#notifyChk").onchange = async e => {
       cfg.notify = e.target.checked; saveCfg();
@@ -990,7 +992,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       } catch (e) {}
       return true;
     };
-    showNotifyState(); showWorkerState();
+    showNotifyState(); showWorkerState(); scheduleBackground().then(showDailyState);
     $("#testNotifyBtn").onclick = async () => {
       if (!(await askPermission())) return;
       try { await ncall("AptNet", "testNotify", { text: "시험 알림 · KCC스위첸: 사라짐 1 · 새 매물 1 (이렇게 와요)" }); $("#testNote").textContent = "알림을 보냈어요. 안 보이면 폰 설정에서 이 앱의 알림을 켜 주세요."; }
@@ -1013,6 +1015,18 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     $("#exportBtn").onclick = exportState;
     $("#importFile").onchange = e => importState(e.target.files[0]);
   }
+  function showDailyState() {
+    const el = $("#dailyState"); if (!el || !dailyState) return;
+    const d = dailyState, when = d.next ? new Date(d.next) : null;
+    const day = when ? (when.toDateString() === new Date().toDateString() ? "오늘" : "내일") : "";
+    el.innerHTML = (cfg.daily && when ? `다음 요약: ${day} ${when.toTimeString().slice(0, 5)}${d.exact ? "" : " 무렵"}` : "아침 요약 꺼짐") +
+      (cfg.daily && !d.battery ? `<br><span class="up">배터리 최적화가 켜져 있어 늦게 올 수 있어요</span> <button class="btn ghost small" id="powerBtn">최적화에서 빼기</button>` : "") +
+      (cfg.daily && !d.exact ? `<br><span class="up">정확한 시간 알람이 꺼져 있어요</span> <button class="btn ghost small" id="alarmBtn">알람 허용</button>` : "");
+    const p = $("#powerBtn"), a = $("#alarmBtn");
+    if (p) p.onclick = async () => { await ncall("AptNet", "askPower", { what: "battery" }); setTimeout(async () => { await scheduleBackground(); showDailyState(); }, 5000); };
+    if (a) a.onclick = async () => { await ncall("AptNet", "askPower", { what: "alarm" }); setTimeout(async () => { await scheduleBackground(); showDailyState(); }, 5000); };
+  }
+
   async function showNotifyState() {
     const el = $("#notifyState"); if (!el) return;
     try {
@@ -1160,7 +1174,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "4bc90a901f" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "9bf6b8a005" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }

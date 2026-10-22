@@ -144,7 +144,30 @@ public class MainActivity extends BridgeActivity {
             SnapshotWorker.scheduleDaily(ctx);
             JSObject r = new JSObject();
             r.put("next", ctx.getSharedPreferences(SnapshotWorker.PREFS, Context.MODE_PRIVATE).getLong("daily_next", 0));
+            r.put("exact", DailyAlarm.exact(ctx));
+            r.put("battery", ((android.os.PowerManager) ctx.getSystemService(Context.POWER_SERVICE)).isIgnoringBatteryOptimizations(ctx.getPackageName()));
             call.resolve(r);
+        }
+
+        /** AptNet.askPower({what}) → opens the setting that lets the morning summary come on time:
+         *  "battery" (leave this app out of battery optimisation) or "alarm" (allow exact alarms, Android 12+). */
+        @PluginMethod
+        public void askPower(PluginCall call) {
+            Context ctx = getContext();
+            Intent open;
+            if ("alarm".equals(call.getString("what")) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                open = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + ctx.getPackageName()));
+            } else {
+                open = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + ctx.getPackageName()));
+            }
+            open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            try { ctx.startActivity(open); }
+            catch (Exception e) {
+                Intent app = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + ctx.getPackageName()));
+                app.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                ctx.startActivity(app);
+            }
+            call.resolve();
         }
 
         /** AptNet.testNotify({text}) → {sent}: the change notification right away, as the background check posts it. */
