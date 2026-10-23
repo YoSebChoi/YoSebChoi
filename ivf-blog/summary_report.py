@@ -94,7 +94,7 @@ def build(a):
     res_sim = [r for r in sim if r["group"] in ("출산", "심장후유산")]
     res_all = [r for r in hrows if r["group"] in ("출산", "심장후유산")]
     born_hb_sim = st(sum(r["group"] == "출산" for r in res_sim), len(res_sim))
-    born_hb_all = st(sum(r["group"] == "출산" for r in res_all), len(res_all))
+    born_hb_all = st(bn["출산"], bd)  # 출산 보고서와 같은 기준: 예정일 지난 심장소리 케이스 전체
     direct_sim = st(sum(r["group"] == "출산" for r in sim_s),
                     sum(r["group"] in ("출산", "심장후유산", "무심장") for r in sim_s))
 
@@ -122,6 +122,9 @@ def build(a):
     birth_lo = min([direct_sim["rate"], sp_direct["rate"]] + prod)
     birth_hi = max(prod)
     birth_mid = hb_sim["rate"] * born_hb_all["rate"]
+    # 심장소리를 들은 뒤 출산할 확률(조건부): 출산 ÷ (출산 + 심장소리 후 유산)
+    cond = [born_hb_sim, born_hb_all, sp_born]
+    cond_lo, cond_hi = min(c["rate"] for c in cond), max(c["rate"] for c in cond)
 
     timeline = [(transfer, f"{a.embryo}일배 이식 (임신 {gw(ga0)})", "done"),
                 (transfer + datetime.timedelta(days=d1), f"1차 피검 {mine[d1]:,.0f}", "done"),
@@ -139,7 +142,9 @@ def build(a):
                 f'<i class="rng" style="left:{lo * 100:.1f}%;width:{(hi - lo) * 100:.1f}%"></i></div><b>{txt}</b></div>')
     stage = (bar("아기집", 1 if sac_seen else 0, 1 if sac_seen else 0, "확인됨" if sac_seen else "—")
              + bar("심장소리", hb_lo, hb_hi, f"{pct(hb_lo, 0)}~{pct(hb_hi, 0)}")
-             + bar("출산까지", birth_lo, birth_hi, f"{pct(birth_lo, 0)}~{pct(birth_hi, 0)}"))
+             + bar("출산까지", birth_lo, birth_hi, f"{pct(birth_lo, 0)}~{pct(birth_hi, 0)}")
+             + '<p class="note" style="margin:8px 0 0">심장소리를 들은 뒤라면</p>'
+             + bar("→ 출산", cond_lo, cond_hi, f"{pct(cond_lo, 0)}~{pct(cond_hi, 0)}"))
     css = CSS + (".tl{list-style:none;margin:0;padding:0;display:grid;gap:6px}.tl li{padding:6px 10px;border-left:3px solid var(--line);"
                  "background:var(--panel);border-radius:0 8px 8px 0}.tl li.done{border-color:var(--accent)}.tl li.note{border-color:var(--low)}"
                  ".tl li.next{border-color:var(--fg);border-left-style:dashed}.links a{color:var(--accent)}"
@@ -164,13 +169,13 @@ def build(a):
   <div class="kpi"><b>{"확인" if sac_seen else "—"}</b><span>자궁 안 아기집 ({md(scan) if scan else ""})</span></div>
   <div class="kpi"><b>{pct(hb_lo, 0)}~{pct(hb_hi, 0)}</b><span>심장소리 들을 확률</span></div>
   <div class="kpi"><b>{pct(birth_lo, 0)}~{pct(birth_hi, 0)}</b><span>출산까지 확률 (중심 약 {pct(birth_mid, 0)})</span></div>
-  <div class="kpi"><b>{md(nxt) if nxt else "—"}</b><span>다음 초음파 · 심장소리 예정</span></div>
+  <div class="kpi"><b>{pct(cond_lo, 0)}~{pct(cond_hi, 0)}</b><span>심장소리를 들은 뒤 출산할 확률{f" ({md(nxt)} 확인 시)" if nxt else ""}</span></div>
 </div>
 
 <div class="key"><b>한 줄 요약</b>
 <ul>
   <li>피검 2차 수치와 더블링은 심장소리를 들은 케이스 기준으로도 좋은 편이고, 자궁 안 아기집을 이미 확인했습니다. <b>갈색 소량 피비침은 흔했고 결과와 뚜렷한 관계가 없었습니다.</b></li>
-  <li>비슷한 케이스들은 <b>심장소리 {pct(hb_lo, 0)}~{pct(hb_hi, 0)}</b>, <b>출산 {pct(birth_lo, 0)}~{pct(birth_hi, 0)}</b>(가운데 약 {pct(birth_mid, 0)})였습니다.</li>
+  <li>비슷한 케이스들은 <b>심장소리 {pct(hb_lo, 0)}~{pct(hb_hi, 0)}</b>, <b>출산 {pct(birth_lo, 0)}~{pct(birth_hi, 0)}</b>(가운데 약 {pct(birth_mid, 0)})였습니다. <b>심장소리를 들은 뒤에는 출산 {pct(cond_lo, 0)}~{pct(cond_hi, 0)}</b>(전체 기준 {pct(born_hb_all['rate'], 0)})로 올라갑니다.</li>
   {f"<li>{md(nxt)}({gw(ga(nxt))})은 출산 케이스의 {pct(hb_by_next[0] / hb_by_next[1], 0)}가 이미 심장을 처음 확인한 시점이라, 심장소리를 확인하기 충분한 날짜입니다.</li>" if hb_by_next else ""}
 </ul></div>
 
@@ -222,12 +227,13 @@ def build(a):
 
 <section>
   <h2>6. 우리 확률 종합</h2>
-  <div class="panel"><div class="tbl"><table><thead><tr><th>근거</th><th>심장소리</th><th>출산까지</th></tr></thead><tbody>
-  <tr><td>피검 비슷 + 아기집 확인</td><td><b>{pct(hb_sim['rate'], 0)}</b></td><td>{pct(hb_sim['rate'] * born_hb_sim['rate'], 0)}~{pct(hb_sim['rate'] * born_hb_all['rate'], 0)} (곱셈) · {pct(direct_sim['rate'], 0)} (직접)</td></tr>
-  <tr><td>갈색 소량 피비침 + 아기집 확인</td><td><b>{pct(sp_hb['rate'], 0)}</b></td><td>{pct(sp_hb['rate'] * sp_born['rate'], 0)} (곱셈) · {pct(sp_direct['rate'], 0)} (직접)</td></tr>
-  <tr class="total"><td><b>종합</b></td><td><b>{pct(hb_lo, 0)}~{pct(hb_hi, 0)}</b></td><td><b>{pct(birth_lo, 0)}~{pct(birth_hi, 0)}</b> (중심 약 {pct(birth_mid, 0)})</td></tr>
+  <div class="panel"><div class="tbl"><table><thead><tr><th>근거</th><th>심장소리</th><th>출산까지 (지금부터)</th><th>심장소리 들은 뒤 출산</th></tr></thead><tbody>
+  <tr><td>피검 비슷 + 아기집 확인</td><td><b>{pct(hb_sim['rate'], 0)}</b></td><td>{pct(hb_sim['rate'] * born_hb_sim['rate'], 0)}~{pct(hb_sim['rate'] * born_hb_all['rate'], 0)} (곱셈) · {pct(direct_sim['rate'], 0)} (직접)</td><td><b>{pct(born_hb_sim['rate'], 0)}</b> <span class="muted">{born_hb_sim['hb']}/{born_hb_sim['n']}</span></td></tr>
+  <tr><td>심장소리 확인 전체 (수치 무관)</td><td>—</td><td>—</td><td><b>{pct(born_hb_all['rate'], 0)}</b> <span class="muted">{born_hb_all['hb']}/{born_hb_all['n']}</span></td></tr>
+  <tr><td>갈색 소량 피비침 + 아기집 확인</td><td><b>{pct(sp_hb['rate'], 0)}</b></td><td>{pct(sp_hb['rate'] * sp_born['rate'], 0)} (곱셈) · {pct(sp_direct['rate'], 0)} (직접)</td><td><b>{pct(sp_born['rate'], 0)}</b> <span class="muted">{sp_born['hb']}/{sp_born['n']}</span></td></tr>
+  <tr class="total"><td><b>종합</b></td><td><b>{pct(hb_lo, 0)}~{pct(hb_hi, 0)}</b></td><td><b>{pct(birth_lo, 0)}~{pct(birth_hi, 0)}</b> (중심 약 {pct(birth_mid, 0)})</td><td><b>{pct(cond_lo, 0)}~{pct(cond_hi, 0)}</b> (중심 약 {pct(born_hb_all['rate'], 0)})</td></tr>
   </tbody></table></div>
-  <p class="note">두 근거(피검·피비침)를 동시에 만족하는 케이스는 몇 건뿐이라 따로 계산해 범위로 묶었습니다. 출산 범위가 넓은 이유는 출산 결과까지 확인된 케이스가 적기 때문입니다.</p></div>
+  <p class="note">두 근거(피검·피비침)를 동시에 만족하는 케이스는 몇 건뿐이라 따로 계산해 범위로 묶었습니다. 출산 범위가 넓은 이유는 출산 결과까지 확인된 케이스가 적기 때문입니다. '심장소리 들은 뒤 출산' = 출산 ÷ (출산 + 심장소리 후 유산), 예정일이 지난 케이스 기준입니다.</p></div>
 </section>
 
 <div class="two">
