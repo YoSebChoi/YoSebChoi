@@ -147,6 +147,21 @@ def review():
             print(f"{r['case_id']} | {r['status']} {r['last_week']} | 예정일 {r['due_date']} | {r['evidence']} {r['evidence_url']}")
 
 
+def after_hb():
+    """심장소리 확인 케이스의 결과 — 출산 / 유지12(출산 글은 없지만 12주 이상까지 유지 확인) / 유산 / ''(미상).
+    심장소리 후 유산은 대부분 7~10주에 일어나므로, 12주를 넘긴 진행 중 케이스를 '초기 유산 없이 넘김'으로 센다.
+    (예정일이 지난 케이스만 세면 결과가 일찍 확정되는 유산만 들어가 출산 비율이 낮게 치우친다.)"""
+    out = {}
+    for r in read_csv(LOG):
+        if r["status"] in ("출산", "유산"):
+            out[r["case_id"]] = r["status"]
+        elif r["last_week"].isdigit() and int(r["last_week"]) >= 12:
+            out[r["case_id"]] = "유지12"
+        else:
+            out[r["case_id"]] = ""
+    return out
+
+
 def set_manual():
     rows = read_csv(LOG)
     by = {r["case_id"]: r for r in rows}

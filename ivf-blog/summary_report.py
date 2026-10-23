@@ -13,6 +13,7 @@ import statistics
 
 from cases import FAILURES, PATH as CASES, dedupe
 from common import DATA, RESULTS, read_csv
+from birth import after_hb
 from hcg import parse
 from hcg_report import at, case_slope, gw, pctile
 from milestones import parse as ga_of
@@ -91,12 +92,15 @@ def build(a):
     keep = lambda r: not sac_seen or r["group"] != "무심장" or outcome.get(r["case_id"]) == "아기집만(계류)"
     sim_s = [r for r in sim if keep(r)]
     hb_sim = st(sum(r["group"] != "무심장" for r in sim_s), len(sim_s))
-    res_sim = [r for r in sim if r["group"] in ("출산", "심장후유산")]
-    res_all = [r for r in hrows if r["group"] in ("출산", "심장후유산")]
-    born_hb_sim = st(sum(r["group"] == "출산" for r in res_sim), len(res_sim))
-    born_hb_all = st(bn["출산"], bd)  # 출산 보고서와 같은 기준: 예정일 지난 심장소리 케이스 전체
-    direct_sim = st(sum(r["group"] == "출산" for r in sim_s),
-                    sum(r["group"] in ("출산", "심장후유산", "무심장") for r in sim_s))
+    adj = after_hb()
+    OK = ("출산", "유지12")
+    res_sim = [r for r in sim if adj.get(r["case_id"]) in OK + ("유산",)]
+    born_hb_sim = st(sum(adj.get(r["case_id"]) in OK for r in res_sim), len(res_sim))
+    hb_ids = [c["case_id"] for c in allc if c["outcome"] == "심장소리확인"]
+    ok_all = sum(adj.get(i) in OK for i in hb_ids)
+    born_hb_all = st(ok_all, ok_all + sum(adj.get(i) == "유산" for i in hb_ids))
+    direct_sim = st(sum(adj.get(r["case_id"]) in OK for r in sim_s),
+                    sum(adj.get(r["case_id"]) in OK + ("유산",) or r["group"] == "무심장" for r in sim_s))
 
     # 5. 피비침
     bl = [r for r in read_csv(os.path.join(DATA, "bleeding_log.csv")) if r["case_id"] in ids and not r["manual"].startswith("제외")]
@@ -108,8 +112,8 @@ def build(a):
     def spot(c):
         s = [r for r in (sac_bl if sac_seen else bl) if r["pre"] == c]
         hb = sum(r["outcome"] == "심장소리확인" for r in s)
-        b = sum(r["birth"] == "출산" for r in s)
-        lost = sum(r["birth"] == "유산" for r in s)
+        b = sum(adj.get(r["case_id"]) in OK for r in s)
+        lost = sum(adj.get(r["case_id"]) == "유산" for r in s)
         return st(hb, len(s)), st(b, b + lost), st(b, b + lost + (len(s) - hb))
 
     sp_hb, sp_born, sp_direct = spot(sp)
@@ -182,7 +186,7 @@ def build(a):
 <div class="two">
 <section><h2>우리 경과</h2><ul class="tl">{tl}</ul></section>
 <section><h2>우리 확률 단계별</h2><div class="panel">{stage}
-<p class="note">진한 막대 = 범위의 아래쪽, 옅은 부분 = 범위. 출산 범위의 아래쪽은 '출산 ÷ 결과 확정 케이스'(진행 중 케이스가 빠져 낮게 치우침), 위쪽은 '심장소리 확률 × 심장소리 후 출산 비율'입니다.</p></div></section>
+<p class="note">진한 막대 = 범위의 아래쪽, 옅은 부분 = 범위. 출산은 출산 글이 있거나 12주 이상 유지가 확인된 케이스를 함께 센 값입니다. 범위는 바로 센 값(출산·유지 ÷ 결과가 나온 케이스)과 단계별 곱셈 값입니다.</p></div></section>
 </div>
 
 <section>
@@ -195,7 +199,8 @@ def build(a):
 
 <section>
   <h2>2. 심장소리 후 출산</h2>
-  <div class="panel"><p>예정일이 지나 결과가 확인된 {bd}건 중 <b>{pct(brate, 1)} ({bn['출산']}건) 출산</b>, 심장소리 후 유산 {bn['유산']}건(대부분 7~10주 계류). 5일배는 대부분 아직 예정일 전이라 이 비율은 주로 3·4일배 기준입니다.</p></div>
+  <div class="panel"><p>예정일이 지나 결과가 확인된 {bd}건 중 <b>{pct(brate, 1)} ({bn['출산']}건) 출산</b>, 심장소리 후 유산 {bn['유산']}건(대부분 7~10주 계류). 5일배는 대부분 아직 예정일 전이라 이 비율은 주로 3·4일배 기준입니다.</p>
+  <p>유산은 일찍 확정되고 출산은 예정일 뒤에 확정되므로, 예정일 전이라도 <b>12주 이상 유지가 확인된 케이스를 함께 세면 {pct(born_hb_all['rate'], 0)}</b>({born_hb_all['hb']}/{born_hb_all['n']})입니다. 아래 확률은 이 기준을 씁니다.</p></div>
 </section>
 
 <section>
@@ -229,16 +234,17 @@ def build(a):
   <h2>6. 우리 확률 종합</h2>
   <div class="panel"><div class="tbl"><table><thead><tr><th>근거</th><th>심장소리</th><th>출산까지 (지금부터)</th><th>심장소리 들은 뒤 출산</th></tr></thead><tbody>
   <tr><td>피검 비슷 + 아기집 확인</td><td><b>{pct(hb_sim['rate'], 0)}</b></td><td>{pct(hb_sim['rate'] * born_hb_sim['rate'], 0)}~{pct(hb_sim['rate'] * born_hb_all['rate'], 0)} (곱셈) · {pct(direct_sim['rate'], 0)} (직접)</td><td><b>{pct(born_hb_sim['rate'], 0)}</b> <span class="muted">{born_hb_sim['hb']}/{born_hb_sim['n']}</span></td></tr>
-  <tr><td>심장소리 확인 전체 (수치 무관)</td><td>—</td><td>—</td><td><b>{pct(born_hb_all['rate'], 0)}</b> <span class="muted">{born_hb_all['hb']}/{born_hb_all['n']}</span></td></tr>
+  <tr><td>심장소리 확인 전체 (수치 무관, 12주 이상 유지 포함)</td><td>—</td><td>—</td><td><b>{pct(born_hb_all['rate'], 0)}</b> <span class="muted">{born_hb_all['hb']}/{born_hb_all['n']}</span></td></tr>
   <tr><td>갈색 소량 피비침 + 아기집 확인</td><td><b>{pct(sp_hb['rate'], 0)}</b></td><td>{pct(sp_hb['rate'] * sp_born['rate'], 0)} (곱셈) · {pct(sp_direct['rate'], 0)} (직접)</td><td><b>{pct(sp_born['rate'], 0)}</b> <span class="muted">{sp_born['hb']}/{sp_born['n']}</span></td></tr>
   <tr class="total"><td><b>종합</b></td><td><b>{pct(hb_lo, 0)}~{pct(hb_hi, 0)}</b></td><td><b>{pct(birth_lo, 0)}~{pct(birth_hi, 0)}</b> (중심 약 {pct(birth_mid, 0)})</td><td><b>{pct(cond_lo, 0)}~{pct(cond_hi, 0)}</b> (중심 약 {pct(born_hb_all['rate'], 0)})</td></tr>
   </tbody></table></div>
-  <p class="note">두 근거(피검·피비침)를 동시에 만족하는 케이스는 몇 건뿐이라 따로 계산해 범위로 묶었습니다. 출산 범위가 넓은 이유는 출산 결과까지 확인된 케이스가 적기 때문입니다. '심장소리 들은 뒤 출산' = 출산 ÷ (출산 + 심장소리 후 유산), 예정일이 지난 케이스 기준입니다.</p></div>
+  <p class="note">두 근거(피검·피비침)를 동시에 만족하는 케이스는 몇 건뿐이라 따로 계산해 범위로 묶었습니다. 출산 범위가 넓은 이유는 출산 결과까지 확인된 케이스가 적기 때문입니다. '심장소리 들은 뒤 출산' = (출산 + 12주 이상 유지) ÷ (그 + 심장소리 후 유산). 심장소리 후 유산은 대부분 7~10주라 12주를 넘긴 케이스를 함께 셌습니다(12주 이후 유산도 드물게 있어 약간 높게 잡힐 수 있음).</p></div>
 </section>
 
 <div class="two">
 <section><h2>분석 방법</h2>
 <ul class="method note">
+  <li>출산 확률은 출산 글이 확인된 케이스와 출산 글은 없지만 12주 이상까지 유지가 확인된 케이스를 '출산(유지)'로 함께 셉니다. 예정일이 지난 케이스만 세면 결과가 일찍 확정되는 유산만 들어가 낮게 치우치기 때문입니다.</li>
   <li>네이버 블로그에서 시험관 이식 후기({len(allc)}건)를 모아 배아 일수, 이식일, 첫 역전 날, 결과(심장소리·계류·화유·자궁외)를 기록했습니다. 3일배는 −2일, 4일배는 −1일로 5일배 기준에 맞췄습니다.</li>
   <li>같은 블로그의 이후 글(제목·본문)로 출산 여부, 아기집·난황·심장 첫 확인 주수, 피검 수치, 피비침을 뽑고, 어긋난 값은 원문을 다시 보고 고쳤습니다.</li>
   <li>비율의 95% 구간은 Wilson 방식입니다. 원문은 저장하지 않고 블로그 주소와 판정 결과만 남겼습니다.</li>

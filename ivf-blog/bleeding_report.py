@@ -7,12 +7,15 @@ import html
 import os
 
 import report
+from birth import after_hb
 from cases import PATH as CASES, dedupe
 from common import DATA, RESULTS, read_csv
 from report import CSS, bar_chart, pct
 from summarize import wilson
 
 CATS = [("없음", "언급 없음"), ("brown", "갈색 소량"), ("spot", "피비침 (색 미상)"), ("red", "빨간 피·많은 양")]
+ADJ = after_hb()
+OK = ("출산", "유지12")  # 출산 또는 12주 이상 유지 확인
 report.LOW.update({"빨간 피·많은 양", "피비침 (색 미상)"})
 
 
@@ -48,8 +51,8 @@ def overall_table(rows):
     for c, name in CATS:
         s = [r for r in sac if r["pre"] == c]
         hb = sum(r["outcome"] == "심장소리확인" for r in s)
-        born = sum(r["birth"] == "출산" for r in s)
-        lost = sum(r["birth"] == "유산" for r in s)
+        born = sum(ADJ.get(r["case_id"]) in OK for r in s)
+        lost = sum(ADJ.get(r["case_id"]) == "유산" for r in s)
         fail = len(s) - hb
         p1, p2 = hb / len(s), born / (born + lost) if born + lost else float("nan")
         body.append(f'<tr class="{"low" if c in ("red", "spot") else ""}"><td>{name}</td><td>{pct(p1)} <span class="muted">{hb}/{len(s)}</span></td>'
@@ -62,8 +65,8 @@ def overall_table(rows):
 
 def build(rows):
     hb_ok = lambda r: r["outcome"] == "심장소리확인"
-    born_ok = lambda r: r["birth"] == "출산"
-    resolved = [r for r in rows if r["birth"] in ("출산", "유산")]
+    born_ok = lambda r: ADJ.get(r["case_id"]) in OK
+    resolved = [r for r in rows if ADJ.get(r["case_id"]) in OK + ("유산",)]
     born = [r for r in rows if r["birth"] == "출산"]
     any_pre = sum(r["pre"] != "없음" for r in born)
     brown_born = [r for r in resolved if r["pre"] == "brown"]
@@ -93,14 +96,14 @@ def build(rows):
   <div class="kpi"><b>{pct(any_pre / len(born))}</b><span>출산한 케이스 중 심장 확인 전 피비침 언급</span></div>
   <div class="kpi"><b>{pct(comp['brown'] / len(born))}</b><span>그중 갈색 소량 ({comp['brown']}/{len(born)})</span></div>
   <div class="kpi"><b>{pct(sum(map(hb_ok, brown_hb)) / len(brown_hb))}</b><span>갈색 소량 → 심장소리 ({sum(map(hb_ok, brown_hb))}/{len(brown_hb)})</span></div>
-  <div class="kpi"><b>{pct(sum(map(born_ok, brown_born)) / len(brown_born))}</b><span>갈색 소량 + 심장소리 → 출산 ({sum(map(born_ok, brown_born))}/{len(brown_born)})</span></div>
+  <div class="kpi"><b>{pct(sum(map(born_ok, brown_born)) / len(brown_born))}</b><span>갈색 소량 + 심장소리 → 출산·12주+ 유지 ({sum(map(born_ok, brown_born))}/{len(brown_born)})</span></div>
 </div>
 
 <div class="key"><b>핵심 결과</b>
 <ul>
   <li>피비침은 흔했습니다. <b>출산까지 간 케이스의 {pct(any_pre / len(born))}</b>가 심장소리 확인 전에 피비침을 적었고, 갈색 소량만 있었던 경우가 {pct(comp['brown'] / len(born))}, 빨간 피나 많은 양을 적은 경우도 {pct(comp['red'] / len(born))}였습니다.</li>
   <li><b>갈색 소량</b> 피비침이 있었던 케이스의 심장소리 비율은 {pct(sum(map(hb_ok, brown_hb)) / len(brown_hb))}로, 언급이 없던 케이스({pct(sum(map(hb_ok, [r for r in rows if r['pre'] == '없음'])) / sum(r['pre'] == '없음' for r in rows))})와 신뢰구간이 겹쳐 뚜렷한 차이가 없습니다.</li>
-  <li>심장소리를 들은 뒤 출산 비율도 갈색 소량 {pct(sum(map(born_ok, brown_born)) / len(brown_born))} ({sum(map(born_ok, brown_born))}/{len(brown_born)}), 언급 없음 {pct(sum(map(born_ok, none_born)) / len(none_born))} ({sum(map(born_ok, none_born))}/{len(none_born)})로 비슷했습니다. 빨간 피·많은 양이나 색을 적지 않은 피비침 쪽이 조금 낮지만, 이 경우도 대부분 출산했습니다.</li>
+  <li>심장소리를 들은 뒤 출산(12주 이상 유지 포함) 비율도 갈색 소량 {pct(sum(map(born_ok, brown_born)) / len(brown_born))} ({sum(map(born_ok, brown_born))}/{len(brown_born)}), 언급 없음 {pct(sum(map(born_ok, none_born)) / len(none_born))} ({sum(map(born_ok, none_born))}/{len(none_born)})로 비슷했습니다. 빨간 피·많은 양이나 색을 적지 않은 피비침 쪽이 조금 낮지만, 이 경우도 대부분 출산했습니다.</li>
   <li>갈색 피비침은 주로 <b>4~6주</b>에 처음 나타났습니다.</li>
 </ul></div>
 
@@ -113,16 +116,16 @@ def build(rows):
 
 <section>
   <h2>2. 심장소리를 들은 뒤 → 출산</h2>
-  <p class="note">출산 예정일이 지나 결과(출산 또는 심장소리 후 유산)가 확인된 {len(resolved)}건입니다.</p>
+  <p class="note">결과가 나온 {len(resolved)}건입니다. 출산 글이 있거나, 출산 글은 없지만 12주 이상 유지가 확인된 케이스를 '출산·유지'로 셉니다(심장소리 후 유산은 대부분 7~10주이고, 예정일 전 케이스를 빼면 일찍 확정되는 유산만 남아 낮게 치우침).</p>
   <div class="panel"><h3>심장 확인 전 피비침 기준</h3>{legend}{chart(resolved, "pre", born_ok, "심장 확인 전 피비침 유형별 출산 비율")}
-  {rate_table(resolved, "pre", born_ok, "출산")}
+  {rate_table(resolved, "pre", born_ok, "출산·유지")}
   <h3>심장 확인 후 (~12주) 피비침 기준</h3>{chart(resolved, "post", born_ok, "심장 확인 후 피비침 유형별 출산 비율")}
-  {rate_table(resolved, "post", born_ok, "출산")}</div>
+  {rate_table(resolved, "post", born_ok, "출산·유지")}</div>
 </section>
 
 <section>
   <h2>3. 아기집을 확인한 경우 출산까지</h2>
-  <p class="note">자궁 안 아기집을 본 케이스(심장소리 + 아기집만 계류)만 봤습니다. <b>직접</b> = 출산 ÷ (출산 + 심장소리 후 유산 + 심장소리 못 들음). 실패는 일찍, 출산은 예정일 뒤에 확정되므로 진행 중 케이스가 빠지는 직접 계산은 낮게 치우칩니다. <b>곱셈</b> = 심장소리 비율 × 심장소리 후 출산 비율로 이 치우침을 줄인 값입니다. 실제는 두 값 사이로 봅니다.</p>
+  <p class="note">자궁 안 아기집을 본 케이스(심장소리 + 아기집만 계류)만 봤습니다. <b>직접</b> = 출산·유지 ÷ (출산·유지 + 심장소리 후 유산 + 심장소리 못 들음). <b>곱셈</b> = 심장소리 비율 × 심장소리 후 출산·유지 비율. 두 값은 대체로 비슷합니다.</p>
   <div class="panel">{overall_table(rows)}</div>
 </section>
 
@@ -130,11 +133,11 @@ def build(rows):
   <h2>4. 출산한 케이스의 피비침 시기 · 피고임</h2>
   <div class="panel"><div class="tbl"><table><thead><tr><th>갈색 피비침을 처음 적은 주수 (출산 케이스)</th><th>4주</th><th>5주</th><th>6주</th><th>7주</th></tr></thead>
   <tbody><tr><td>케이스 수</td>{week_cells}</tr></tbody></table></div>
-  <div class="tbl"><table><thead><tr><th>피고임(융모막하 혈종) 언급</th><th>케이스</th><th>출산</th><th>비율</th></tr></thead><tbody>
+  <div class="tbl"><table><thead><tr><th>피고임(융모막하 혈종) 언급</th><th>케이스</th><th>출산·유지</th><th>비율</th></tr></thead><tbody>
   <tr><td>있음</td><td>{len(hema['Y'])}</td><td>{sum(map(born_ok, hema['Y']))}</td><td class="num"><b>{pct(sum(map(born_ok, hema['Y'])) / len(hema['Y']))}</b></td></tr>
   <tr><td>없음·언급 없음</td><td>{len(hema[''])}</td><td>{sum(map(born_ok, hema['']))}</td><td class="num"><b>{pct(sum(map(born_ok, hema[''])) / len(hema['']))}</b></td></tr>
   </tbody></table></div>
-  <p class="note">피고임도 출산 비율과 뚜렷한 관계가 보이지 않았습니다. 갈색 피비침은 이전에 고였던 피가 나오는 경우가 많다고 블로거들이 병원에서 들은 설명을 자주 적었습니다.</p></div>
+  <p class="note">피고임도 출산·유지 비율과 뚜렷한 관계가 보이지 않았습니다. 갈색 피비침은 이전에 고였던 피가 나오는 경우가 많다고 블로거들이 병원에서 들은 설명을 자주 적었습니다.</p></div>
 </section>
 
 <div class="two">

@@ -13,11 +13,13 @@ import statistics
 
 from cases import PATH as CASES, dedupe
 from common import DATA, RESULTS, read_csv
+from birth import after_hb
 from hcg import parse
 from milestones import parse as ga_of
 from report import CSS
 from summarize import wilson
 
+OK = ("출산", "유지12")  # 출산 또는 12주 이상 유지
 GROUPS = [("출산", "심장소리 → 출산", "var(--accent)"), ("심장후유산", "심장소리 → 유산", "var(--mid)"),
           ("심장(진행·미상)", "심장소리 → 진행 중·미상", "var(--hb)"), ("무심장", "심장소리 못 들음", "var(--low)")]
 DAYS = range(7, 18)
@@ -240,13 +242,15 @@ def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None, nxt=None
     sim = [r for r in allv if est[r["case_id"]][d2] and lo2 <= est[r["case_id"]][d2] <= hi2]
     base = allv
 
+    adj = after_hb()
+
     def probs(rs):
         n = len(rs)
         hb = sum(r["group"] != "무심장" for r in rs)
         miss = sum(outcome.get(r["case_id"]) == "아기집만(계류)" for r in rs)
         miss_y = sum(outcome.get(r["case_id"]) == "아기집만(계류)" and r["case_id"] in yolk for r in rs)
-        born = sum(r["group"] == "출산" for r in rs)
-        lost = sum(r["group"] == "심장후유산" for r in rs)
+        born = sum(adj.get(r["case_id"]) in OK for r in rs)
+        lost = sum(adj.get(r["case_id"]) == "유산" for r in rs)
         return {"n": n, "sac": (hb + miss, n), "yolk": (hb + miss_y, n), "hb": (hb, n), "born": (born, born + lost),
                 "chem": sum(outcome.get(r["case_id"]) == "화학적유산" for r in rs),
                 "ect": sum(outcome.get(r["case_id"]) == "자궁외" for r in rs), "miss": miss}
@@ -298,8 +302,8 @@ def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None, nxt=None
     # 직접 계산: 출산 ÷ (출산 + 심장소리 후 유산 + 심장소리 못 들음). 결과가 아직 안 나온 케이스는 뺀다.
     def direct(rs):
         rs = [r for r in rs if not sac_seen or r["group"] != "무심장" or outcome.get(r["case_id"]) == "아기집만(계류)"]
-        b = sum(r["group"] == "출산" for r in rs)
-        return b, b + sum(r["group"] in ("심장후유산", "무심장") for r in rs)
+        b = sum(adj.get(r["case_id"]) in OK for r in rs)
+        return b, b + sum(adj.get(r["case_id"]) == "유산" or r["group"] == "무심장" for r in rs)
 
     d_sim, d_all = direct(sim), direct(allv)
     bleed = {r["case_id"]: r["pre"] for r in read_csv(os.path.join(DATA, "bleeding_log.csv"))
@@ -404,9 +408,9 @@ def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None, nxt=None
   <li><b>{d1}일 {fmtn(mine[d1])}</b>은 심장소리를 들은 케이스 중 하위 {pct(pctile(hb_all[d1], mine[d1]) / 100)} 위치로 낮은 편이지만, 이 날 수치는 결과와 겹치는 구간이 넓어 구분력이 약합니다.</li>
   <li><b>{d2}일 {fmtn(mine[d2])}</b>은 심장소리를 들은 케이스 중 상위 {pct(1 - pctile(hb_all[d2], mine[d2]) / 100)}, 심장소리를 못 들은 케이스 중에서는 {pct(pctile(by['무심장'][d2], mine[d2]) / 100)} 위치입니다. 더블링 {f'{dt_mine:.2f}일' if dt_mine else '—'}은 심장소리 케이스 중앙값({dt_hb:.2f}일)보다 빠릅니다.</li>
   <li>{d2}일 수치가 비슷했던(×0.5~×2) {P_sim['n']}건 중 <b>{P_sim['hb'][0]}건({pct(hb_sim[0])})이 심장소리</b>를 들었습니다. 수치 하나로 본 모델 추정은 {pct(lg[0])} (95% {pct(lg[1])}–{pct(lg[2])})입니다.</li>
-  <li>심장소리를 들은 뒤 출산 비율 {pct(p_birth_given_hb)}({birth_src})를 곱하면 <b>출산까지 약 {pct(p_birth)}</b>입니다.</li>
+  <li>심장소리를 들은 뒤 출산 비율 {pct(p_birth_given_hb)}({birth_src}, 출산 글은 없지만 12주 이상 유지된 케이스 포함)를 곱하면 <b>출산까지 약 {pct(p_birth)}</b>입니다.</li>
   {f"<li><b>{scan.month}/{scan.day} 초음파: {html.escape(seen)}</b>. 자궁 안 아기집을 확인해 자궁외 임신·화학적 유산 가능성이 빠졌습니다. 비슷한 수치에서 아기집을 본 {hb_sac_sim[1]}건 중 {hb_sac_sim[0]}건이 심장소리를 들어 <b>심장소리 {pct(hs[0])}, 출산까지 약 {pct(p_birth_sac)}</b>로 올라갑니다.</li>" if sac_seen and scan else ""}
-  <li><b>출산 확률 두 가지 계산.</b> 출산한 케이스는 모두 심장소리를 들었으므로 '출산 ÷ 결과 확정 케이스'로 바로 셀 수 있습니다: 비슷한 수치{"·아기집 확인" if sac_seen else ""} {d_sim[1]}건 중 {d_sim[0]}건, <b>{pct(d_sim[0] / d_sim[1])}</b>. 다만 실패는 몇 주 안에 확정되고 출산은 예정일이 지나야 확정되므로, 아직 진행 중인 심장소리 케이스가 빠지면서 이 값은 <b>낮게 치우칩니다</b>. 그래서 심장소리 단계(결과가 거의 다 나온 단계) 비율에 심장소리 후 출산 비율을 곱한 <b>{pct(p_birth_sac if sac_seen else p_birth)}</b>를 함께 둡니다. 실제 값은 이 사이로 봅니다.</li>
+  <li><b>출산 확률 두 가지 계산.</b> 출산한 케이스는 모두 심장소리를 들었으므로 '출산 ÷ 결과 확정 케이스'로 바로 셀 수 있습니다: 비슷한 수치{"·아기집 확인" if sac_seen else ""} {d_sim[1]}건 중 {d_sim[0]}건, <b>{pct(d_sim[0] / d_sim[1])}</b>. 유산은 몇 주 안에 확정되고 출산은 예정일이 지나야 확정되므로, 출산 글은 없지만 <b>12주 이상까지 유지된 케이스도 '유지'로 함께 셉니다</b>(심장소리 후 유산은 대부분 7~10주). 단계별 곱셈 값은 <b>{pct(p_birth_sac if sac_seen else p_birth)}</b>입니다.</li>
   {f"<li><b>{sp_name}</b>가 있었던 케이스{'(아기집 확인)' if sac_seen else ''}: 심장소리 {pct(sp_hb[0] / sp_hb[1])} ({sp_hb[0]}/{sp_hb[1]}), 출산 {pct(d_sp[0] / d_sp[1])} ({d_sp[0]}/{d_sp[1]}). 피비침이 없던 케이스와 차이가 크지 않습니다.</li>" if spotting and sp_hb[1] and d_sp[1] else ""}
   {f"<li>{nxt.month}/{nxt.day} 심장소리 예정일은 임신 {gw(14 + embryo + (nxt - transfer).days)}로, 심장소리를 들은 케이스 대부분이 이미 첫 확인을 마친 시점입니다.</li>" if nxt and transfer else ""}
 </ul></div>
@@ -426,10 +430,10 @@ def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None, nxt=None
   {prob_row("아기집 확인", P_sim["sac"], P_all["sac"], "심장소리 + 아기집만(계류)")}
   {prob_row("난황 확인", P_sim["yolk"], P_all["yolk"], "심장소리 + 계류 중 난황 기록")}
   {prob_row("심장소리 확인", P_sim["hb"], P_all["hb"], f"모델 {pct(lg[0])} ({pct(lg[1])}–{pct(lg[2])}), {d1}일 값만으로는 {pct(lg1[0])}")}
-  {prob_row("심장소리 후 출산", born_sim, born_all, "예정일 지난 케이스 중 출산 ÷ (출산+유산)")}
+  {prob_row("심장소리 후 출산", born_sim, born_all, "(출산 + 12주 이상 유지) ÷ (그 + 심장소리 후 유산)")}
   {(prob_row(f"{scan.month}/{scan.day} 아기집 확인 후 → 심장소리", hb_sac_sim, hb_sac_all, "심장소리 ÷ (심장소리 + 아기집만 계류)") if sac_seen and scan else "")}
   {(f'<tr class="total"><td><b>아기집 확인 후 출산까지</b></td><td class="num"><b>{pct(p_birth_sac)}</b></td><td class="num">{pct(rate(*hb_sac_all)[0] * born_all[0] / born_all[1])}</td><td class="muted">아기집 확인 후 심장소리 × 심장소리 후 출산 — 진행 중 케이스의 영향을 덜 받음</td></tr>') if sac_seen and scan else ""}
-  {prob_row(f"<b>출산까지 — 직접 계산</b>", d_sim, d_all, "출산 ÷ (출산 + 심장소리 후 유산 + 심장소리 못 들음). 진행 중 케이스가 빠져 낮게 치우침")}
+  {prob_row(f"<b>출산까지 — 직접 계산</b>", d_sim, d_all, "(출산 + 12주 이상 유지) ÷ (그 + 심장소리 후 유산 + 심장소리 못 들음)")}
   {(prob_row(f"{sp_name} → 심장소리", sp_hb, sp_hb, "피비침 있던 전체 케이스(수치 무관)") + prob_row(f"{sp_name} → 출산까지 (직접)", d_sp, d_sp, "피비침 있던 전체 케이스(수치 무관)")) if spotting and sp_hb[1] and d_sp[1] else ""}
   <tr class="total"><td><b>출산까지 (곱셈, 피검만 기준)</b></td><td class="num"><b>{pct(p_birth)}</b></td><td class="num">{pct(rate(*P_all['hb'])[0] * born_all[0] / born_all[1])}</td><td class="muted">심장소리 확률 × 심장소리 후 출산 비율({birth_src})</td></tr>
   </tbody></table></div>
