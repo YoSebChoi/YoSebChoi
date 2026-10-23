@@ -1,3 +1,4 @@
 .cache/
 __pycache__/
 results/my_hcg_report.html
+results/my_summary_report.html

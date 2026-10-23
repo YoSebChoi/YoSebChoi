@@ -41,6 +41,25 @@ def chart(rows, per, ok, title):
     return bar_chart(data, title).replace("· 미확인 0", "").replace(", 미확인 0건 제외", "")
 
 
+def overall_table(rows):
+    """아기집 확인 케이스 기준 출산까지: 단계별 곱셈과 직접 계산을 나란히."""
+    sac = [r for r in rows if r["outcome"] in ("심장소리확인", "아기집만(계류)")]
+    body = []
+    for c, name in CATS:
+        s = [r for r in sac if r["pre"] == c]
+        hb = sum(r["outcome"] == "심장소리확인" for r in s)
+        born = sum(r["birth"] == "출산" for r in s)
+        lost = sum(r["birth"] == "유산" for r in s)
+        fail = len(s) - hb
+        p1, p2 = hb / len(s), born / (born + lost) if born + lost else float("nan")
+        body.append(f'<tr class="{"low" if c in ("red", "spot") else ""}"><td>{name}</td><td>{pct(p1)} <span class="muted">{hb}/{len(s)}</span></td>'
+                    f'<td>{pct(p2)} <span class="muted">{born}/{born + lost}</span></td><td class="num"><b>{pct(p1 * p2)}</b></td>'
+                    f'<td class="num">{pct(born / (born + lost + fail))} <span class="muted">{born}/{born + lost + fail}</span></td></tr>')
+    return ('<div class="tbl"><table><thead><tr><th>심장 확인 전 피비침</th><th>심장소리</th><th>심장소리 후 출산</th>'
+            '<th>출산까지 (곱셈)</th><th>출산까지 (직접)</th></tr></thead>'
+            f'<tbody>{"".join(body)}</tbody></table></div>')
+
+
 def build(rows):
     hb_ok = lambda r: r["outcome"] == "심장소리확인"
     born_ok = lambda r: r["birth"] == "출산"
@@ -102,7 +121,13 @@ def build(rows):
 </section>
 
 <section>
-  <h2>3. 출산한 케이스의 피비침 시기 · 피고임</h2>
+  <h2>3. 아기집을 확인한 경우 출산까지</h2>
+  <p class="note">자궁 안 아기집을 본 케이스(심장소리 + 아기집만 계류)만 봤습니다. <b>직접</b> = 출산 ÷ (출산 + 심장소리 후 유산 + 심장소리 못 들음). 실패는 일찍, 출산은 예정일 뒤에 확정되므로 진행 중 케이스가 빠지는 직접 계산은 낮게 치우칩니다. <b>곱셈</b> = 심장소리 비율 × 심장소리 후 출산 비율로 이 치우침을 줄인 값입니다. 실제는 두 값 사이로 봅니다.</p>
+  <div class="panel">{overall_table(rows)}</div>
+</section>
+
+<section>
+  <h2>4. 출산한 케이스의 피비침 시기 · 피고임</h2>
   <div class="panel"><div class="tbl"><table><thead><tr><th>갈색 피비침을 처음 적은 주수 (출산 케이스)</th><th>4주</th><th>5주</th><th>6주</th><th>7주</th></tr></thead>
   <tbody><tr><td>케이스 수</td>{week_cells}</tr></tbody></table></div>
   <div class="tbl"><table><thead><tr><th>피고임(융모막하 혈종) 언급</th><th>케이스</th><th>출산</th><th>비율</th></tr></thead><tbody>
