@@ -1,0 +1,117 @@
+<title>초기 피비침과 결과</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#f7f8fa;--panel:#ffffff;--fg:#1b2430;--muted:#5d6876;--line:#dde2e8;--grid:#e8ecf0;
+--accent:#2f6db3;--low:#d0643b;--mid:#8fb3dc;--lowbg:#fbeee8;--strip:#e9edf2;
+--sans:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181d;--panel:#1b2027;--fg:#e8ecf1;--muted:#9aa5b2;
+--line:#2c333d;--grid:#262c35;--accent:#5b8fd4;--low:#d0643b;--mid:#35557d;--lowbg:#2b211d;--strip:#262c35;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181d;--panel:#1b2027;--fg:#e8ecf1;--muted:#9aa5b2;--line:#2c333d;--grid:#262c35;
+--accent:#5b8fd4;--low:#d0643b;--mid:#35557d;--lowbg:#2b211d;--strip:#262c35;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.6}
+.wrap{max-width:880px;margin:0 auto;padding-block:32px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:28px}
+header{display:grid;grid-template-columns:auto 1fr;gap:24px;padding-left:14px;align-items:center}
+.strip{width:46px;height:120px;border-radius:8px;background:var(--strip);position:relative;border:1px solid var(--line)}
+.strip i{position:absolute;left:8px;right:8px;height:5px;border-radius:2px}
+.strip .c{top:44px;background:var(--muted);opacity:.55}.strip .t{top:70px;background:var(--low)}
+.strip span{position:absolute;left:-14px;font:600 10px var(--mono);color:var(--muted)}
+h1{font-size:clamp(24px,4vw,32px);line-height:1.25;margin:0;text-wrap:balance;font-weight:700}
+h2{font-size:20px;margin:0 0 4px;text-wrap:balance}
+h3{font-size:15px;margin:18px 0 6px;color:var(--muted);font-weight:600}
+p{margin:0}.lede{color:var(--muted);margin-top:6px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi b{display:block;font:600 24px var(--mono);font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:13px}
+.key{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:16px 18px}
+.key ul{margin:6px 0 0;padding-left:20px;display:grid;gap:4px}
+section{display:grid;gap:10px;min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0;display:grid;gap:12px}
+.tag{display:inline-block;font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent)}
+.chart{width:100%;height:auto;display:block}
+.chart .grid{stroke:var(--grid);stroke-width:1}.chart .tick{fill:var(--muted);font:11px var(--mono)}
+.chart .lab{fill:var(--fg);font:500 13px var(--sans)}.chart .val{fill:var(--fg);font:600 14px var(--mono)}
+.chart .sub{fill:var(--muted);font:11px var(--sans)}.chart .bar.hi{fill:var(--accent)}.chart .bar.low{fill:var(--low)}
+.chart .ci{stroke:var(--fg);stroke-width:1.5;opacity:.55}.chart .hit{fill:transparent}.chart .row:hover .hit{fill:var(--grid)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;color:var(--muted);font-size:13px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}th{color:var(--muted);font-weight:600;font-size:12.5px}
+tr.low td{background:var(--lowbg)}tr.total td{border-top:2px solid var(--line)}
+.muted{color:var(--muted)}.note{color:var(--muted);font-size:13.5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}.two>*{min-width:0}
+.stack{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-top:6px;background:var(--grid)}.stack i{display:block;height:100%}
+.grp td{padding-top:14px}
+ol,ul{margin:0}.method li,.limits li{margin-bottom:4px}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}header{grid-template-columns:1fr}.strip{display:none}}
+</style>
+<div class="wrap">
+<header>
+  <div class="strip" aria-hidden="true"><i class="c"></i><span style="top:38px">C</span><i class="t"></i><span style="top:64px">T</span></div>
+  <div><span class="tag">시험관 이식 후기 분석 · 2026-10-23</span>
+  <h1>임신 초기 피비침과 심장소리·출산</h1>
+  <p class="lede">시험관 후기 368건에서 임신 초기 피비침 언급을 찾아, 갈색 소량·빨간 피 등 유형별로 심장소리와 출산 비율을 비교했습니다.</p></div>
+</header>
+
+<div class="kpis">
+  <div class="kpi"><b>45.6%</b><span>출산한 케이스 중 심장 확인 전 피비침 언급</span></div>
+  <div class="kpi"><b>15.4%</b><span>그중 갈색 소량 (21/136)</span></div>
+  <div class="kpi"><b>84.1%</b><span>갈색 소량 → 심장소리 (37/44)</span></div>
+  <div class="kpi"><b>95.5%</b><span>갈색 소량 + 심장소리 → 출산 (21/22)</span></div>
+</div>
+
+<div class="key"><b>핵심 결과</b>
+<ul>
+  <li>피비침은 흔했습니다. <b>출산까지 간 케이스의 45.6%</b>가 심장소리 확인 전에 피비침을 적었고, 갈색 소량만 있었던 경우가 15.4%, 빨간 피나 많은 양을 적은 경우도 22.1%였습니다.</li>
+  <li><b>갈색 소량</b> 피비침이 있었던 케이스의 심장소리 비율은 84.1%로, 언급이 없던 케이스(87.9%)와 신뢰구간이 겹쳐 뚜렷한 차이가 없습니다.</li>
+  <li>심장소리를 들은 뒤 출산 비율도 갈색 소량 95.5% (21/22), 언급 없음 91.4% (74/81)로 비슷했습니다. 빨간 피·많은 양이나 색을 적지 않은 피비침 쪽이 조금 낮지만, 이 경우도 대부분 출산했습니다.</li>
+  <li>갈색 피비침은 주로 <b>4~6주</b>에 처음 나타났습니다.</li>
+</ul></div>
+
+<section>
+  <h2>1. 심장 확인 전 피비침 → 심장소리</h2>
+  <p class="note">임신 4주 1일부터 심장을 처음 확인한 날 전까지의 피비침입니다(심장을 못 들은 케이스는 7주 6일까지). 비율 = 심장소리 ÷ (심장소리 + 계류·화유·자궁외).</p>
+  <div class="panel"><div class="legend"><span><i style="background:var(--accent)"></i>언급 없음 · 갈색 소량</span><span><i style="background:var(--low)"></i>색 미상 · 빨간 피·많은 양</span><span>가는 선: 95% 신뢰구간</span></div><svg viewBox="0 0 680 240" role="img" aria-label="피비침 유형별 심장소리 비율" class="chart"><line x1="118.0" y1="22" x2="118.0" y2="214" class="grid"/><text x="118.0" y="232" class="tick" text-anchor="middle">0%</text><line x1="221.0" y1="22" x2="221.0" y2="214" class="grid"/><text x="221.0" y="232" class="tick" text-anchor="middle">25%</text><line x1="324.0" y1="22" x2="324.0" y2="214" class="grid"/><text x="324.0" y="232" class="tick" text-anchor="middle">50%</text><line x1="427.0" y1="22" x2="427.0" y2="214" class="grid"/><text x="427.0" y="232" class="tick" text-anchor="middle">75%</text><line x1="530.0" y1="22" x2="530.0" y2="214" class="grid"/><text x="530.0" y="232" class="tick" text-anchor="middle">100%</text><g class="row"><title>언급 없음: 87.9% (175/199), 95% CI 83%–92%</title><rect x="0" y="26" width="680" height="44" class="hit"/><text x="106" y="49" class="lab" text-anchor="end">언급 없음</text><rect x="118" y="36" width="362.3" height="20" rx="4" class="bar hi"/><line x1="458.7" y1="46" x2="496.1" y2="46" class="ci"/><line x1="458.7" y1="40" x2="458.7" y2="52" class="ci"/><line x1="496.1" y1="40" x2="496.1" y2="52" class="ci"/><text x="544" y="45" class="val">87.9%</text><text x="544" y="61" class="sub">175/199 </text></g><g class="row"><title>갈색 소량: 84.1% (37/44), 95% CI 71%–92%</title><rect x="0" y="70" width="680" height="44" class="hit"/><text x="106" y="93" class="lab" text-anchor="end">갈색 소량</text><rect x="118" y="80" width="346.5" height="20" rx="4" class="bar hi"/><line x1="409.0" y1="90" x2="497.3" y2="90" class="ci"/><line x1="409.0" y1="84" x2="409.0" y2="96" class="ci"/><line x1="497.3" y1="84" x2="497.3" y2="96" class="ci"/><text x="544" y="89" class="val">84.1%</text><text x="544" y="105" class="sub">37/44 </text></g><g class="row"><title>피비침 (색 미상): 78.4% (29/37), 95% CI 63%–89%</title><rect x="0" y="114" width="680" height="44" class="hit"/><text x="106" y="137" class="lab" text-anchor="end">피비침 (색 미상)</text><rect x="118" y="124" width="322.9" height="20" rx="4" class="bar low"/><line x1="376.8" y1="134" x2="483.1" y2="134" class="ci"/><line x1="376.8" y1="128" x2="376.8" y2="140" class="ci"/><line x1="483.1" y1="128" x2="483.1" y2="140" class="ci"/><text x="544" y="133" class="val">78.4%</text><text x="544" y="149" class="sub">29/37 </text></g><g class="row"><title>빨간 피·많은 양: 87.5% (77/88), 95% CI 79%–93%</title><rect x="0" y="158" width="680" height="44" class="hit"/><text x="106" y="181" class="lab" text-anchor="end">빨간 피·많은 양</text><rect x="118" y="168" width="360.5" height="20" rx="4" class="bar low"/><line x1="443.4" y1="178" x2="500.6" y2="178" class="ci"/><line x1="443.4" y1="172" x2="443.4" y2="184" class="ci"/><line x1="500.6" y1="172" x2="500.6" y2="184" class="ci"/><text x="544" y="177" class="val">87.5%</text><text x="544" y="193" class="sub">77/88 </text></g></svg>
+  <div class="tbl"><table><thead><tr><th>피비침</th><th>케이스</th><th>심장소리</th><th>비율</th><th>95% 신뢰구간</th></tr></thead><tbody><tr class=""><td>언급 없음</td><td>199</td><td>175</td><td class="num"><b>87.9%</b></td><td>83%–92%</td></tr><tr class=""><td>갈색 소량</td><td>44</td><td>37</td><td class="num"><b>84.1%</b></td><td>71%–92%</td></tr><tr class="low"><td>피비침 (색 미상)</td><td>37</td><td>29</td><td class="num"><b>78.4%</b></td><td>63%–89%</td></tr><tr class="low"><td>빨간 피·많은 양</td><td>88</td><td>77</td><td class="num"><b>87.5%</b></td><td>79%–93%</td></tr></tbody></table></div></div>
+</section>
+
+<section>
+  <h2>2. 심장소리를 들은 뒤 → 출산</h2>
+  <p class="note">출산 예정일이 지나 결과(출산 또는 심장소리 후 유산)가 확인된 153건입니다.</p>
+  <div class="panel"><h3>심장 확인 전 피비침 기준</h3><div class="legend"><span><i style="background:var(--accent)"></i>언급 없음 · 갈색 소량</span><span><i style="background:var(--low)"></i>색 미상 · 빨간 피·많은 양</span><span>가는 선: 95% 신뢰구간</span></div><svg viewBox="0 0 680 240" role="img" aria-label="심장 확인 전 피비침 유형별 출산 비율" class="chart"><line x1="118.0" y1="22" x2="118.0" y2="214" class="grid"/><text x="118.0" y="232" class="tick" text-anchor="middle">0%</text><line x1="221.0" y1="22" x2="221.0" y2="214" class="grid"/><text x="221.0" y="232" class="tick" text-anchor="middle">25%</text><line x1="324.0" y1="22" x2="324.0" y2="214" class="grid"/><text x="324.0" y="232" class="tick" text-anchor="middle">50%</text><line x1="427.0" y1="22" x2="427.0" y2="214" class="grid"/><text x="427.0" y="232" class="tick" text-anchor="middle">75%</text><line x1="530.0" y1="22" x2="530.0" y2="214" class="grid"/><text x="530.0" y="232" class="tick" text-anchor="middle">100%</text><g class="row"><title>언급 없음: 91.4% (74/81), 95% CI 83%–96%</title><rect x="0" y="26" width="680" height="44" class="hit"/><text x="106" y="49" class="lab" text-anchor="end">언급 없음</text><rect x="118" y="36" width="376.4" height="20" rx="4" class="bar hi"/><line x1="460.9" y1="46" x2="512.5" y2="46" class="ci"/><line x1="460.9" y1="40" x2="460.9" y2="52" class="ci"/><line x1="512.5" y1="40" x2="512.5" y2="52" class="ci"/><text x="544" y="45" class="val">91.4%</text><text x="544" y="61" class="sub">74/81 </text></g><g class="row"><title>갈색 소량: 95.5% (21/22), 95% CI 78%–99%</title><rect x="0" y="70" width="680" height="44" class="hit"/><text x="106" y="93" class="lab" text-anchor="end">갈색 소량</text><rect x="118" y="80" width="393.3" height="20" rx="4" class="bar hi"/><line x1="440.2" y1="90" x2="526.7" y2="90" class="ci"/><line x1="440.2" y1="84" x2="440.2" y2="96" class="ci"/><line x1="526.7" y1="84" x2="526.7" y2="96" class="ci"/><text x="544" y="89" class="val">95.5%</text><text x="544" y="105" class="sub">21/22 </text></g><g class="row"><title>피비침 (색 미상): 78.6% (11/14), 95% CI 52%–92%</title><rect x="0" y="114" width="680" height="44" class="hit"/><text x="106" y="137" class="lab" text-anchor="end">피비침 (색 미상)</text><rect x="118" y="124" width="323.7" height="20" rx="4" class="bar low"/><line x1="333.9" y1="134" x2="498.8" y2="134" class="ci"/><line x1="333.9" y1="128" x2="333.9" y2="140" class="ci"/><line x1="498.8" y1="128" x2="498.8" y2="140" class="ci"/><text x="544" y="133" class="val">78.6%</text><text x="544" y="149" class="sub">11/14 </text></g><g class="row"><title>빨간 피·많은 양: 83.3% (30/36), 95% CI 68%–92%</title><rect x="0" y="158" width="680" height="44" class="hit"/><text x="106" y="181" class="lab" text-anchor="end">빨간 피·많은 양</text><rect x="118" y="168" width="343.3" height="20" rx="4" class="bar low"/><line x1="398.6" y1="178" x2="497.6" y2="178" class="ci"/><line x1="398.6" y1="172" x2="398.6" y2="184" class="ci"/><line x1="497.6" y1="172" x2="497.6" y2="184" class="ci"/><text x="544" y="177" class="val">83.3%</text><text x="544" y="193" class="sub">30/36 </text></g></svg>
+  <div class="tbl"><table><thead><tr><th>피비침</th><th>케이스</th><th>출산</th><th>비율</th><th>95% 신뢰구간</th></tr></thead><tbody><tr class=""><td>언급 없음</td><td>81</td><td>74</td><td class="num"><b>91.4%</b></td><td>83%–96%</td></tr><tr class=""><td>갈색 소량</td><td>22</td><td>21</td><td class="num"><b>95.5%</b></td><td>78%–99%</td></tr><tr class="low"><td>피비침 (색 미상)</td><td>14</td><td>11</td><td class="num"><b>78.6%</b></td><td>52%–92%</td></tr><tr class="low"><td>빨간 피·많은 양</td><td>36</td><td>30</td><td class="num"><b>83.3%</b></td><td>68%–92%</td></tr></tbody></table></div>
+  <h3>심장 확인 후 (~12주) 피비침 기준</h3><svg viewBox="0 0 680 240" role="img" aria-label="심장 확인 후 피비침 유형별 출산 비율" class="chart"><line x1="118.0" y1="22" x2="118.0" y2="214" class="grid"/><text x="118.0" y="232" class="tick" text-anchor="middle">0%</text><line x1="221.0" y1="22" x2="221.0" y2="214" class="grid"/><text x="221.0" y="232" class="tick" text-anchor="middle">25%</text><line x1="324.0" y1="22" x2="324.0" y2="214" class="grid"/><text x="324.0" y="232" class="tick" text-anchor="middle">50%</text><line x1="427.0" y1="22" x2="427.0" y2="214" class="grid"/><text x="427.0" y="232" class="tick" text-anchor="middle">75%</text><line x1="530.0" y1="22" x2="530.0" y2="214" class="grid"/><text x="530.0" y="232" class="tick" text-anchor="middle">100%</text><g class="row"><title>언급 없음: 94.2% (81/86), 95% CI 87%–97%</title><rect x="0" y="26" width="680" height="44" class="hit"/><text x="106" y="49" class="lab" text-anchor="end">언급 없음</text><rect x="118" y="36" width="388.0" height="20" rx="4" class="bar hi"/><line x1="476.9" y1="46" x2="519.7" y2="46" class="ci"/><line x1="476.9" y1="40" x2="476.9" y2="52" class="ci"/><line x1="519.7" y1="40" x2="519.7" y2="52" class="ci"/><text x="544" y="45" class="val">94.2%</text><text x="544" y="61" class="sub">81/86 </text></g><g class="row"><title>갈색 소량: 93.8% (15/16), 95% CI 72%–99%</title><rect x="0" y="70" width="680" height="44" class="hit"/><text x="106" y="93" class="lab" text-anchor="end">갈색 소량</text><rect x="118" y="80" width="386.2" height="20" rx="4" class="bar hi"/><line x1="413.3" y1="90" x2="525.4" y2="90" class="ci"/><line x1="413.3" y1="84" x2="413.3" y2="96" class="ci"/><line x1="525.4" y1="84" x2="525.4" y2="96" class="ci"/><text x="544" y="89" class="val">93.8%</text><text x="544" y="105" class="sub">15/16 </text></g><g class="row"><title>피비침 (색 미상): 66.7% (12/18), 95% CI 44%–84%</title><rect x="0" y="114" width="680" height="44" class="hit"/><text x="106" y="137" class="lab" text-anchor="end">피비침 (색 미상)</text><rect x="118" y="124" width="274.7" height="20" rx="4" class="bar low"/><line x1="298.2" y1="134" x2="462.9" y2="134" class="ci"/><line x1="298.2" y1="128" x2="298.2" y2="140" class="ci"/><line x1="462.9" y1="128" x2="462.9" y2="140" class="ci"/><text x="544" y="133" class="val">66.7%</text><text x="544" y="149" class="sub">12/18 </text></g><g class="row"><title>빨간 피·많은 양: 84.8% (28/33), 95% CI 69%–93%</title><rect x="0" y="158" width="680" height="44" class="hit"/><text x="106" y="181" class="lab" text-anchor="end">빨간 피·많은 양</text><rect x="118" y="168" width="349.6" height="20" rx="4" class="bar low"/><line x1="402.6" y1="178" x2="502.6" y2="178" class="ci"/><line x1="402.6" y1="172" x2="402.6" y2="184" class="ci"/><line x1="502.6" y1="172" x2="502.6" y2="184" class="ci"/><text x="544" y="177" class="val">84.8%</text><text x="544" y="193" class="sub">28/33 </text></g></svg>
+  <div class="tbl"><table><thead><tr><th>피비침</th><th>케이스</th><th>출산</th><th>비율</th><th>95% 신뢰구간</th></tr></thead><tbody><tr class=""><td>언급 없음</td><td>86</td><td>81</td><td class="num"><b>94.2%</b></td><td>87%–97%</td></tr><tr class=""><td>갈색 소량</td><td>16</td><td>15</td><td class="num"><b>93.8%</b></td><td>72%–99%</td></tr><tr class="low"><td>피비침 (색 미상)</td><td>18</td><td>12</td><td class="num"><b>66.7%</b></td><td>44%–84%</td></tr><tr class="low"><td>빨간 피·많은 양</td><td>33</td><td>28</td><td class="num"><b>84.8%</b></td><td>69%–93%</td></tr></tbody></table></div></div>
+</section>
+
+<section>
+  <h2>3. 출산한 케이스의 피비침 시기 · 피고임</h2>
+  <div class="panel"><div class="tbl"><table><thead><tr><th>갈색 피비침을 처음 적은 주수 (출산 케이스)</th><th>4주</th><th>5주</th><th>6주</th><th>7주</th></tr></thead>
+  <tbody><tr><td>케이스 수</td><td>7</td><td>9</td><td>4</td><td>1</td></tr></tbody></table></div>
+  <div class="tbl"><table><thead><tr><th>피고임(융모막하 혈종) 언급</th><th>케이스</th><th>출산</th><th>비율</th></tr></thead><tbody>
+  <tr><td>있음</td><td>50</td><td>45</td><td class="num"><b>90.0%</b></td></tr>
+  <tr><td>없음·언급 없음</td><td>103</td><td>91</td><td class="num"><b>88.3%</b></td></tr>
+  </tbody></table></div>
+  <p class="note">피고임도 출산 비율과 뚜렷한 관계가 보이지 않았습니다. 갈색 피비침은 이전에 고였던 피가 나오는 경우가 많다고 블로거들이 병원에서 들은 설명을 자주 적었습니다.</p></div>
+</section>
+
+<div class="two">
+<section><h2>분석 방법</h2>
+<ul class="method note">
+  <li>3·4·5일배 케이스의 이식 후기와 이식 후 75일 안의 후속 글에서 '피비침', '갈색혈·갈색냉', '선홍', '빨간 피', '하혈', '출혈' 문장을 찾았습니다.</li>
+  <li>앞뒤 문장에 '없었다', '혹시 ~하면', 해시태그 같은 표현이 있으면 뺐습니다. 갈색이면서 많은 양 표현이 없으면 '갈색 소량', 선홍·빨간·하혈·생리처럼·많이 나옴이면 '빨간 피·많은 양'으로 나눴습니다.</li>
+  <li>시기는 문장 근처의 임신 주수, 없으면 글 작성일로 정했습니다. 표본 대조에서 분류는 대략 8~9할이 맞았고, 틀린 몇 건은 직접 고쳤습니다.</li>
+</ul></section>
+<section><h2>해석할 때 주의</h2>
+<ul class="limits note">
+  <li>블로그에 적지 않은 피비침은 '언급 없음'으로 잡힙니다. 실제로 피비침이 있었던 비율은 더 높을 수 있습니다.</li>
+  <li>유산된 케이스의 출혈은 진단 뒤(약 중단, 배출 과정)에 쓴 것이 섞여 있어, 실패 쪽 출혈 비율이 높게 보일 수 있습니다.</li>
+  <li><b>병원에 바로 연락할 신호:</b> 생리처럼 많은 빨간 피, 덩어리, 심한 복통이나 한쪽 통증, 어지러움. 소량 갈색이라도 걱정되면 병원에 묻는 것이 기준입니다.</li>
+  <li>의학적 판단 근거가 아닙니다.</li>
+</ul></section>
+</div>
+</div>
