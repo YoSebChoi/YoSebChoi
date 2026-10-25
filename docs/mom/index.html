@@ -9,6 +9,10 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.02d1b31c.png">
 <link rel="apple-touch-icon" href="icon-192.02d1b31c.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="예비맘 혜택">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -875,8 +879,8 @@ dialog .btn { width: 100%; }
     const nSrc = places.reduce((n, p) => n + p.src.length, 0), nOn = places.filter(p => p.st !== "end").length;
     $("aboutLegend").innerHTML = Object.entries(CATS).map(([k, v]) => `<span style="--k:var(--${k})"><span class="badge" style="width:26px;height:26px;border-radius:8px">${svg(v.i, 'style="width:16px;height:16px"')}</span>${v.n}</span>`).join("");
     $("aboutData").textContent = `혜택 ${places.length}곳 (지금 받을 수 있는 곳 ${nOn}) · 출처 ${nSrc}개 · 자료 ${meta.updated || ""}${meta.blogUpdated ? ` · 블로그 수집 ${meta.blogUpdated}` : ""}`;
-    $("aboutVersion").textContent = "화면 버전 2c1474e6";
-    if (native) call("App", "getInfo").then(i => { if (i && i.version) $("aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 2c1474e6`; }).catch(() => {});
+    $("aboutVersion").textContent = "화면 버전 3f353abc";
+    if (native) call("App", "getInfo").then(i => { if (i && i.version) $("aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 3f353abc`; }).catch(() => {});
     $("about").showModal();
   });
   $("reportLink").href = REPORT_URL;

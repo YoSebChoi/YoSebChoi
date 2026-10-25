@@ -1,5 +1,5 @@
 // 예비맘 혜택 지도 service worker: the app shell from cache, the data fresh when online.
-const CACHE = "mom-map-2c1474e6";
+const CACHE = "mom-map-3f353abc";
 const DATA = ["places.json", "policies.json", "blog.json"];
 const SHELL = ["./", "./index.html", ...DATA.map(d => "./" + d)];
 self.addEventListener("install", e => {
