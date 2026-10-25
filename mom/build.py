@@ -130,7 +130,10 @@ class Geocoder:
         region = " ".join(p["a"].split()[:2])
         ll = None
         try:
-            ll = self._kakao("keyword", f"{region} {name}") or self._kakao("address", p["a"])
+            if p.get("geo") == "addr":  # an exact road address from an official list: the name may be too common to search
+                ll = self._kakao("address", p["a"]) or self._kakao("keyword", f"{region} {name}")
+            else:
+                ll = self._kakao("keyword", f"{region} {name}") or self._kakao("address", p["a"])
         except Exception as e:  # a lookup that fails keeps the written coordinates
             print("geocode failed:", p["n"], e, file=sys.stderr)
         if ll:
