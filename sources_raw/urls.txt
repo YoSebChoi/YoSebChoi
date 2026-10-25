@@ -1,0 +1,10 @@
+suwon_pdf http://www.suwon.go.kr/webcontent/ckeditor/2026/3/23/0312cb0c-05a7-4b5d-8236-c60f5eeff0bb.pdf
+suwon_page https://www.suwon.go.kr/sw-www/deptHome/dep_env/env_06/env_04_06.jsp
+cj_23857 https://www.cheongju.go.kr/www/contents.do?key=23857
+cj_24151 https://www.cheongju.go.kr/www/contents.do?key=24151
+cj_24266 https://www.cheongju.go.kr/www/contents.do?key=24266
+cj_23843 https://www.cheongju.go.kr/www/contents.do?key=23843
+geomdan https://www.geomdan.go.kr/
+dongdaegu_food https://food.dong.daegu.kr/
+datago_15110594 https://www.data.go.kr/catalog/15110594/openapi.json
+cw_tour https://tour.changwon.go.kr/
