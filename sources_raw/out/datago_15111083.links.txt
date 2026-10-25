@@ -1,0 +1,49 @@
+/index.do	DATA.GO.KR 공공데이터포털
+/en/index.do	English
+javascript:procLogin()	로그인
+javascript:window.location.href='/uim/login/signupView.do'	회원가입
+/en/index.do	English
+javascript:window.location.href='/uim/login/signupView.do'	회원가입
+javascript:procLogin()	로그인
+/index.do	홈
+/tcs/dss/selectDataSetList.do?dType=&keyword=&orgNm=경상남도%20진주시&conditionType=search	경상남도 진주시
+/catalog/15111083/fileData.json	Schema.org
+/biz/dcat/metadata/15111083.do	DCAT
+/ugs/selectPortalPolicyView.do	이용허락범위 제한 없음
+/tcs/dss/selectDataSetList.do?dType=&keyword=&orgNm=경상남도%20진주시&conditionType=search	경상남도 진주시
+/catalog/15111083/fileData.json	Schema.org
+/biz/dcat/metadata/15111083.do	DCAT
+/ugs/selectPortalPolicyView.do	이용허락범위 제한 없음
+https://www.mois.go.kr/	행정안전부
+https://www.nia.or.kr/	한국지능정보사회진흥원
+https://www.odf.or.kr/	오픈데이터포럼
+https://www.nirs.go.kr/	국가정보자원관리원
+https://www.klid.or.kr/	한국지역정보개발원
+https://data.seoul.go.kr/	서울 열린데이터광장
+https://data.gg.go.kr/	경기데이터드림
+https://data.busan.go.kr/	부산데이터웨이브
+https://data.daegu.go.kr/	D-데이터허브
+https://data.incheon.go.kr/	인천데이터포털
+https://data.ulsan.go.kr/	울산광역시 데이터포털
+https://bigdata.gwangju.go.kr/	전남광주통합특별시 빅데이터 플랫폼
+https://openlab.daejeon.go.kr/	대전광역시 데이터포털
+https://www.sejong.go.kr/	세종특별자치시 데이터포털
+https://data.chungbuk.go.kr/	충청북도 데이터허브
+https://data.kma.go.kr/	기상자료개방포털
+https://www.vworld.kr/	국토교통부 공간정보오픈플랫폼
+https://www.bigdata-environment.kr/	환경부 환경데이터포털
+https://www.culture.go.kr/	문화데이터광장
+https://data.mafra.go.kr/	농림축산식품 공공데이터포털
+https://opendata.hira.or.kr/	보건의료빅데이터개방시스템
+https://www.foodsafetykorea.go.kr/	식품의약품안전처 데이터포털
+https://kess.kedi.re.kr/	교육통계서비스
+/index.do	공공데이터포털 바로가기
+tel:1566-0025	1566-0025
+mailto:opendata_help@nia.or.kr	운영자 메일 상담 opendata_help@nia.or.kr
+/ugs/selectPublicDataUseGuideView.do	이용가이드
+/tcs/dor/insertTrublMdatReqstProcssView.do	분쟁조정 신청
+/bbs/faq/selectFaqList.do	문의하기
+https://www.youtube.com/@koropendata	유튜브
+https://twitter.com/koreadataportal	X
+http://www.facebook.com/koreadataportal	페이스북
+http://blog.naver.com/nia_korea	블로그
