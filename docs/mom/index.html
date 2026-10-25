@@ -877,8 +877,8 @@ dialog .btn { width: 100%; }
     const nSrc = places.reduce((n, p) => n + p.src.length, 0), nOn = places.filter(p => p.st !== "end").length;
     $("aboutLegend").innerHTML = Object.entries(CATS).map(([k, v]) => `<span style="--k:var(--${k})"><span class="badge" style="width:26px;height:26px;border-radius:8px">${svg(v.i, 'style="width:16px;height:16px"')}</span>${v.n}</span>`).join("");
     $("aboutData").textContent = `혜택 ${places.length}곳 (지금 받을 수 있는 곳 ${nOn}) · 출처 ${nSrc}개 · 자료 ${meta.updated || ""}${meta.blogUpdated ? ` · 블로그 수집 ${meta.blogUpdated}` : ""}`;
-    $("aboutVersion").textContent = "화면 버전 3ec9c4ee";
-    if (native) call("App", "getInfo").then(i => { if (i && i.version) $("aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 3ec9c4ee`; }).catch(() => {});
+    $("aboutVersion").textContent = "화면 버전 98f1c240";
+    if (native) call("App", "getInfo").then(i => { if (i && i.version) $("aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 98f1c240`; }).catch(() => {});
     $("about").showModal();
   });
   $("reportLink").href = REPORT_URL;
