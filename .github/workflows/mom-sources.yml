@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v5
       - name: Fetch
         run: |
-          sudo apt-get install -y -qq poppler-utils >/dev/null
+          pip install -q pypdf
           mkdir -p sources_raw/out
           while read -r name url; do
             [ -z "$name" ] && continue
@@ -29,7 +29,7 @@ jobs:
             type=$(file -b --mime-type "$f" 2>/dev/null || echo none)
             echo "$name $code $type $url" >> sources_raw/out/_log.txt
             case "$type" in
-              application/pdf) pdftotext -layout "$f" "sources_raw/out/$name.txt" ;;
+              application/pdf) python3 -c "import sys,pypdf; open(sys.argv[2],'w').write('\n'.join(p.extract_text() or '' for p in pypdf.PdfReader(sys.argv[1]).pages))" "$f" "sources_raw/out/$name.txt" ;;
               text/html|application/xhtml+xml) python3 - "$f" "sources_raw/out/$name" <<'PY'
           import sys, re, html
           raw = open(sys.argv[1], 'rb').read()
