@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build 최책임의 예비맘 혜택 지도 into docs/mom/ for GitHub Pages.
+"""Build 예비맘 혜택 지도 into docs/mom/ for GitHub Pages.
 
     python3 mom/build.py            # look up coordinates that are missing or approximate, then build
     python3 mom/build.py --offline  # build from what is in mom/data only
@@ -32,7 +32,7 @@ OUT = ROOT / "docs" / "mom"
 CACHE_FILE = DATA / "geocode_cache.json"
 
 MANIFEST = {
-    "name": "최책임의 예비맘 혜택 지도",
+    "name": "예비맘 혜택 지도",
     "short_name": "예비맘 혜택",
     "description": "임산부에게 할인·우선입장·선물을 주는 식당, 카페, 베이커리, 호텔, 리조트와 정부·지자체 임신 지원을 한 지도에.",
     "lang": "ko",

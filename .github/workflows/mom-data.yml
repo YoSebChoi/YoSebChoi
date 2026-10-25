@@ -1,4 +1,4 @@
-# Rebuilds 최책임의 예비맘 혜택 지도 (docs/mom) whenever its data or page changes:
+# Rebuilds 예비맘 혜택 지도 (docs/mom) whenever its data or page changes:
 # looks up coordinates (KAKAO_REST_KEY, the same key as 노포 지도), links the collected
 # 네이버 블로그 posts to places, checks the page in a browser and commits the result.
 name: 예비맘 혜택 지도 데이터 빌드
