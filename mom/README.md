@@ -36,6 +36,7 @@
 | `places.json` | 혜택 매장. 모든 혜택에 `src`(출처 종류 · 이름 · 날짜 · 링크)가 있어요. `st`: 진행 중 / 기간 한정 / 종료 |
 | `policies.json` | 정책 탭 (전국 공통, 시·도별) |
 | `blog.json` | 네이버 블로그 글(제목 · 링크 · 날짜 · 블로그 ID · 검색 요약). `fetch_blog.py`가 모아요 |
+| `blog_candidates.json` | 블로그 본문을 읽고 정리한 혜택 매장 후보(`n` 이름 · `c` 종류 · `a` 주소 · `perk` 혜택 · `cond` 조건 · `bring` 준비물 · `period` 기간 · `seen` 마지막 확인일 · `existing` 기존 매장 여부 · `confidence` high/medium/low · `src` 글 URL·날짜·블로그 ID·제목). 검토해서 `places.json`에 옮겨요. low는 넣지 않아요 |
 | `geocode_cache.json` | 매장 → 좌표 (카카오 키가 있을 때 자동) |
 
 ### 네이버 블로그 수집
