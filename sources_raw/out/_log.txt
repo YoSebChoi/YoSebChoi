@@ -1,0 +1,11 @@
+suwon_pdf 200 application/pdf http://www.suwon.go.kr/webcontent/ckeditor/2026/3/23/0312cb0c-05a7-4b5d-8236-c60f5eeff0bb.pdf
+suwon_page 200 text/html https://www.suwon.go.kr/sw-www/deptHome/dep_env/env_06/env_04_06.jsp
+cj_23857 200 text/html https://www.cheongju.go.kr/www/contents.do?key=23857
+cj_24151 200 text/html https://www.cheongju.go.kr/www/contents.do?key=24151
+cj_24266 200 text/html https://www.cheongju.go.kr/www/contents.do?key=24266
+cj_23843 200 text/html https://www.cheongju.go.kr/www/contents.do?key=23843
+geomdan 200 application/javascript https://www.geomdan.go.kr/
+dongdaegu_food 200 text/html https://food.dong.daegu.kr/
+datago_15110594 200 application/json https://www.data.go.kr/catalog/15110594/openapi.json
+cw_tour 000ERR cannot open `/home/runner/work/_temp/cw_tour' (No such file or directory) https://tour.changwon.go.kr/
+# 000ERR cannot open `/home/runner/work/_temp/#' (No such file or directory) retry

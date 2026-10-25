@@ -1,0 +1,457 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <title>인천광역시 검단구청</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1, maximum-scale=1, user-scalable=yes">
+  <meta name="description" lang="ko" content="인천광역시 검단구청">
+  <meta property="og:title" content="인천광역시 검단구청">
+  <meta property="og:description" content="인천광역시 검단구청">
+  <meta property="og:image" content="/share/images/og_img.png">
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+  <link href="/share/css/krds-layout.css" rel="stylesheet">
+  <link href="/share/css/program-krds.css" rel="stylesheet">
+  <link href="/main/css/inc.css?v1.2" rel="stylesheet">
+  <link href="/main/css/main.css?v260928.3" rel="stylesheet">
+  <script src="/share/js/jquery-3.7.1.min.js"></script>
+  <script src="/share/js/krds-layout.js"></script>
+  <script src="/share/js/swiper.min.js"></script>
+	<!-- Google tag (gtag.js) -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-D39ZZ06EQP"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag(){dataLayer.push(arguments);}
+		gtag('js', new Date());
+
+		gtag('config', 'G-D39ZZ06EQP');
+	</script>
+	</head>
+	<body>
+	<div id="modal_layer01" class="krds-modal main-layer" role="dialog">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			</div>
+	</div>
+	<div class="modal-back in"></div>
+</div>
+<!-- //메인 팝업 2개 이상 -->
+
+
+<script>
+$(function () {
+	if ($(".popup-swiper").length){
+		const popupWrap = document.querySelector(".main-layer .conts-area");
+		const popupPlayBtn = document.querySelector(".main-layer .play-btn");
+		const popupSwiper = new Swiper(".popup-swiper", {
+			observer: true,
+			observeParents: true,
+			slidesPerView: 1,
+			spaceBetween: 16,
+			speed: 1000,
+			autoplay: {
+				delay: 4000,
+				disableOnInteraction: false,
+			},
+			navigation: {
+				nextEl: ".popup-control .next-btn",
+				prevEl: ".popup-control .prev-btn",
+			},
+			keyboard: {
+				enabled: true,
+				onlyInViewport: true,
+			},
+			a11y: {
+				enabled: true,
+				prevSlideMessage: "이전 슬라이드",
+				nextSlideMessage: "다음 슬라이드",
+			},
+			pagination: {
+				el: ".main-layer .swiper-pagination",
+			},
+			breakpoints: {
+				768: {
+					slidesPerView: 2,
+					spaceBetween: 20,
+				},
+			},
+			on: {
+				afterInit: updateInert,
+				slideChangeTransitionEnd: updateInert,
+				breakpoint: updateInert
+			},
+		});
+
+		function updateInert() {
+			const allSlides = this.el.querySelectorAll('.swiper-slide');
+			allSlides.forEach(slide => {
+					slide.inert = true;
+					slide.setAttribute('aria-hidden', 'true');
+			});
+
+			const activeIdx = this.activeIndex;
+			const viewCount = Math.ceil(this.params.slidesPerView) || 1;
+			for (let i = 0; i < viewCount; i++) {
+				const targetSlide = allSlides[activeIdx + i];
+				if (targetSlide) {
+					targetSlide.inert = false;
+					targetSlide.setAttribute('aria-hidden', 'false');
+				}
+			}
+		}
+
+		popupPlayBtn.addEventListener("click", function() {
+			if (this.classList.contains("pause")) {
+				popupSwiper.autoplay.stop();
+				this.classList.replace("pause", "play");
+				this.setAttribute("aria-label", "자동 재생 시작");
+			} else {
+				popupSwiper.autoplay.start();
+				this.classList.replace("play", "pause");
+				this.setAttribute("aria-label", "자동 재생 일시정지");
+			}
+		});
+
+		popupWrap.addEventListener('mouseenter', function(){
+			popupSwiper.autoplay.stop();
+			popupPlayBtn.classList.replace("pause", "play");
+			popupPlayBtn.setAttribute("aria-label", "자동 재생 시작");
+		});
+		popupWrap.addEventListener('mouseleave', function(){
+			if (popupPlayBtn.classList.contains("play")) {
+				popupSwiper.autoplay.start();
+				popupPlayBtn.classList.replace("play", "pause");
+				popupPlayBtn.setAttribute("aria-label", "자동 재생 일시정지");
+			}
+		});
+
+		popupWrap.addEventListener('focusin', function(){
+			popupSwiper.autoplay.stop();
+			popupPlayBtn.classList.replace("pause", "play");
+			popupPlayBtn.setAttribute("aria-label", "자동 재생 시작");
+		});
+		popupWrap.addEventListener('focusout', function(e){
+			if (!popupWrap.contains(e.relatedTarget)) {
+				popupSwiper.autoplay.start();
+				popupPlayBtn.classList.replace("play", "pause");
+				popupPlayBtn.setAttribute("aria-label", "자동 재생 일시정지");
+			}
+		});
+	}
+
+	if (getCookie("modal_layer01") !== "hide") {
+			$("#modal_layer01").addClass("in shown");
+			$("#modal_layer01 .modal-back").addClass("in");
+	}
+
+	$(".not-view").on('click', function(){
+		setCookie("modal_layer01", "hide", 1);
+	});
+
+	function getCookie(c_name){
+		var i,x,y,ARRcookies=document.cookie.split(";");
+		for (i=0;i<ARRcookies.length;i++){
+			x=ARRcookies[i].substr(0,ARRcookies[i].indexOf("="));
+			y=ARRcookies[i].substr(ARRcookies[i].indexOf("=")+1);
+			x=x.replace(/^\s+|\s+$/g,"");
+			if (x==c_name){
+				return unescape(y);
+			}
+		}
+	}
+
+	function setCookie(c_name,value,exdays){
+		var exdate=new Date();
+		exdate.setDate(exdate.getDate() + exdays);
+		var c_value=escape(value) + ((exdays==null) ? "" : "; expires="+exdate.toUTCString());
+		document.cookie=c_name + "=" + c_value;
+	}
+});
+
+if (!$('#modal_layer01').find('.modal-conts').length) {
+	$('#modal_layer01').hide();
+}
+</script>
+
+	<p class="skipnav"><a href="#contents">본문 바로가기</a></p>
+<!-- 전자정부표시 -->
+<div class="masthead">
+	<div class="inner">
+		<span class="nuri-txt">이 누리집은 대한민국 공식 전자정부 누리집입니다.</span>
+	</div>
+</div>
+<!-- // 전자정부표시 -->
+<!-- header -->
+<header class="krds-header">
+	<div class="header-in">
+		<!-- 헤더 상단 기타메뉴 -->
+		<div class="header-con">
+			<div class="inner">
+				<div class="util">
+	<ul class="util-list">
+		<li>
+			<a href="/main/" class="krds-btn small text" target="_blank" title="새 창 열기">검단구청 <i class="svg-icon ico-go"></i></a>
+		</li>
+		<li>
+			<a href="https://council.geomdan.go.kr" class="krds-btn small text" target="_blank" title="새 창 열기">의회 <i class="svg-icon ico-go"></i></a>
+		</li>
+		<li>
+			<a href="/clinic/" class="krds-btn small text" target="_blank" title="새 창 열기">보건소 <i class="svg-icon ico-go"></i></a>
+		</li>
+		<li>
+			<a href="/headman/" class="krds-btn small text" target="_blank" title="새 창 열기">열린구청장실 <i class="svg-icon ico-go"></i></a>
+		</li>
+		<li>
+			<div class="drop-wrap">
+				<button type="button" class="krds-btn small text drop-btn">
+				행정복지센터 <i class="svg-icon ico-toggle"></i>
+				</button>
+				<div class="drop-menu">
+					<div class="drop-in">
+						<ul class="drop-list">
+  <li><a href="/dong/geomdan/index.jsp" target="_blank" title="새창" class="item-link">검단동</a></li>
+  <li><a href="/dong/bullodaegok/index.jsp" target="_blank" title="새창" class="item-link">불로대곡동</a></li>
+  <li><a href="/dong/wondang/index.jsp" target="_blank" title="새창" class="item-link">원당동</a></li>
+  <li><a href="/dong/dangha/index.jsp" target="_blank" title="새창" class="item-link">당하동</a></li>
+  <li><a href="/dong/oryuwanggil/index.jsp" target="_blank" title="새창" class="item-link">오류왕길동</a></li>
+  <li><a href="/dong/majeon/index.jsp" target="_blank" title="새창" class="item-link">마전동</a></li>
+  <li><a href="/dong/ara01/index.jsp" target="_blank" title="새창" class="item-link">아라1동</a></li>
+  <li><a href="/dong/ara02/index.jsp" target="_blank" title="새창" class="item-link">아라2동</a></li>
+</ul></div>
+				</div>
+			</div>
+		</li>
+		<li>
+			<a href="/lll/" class="krds-btn small text" target="_blank" title="새 창 열기">평생학습관 <i class="svg-icon ico-go"></i></a>
+		</li>
+		<!-- 
+		<li>
+			<div class="drop-wrap">
+				<button type="button" class="krds-btn small text drop-btn">
+				패밀리사이트 <i class="svg-icon ico-toggle"></i>
+				</button>
+				<div class="drop-menu">
+					<div class="drop-in">
+						<ul class="drop-list">
+	<li><a href="/headman/" target="_blank" title="새창" class="item-link">열린구청장실</a></li>
+	<li><a href="/clinic/" target="_blank" title="새창" class="item-link">보건소</a></li>
+	<li><a href="https://council.geomdan.go.kr/" target="_blank" title="새창" class="item-link">의회</a></li>
+	<li><a href="/dong/geomdan" target="_blank" title="새창" class="item-link">행정복지센터</a></li>
+</ul>
+</div>
+				</div>
+			</div>
+		</li>
+		-->
+	</ul>
+</div><div class="hd-main">
+					<h1 class="logo">
+						<a href="/main">
+							<img src="/main/img/ico_logo.svg" alt="검단구">
+						</a>
+					</h1>
+					<!-- Any-ID script 시작 -->
+<script type="module" src="/anyid/app/main.js"></script>
+<script src="/anyid/app/api/anyidAdaptor.js"></script>
+<script>let anyidAdaptor = new AnyidAdaptor({agencyContextPath:""});</script>
+<!-- Any-ID script 끝 -->
+
+<div class="hd-btns">
+	<div id="hd-search" class="search-wrap">
+		<button type="button" class="btn-navi navi-row sch" title="통합검색 레이어">통합검색</button>
+		<div class="search-form">
+			<form name="frm" action="/main/search/search.do" method="get">
+				<label for="hd-search-query" class="sr-only">검색</label>
+				<div class="scr-box">
+					<input id="hd-search-query" type="search" name="query" placeholder="검색어를 입력하세요">
+					<input type="submit" value="검색" class="search-btn">
+				</div>
+				<button type="button" class="close-btn">닫기</button>
+			</form>
+		</div>
+	</div>
+	<a href="/login/loginForm.do" class="btn-navi navi-row login">로그인</a>
+		<button type="button" class="btn-navi navi-row all" aria-controls="mobile-nav">전체메뉴</button>
+	<!-- <a href="#" class="btn-navi join">회원가입</a> -->
+</div></div>
+			</div>
+		</div>
+		<!-- //헤더 상단 기타메뉴 -->
+		<!-- 메인메뉴 : 데스크탑 -->
+		<nav class="main-nav">
+			<div class="inner">
+				<!-- gnb-menu -->
+				<ul class="gnb-menu">
+	<li>
+					<button type="button" class="gnb-main-trigger" data-trigger="gnb">종합민원</button>
+					<!-- gnb-wrap -->
+					<div class="gnb-wrap">
+						<!-- gnb-list -->
+						<div class="gnb-list" data-has-submenu="true">
+									<ul>
+										<li>
+														<button type="button" class="gnb-sub-trigger" data-trigger="gnb">민원안내</button>
+														<div class="gnb-sub-list">
+															<div class="gnb-sub-con">
+																<h2 class="sub-title">민원안내</h2>
+																<ul>
+																	<li><a href="/main/civil/info/guide.jsp">민원창구안내</a></li>
+																					<li><a href="/main/civil/info/civil24.jsp">정부24</a></li>
+																					<li><a href="/main/civil/info/issue.jsp">무인민원발급기</a></li>
+																					<li><a href="/main/civil/info/easy.jsp">편리한 민원</a></li>
+																					<li><a href="/main/civil/info/share.jsp">행정정보공동이용</a></li>
+																					</ul>
+															</div>
+														</div>
+													</li>
+												<li><a href="/main/civil/faq.jsp" class="gnb-sub-trigger is-link" data-trigger="gnb">자주묻는질문(FAQ)</a></li>
+														<li>
+														<button type="button" class="gnb-sub-trigger" data-trigger="gnb">민원상담</button>
+														<div class="gnb-sub-list">
+															<div class="gnb-sub-con">
+																<h2 class="sub-title">민원상담</h2>
+																<ul>
+																	<li><a href="/main/civil/advice/petition.jsp">민원상담(국민신문고)</a></li>
+																					</ul>
+															</div>
+														</div>
+													</li>
+												<li><a href="/main/civil/form.jsp" class="gnb-sub-trigger is-link" data-trigger="gnb">민원서식(민원편람)</a></li>
+														<li>
+														<button type="button" class="gnb-sub-trigger" data-trigger="gnb">여권</button>
+														<div class="gnb-sub-list">
+															<div class="gnb-sub-con">
+																<h2 class="sub-title">여권</h2>
+																<ul>
+																	<li><a href="/main/civil/passport/info.jsp">여권발급안내</a></li>
+																					<li><a href="/main/civil/passport/apply.jsp">일반여권신청</a></li>
+																					<li><a href="/main/civil/passport/online.jsp">온라인여권재발급</a></li>
+																					<li><a href="/main/civil/passport/official.jsp">관용여권신청</a></li>
+																					<li><a href="/main/civil/passport/visa.jsp">전자여행허가제</a></li>
+																					<li><a href="/main/civil/passport/form.jsp">여권서식</a></li>
+																					</ul>
+															</div>
+														</div>
+													</li>
+												<li>
+														<button type="button" class="gnb-sub-trigger" data-trigger="gnb">가족관계</button>
+														<div class="gnb-sub-list">
+															<div class="gnb-sub-con">
+																<h2 class="sub-title">가족관계</h2>
+																<ul>
+																	<li><a href="/main/civil/family/certificate.jsp">가족관계증명서발급</a></li>
+																					<li><a href="/main/civil/family/register.jsp">가족관계신고</a></li>
+																					<li><a href="/main/civil/family/fine.jsp">과태료</a></li>
+																					</ul>
+															</div>
+														</div>
+													</li>
+												<li>
+														<button type="button" class="gnb-sub-trigger" data-trigger="gnb">지방세</button>
+														<div class="gnb-sub-list">
+															<div class="gnb-sub-con">
+																<h2 class="sub-title">지방세</h2>
+																<ul>
+																	<li><a href="/main/civil/local/tax.jsp">지방세 조회/납부/환급</a></li>
+																					<li><a href="/main/civil/local/info.jsp">지방세안내</a></li>
+																					<li><a href="/main/civil/local/accountant.jsp">마을세무사</a></li>
+																					<li><a href="/main/civil/local/certificate.jsp">납세증명서 발급</a></li>
+																					<li><a href="/main/civil/local/house.jsp">개별주택가격</a></li>
+																					<li><a href="/main/civil/local/advice.jsp">상담신청</a></li>
+																					<li><a href="/main/civil/local/taxpayer.jsp">납세자보호관</a></li>
+																					<li><a href="/main/civil/local/form.jsp">지방세 서식자료실</a></li>
+																					</ul>
+															</div>
+														</div>
+													</li>
+												<li>
+														<button type="button" class="gnb-sub-trigger" data-trigger="gnb">자동차</button>
+														<div class="gnb-sub-list">
+															<div class="gnb-sub-con">
+																<h2 class="sub-title">자동차</h2>
+																<ul>
+																	<li><a href="/main/civil/car/portal.jsp">자동차민원 대국민포털</a></li>
+																					<li><a href="/main/civil/car/register.jsp">자동차등록/운행</a></li>
+																					<li><a href="/main/civil/car/issue.jsp">등록원부·등록증발급</a></li>
+																					<li><a href="/main/civil/car/tax.jsp">자동차세금 및 감면</a></li>
+																					<li><a href="/main/civil/car/examination.jsp">자동차 검사</a></li>
+																					</ul>
+															</div>
+														</div>
+													</li>
+												<li>
+														<button type="button" class="gnb-sub-trigger" data-trigger="gnb">토지/부동산</button>
+														<div class="gnb-sub-list">
+															<div class="gnb-sub-con">
+																<h2 class="sub-title">토지/부동산</h2>
+																<ul>
+																	<li><a href="/main/civil/land/realty_price.jsp">토지</a></li>
+																					<li><a href="/main/civil/land/realty_fee.jsp">부동산</a></li>
+																					<li><a href="/main/civil/land/roadname.jsp">도로명주소</a></li>
+																					<li><a href="/main/civil/land/realty_imap.jsp">지도</a></li>
+																					</ul>
+															</div>
+														</div>
+													</li>
+												</ul>
+								</div>
+							<!-- //gnb-list -->
+					</div>
+					<!-- //gnb-wrap -->
+				</li>					
+			<li>
+					<button type="button" class="gnb-main-trigger" data-trigger="gnb">소통과참여</button>
+					<!-- gnb-wrap -->
+					<div class="gnb-wrap">
+						<!-- gnb-list -->
+						<div class="gnb-list" data-has-submenu="true">
+									<ul>
+										<li><a href="/main/geomdan/headman.jsp" class="gnb-sub-trigger is-link" data-trigger="gnb">구청장실</a></li>
+														<li>
+														<button type="button" class="gnb-sub-trigger" data-trigger="gnb">검단구소식</button>
+														<div class="gnb-sub-list">
+															<div class="gnb-sub-con">
+																<h2 class="sub-title">검단구소식</h2>
+																<ul>
+																	<li><a href="/main/community/news/notice.jsp">새소식</a></li>
+																					<li><a href="/main/community/news/cardnews.jsp">카드로 보는 주요소식</a></li>
+																					<li><a href="/main/community/news/gosi.jsp">고시공고(분묘개장)</a></li>
+																					<li><a href="/main/community/news/job.jsp">채용소식</a></li>
+																					<li><a href="/main/community/news/green.jsp">검단소식지</a></li>
+																					<li><a href="/main/community/news/report.jsp">보도자료</a></li>
+																					<li><a href="/main/community/news/word.jsp">구보</a></li>
+																					<li><a href="/main/community/news/sketch.jsp">검단영상</a></li>
+																					<li><a href="/main/community/news/law.jsp">입법예고</a></li>
+																					<li><a href="/main/community/news/notify.jsp">행정예고</a></li>
+																					<li><a href="/main/community/news/defense.jsp">민방위소식</a></li>
+																					<li><a href="/main/community/news/company.jsp">기업 정보&새소식</a></li>
+																					<li><a href="/main/community/news/energy.jsp">에너지소식</a></li>
+																					<li><a href="/main/community/news/hazardous.jsp">긴급위해식품알림</a></li>
+																					<li><a href="/main/community/news/other.jsp">타기관소식</a></li>
+																					<li><a href="/main/community/news/origin.jsp">원산지 표시 위반 공표</a></li>
+																					</ul>
+															</div>
+														</div>
+													</li>
+												<li><a href="/main/community/suggest.jsp" class="gnb-sub-trigger is-link" data-trigger="gnb">구민제안</a></li>
+														<li><a href="/main/community/free.jsp" class="gnb-sub-trigger is-link" data-trigger="gnb">자유게시판</a></li>
+														<li><a href="/main/community/survey.jsp" class="gnb-sub-trigger is-link" data-trigger="gnb">설문조사</a></li>
+														<li>
+														<button type="button" class="gnb-sub-trigger" data-trigger="gnb">칭찬합니다</button>
+														<div class="gnb-sub-list">
+															<div class="gnb-sub-con">
+																<h2 class="sub-title">칭찬합니다</h2>
+																<ul>
+																	<li><a href="/main/community/praise/member.jsp">친절한 직원추천</a></li>
+																					</ul>
+															</div>
+														</div>
+													</li>
+												<li>
+														<button type="button" class="gnb-sub-trigger" data-trigger="gnb">적극행정</button>
+														<div class="gnb-sub-list">
+															<div class="gnb-sub-con">
+																<h2 class="sub-title">적극행정</h2>
+																<ul>
+		
