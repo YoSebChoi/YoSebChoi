@@ -1,0 +1,53 @@
+# Rebuilds 최책임의 예비맘 혜택 지도 (docs/mom) whenever its data or page changes:
+# looks up coordinates (KAKAO_REST_KEY, the same key as 노포 지도), links the collected
+# 네이버 블로그 posts to places, checks the page in a browser and commits the result.
+name: 예비맘 혜택 지도 데이터 빌드
+
+on:
+  push:
+    paths:
+      - "mom/**"
+      - ".github/workflows/mom-data.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mom-data-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+      - run: pip install pillow
+      - name: Build
+        env:
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
+          KAKAO_JS_KEY: ${{ secrets.KAKAO_JS_KEY }}
+        run: python3 mom/build.py
+      - name: Check the page in a browser
+        working-directory: mom/check
+        run: |
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.48.2 >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+          node check_app.mjs
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/mom mom/data/geocode_cache.json
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit -m "mom: rebuild the map"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

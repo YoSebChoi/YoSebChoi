@@ -1,0 +1,14 @@
+{
+  "appId": "io.github.yosebchoi.mommap",
+  "appName": "최책임의 예비맘 혜택 지도",
+  "webDir": "www",
+  "backgroundColor": "#3b1f33",
+  "appendUserAgent": "MomMapApp",
+  "server": {
+    "url": "https://yosebchoi.github.io/YoSebChoi/mom/",
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}

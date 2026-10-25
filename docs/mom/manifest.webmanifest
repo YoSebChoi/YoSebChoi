@@ -1,0 +1,38 @@
+{
+  "name": "최책임의 예비맘 혜택 지도",
+  "short_name": "예비맘 혜택",
+  "description": "임산부에게 할인·우선입장·선물을 주는 식당, 카페, 베이커리, 호텔, 리조트와 정부·지자체 임신 지원을 한 지도에.",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#3b1f33",
+  "theme_color": "#3b1f33",
+  "icons": [
+    {
+      "src": "icon-192.02d1b31c.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.f4d9d703.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.806375f2.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "io.github.yosebchoi.mommap"
+    }
+  ],
+  "prefer_related_applications": false
+}

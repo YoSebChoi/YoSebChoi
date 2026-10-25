@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/mom_red</item>
+        <item name="colorPrimaryDark">@color/mom_red</item>
+        <item name="colorAccent">@color/mom_red</item>
+    </style>
+
+    <!-- the app after launch: the launch colour behind the web page until it paints, so it never flashes white -->
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+        <item name="android:windowBackground">@color/mom_launch</item>
+        <item name="android:statusBarColor">@color/mom_launch</item>
+        <item name="android:navigationBarColor">@color/mom_ink</item>
+    </style>
+
+    <!-- launch: the whole screen in the dusk colour, no icon in a circle -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/mom_launch</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_blank</item>
+        <item name="windowSplashScreenAnimationDuration">0</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <item name="android:background">@drawable/splash</item>
+        <item name="android:statusBarColor">@color/mom_launch</item>
+    </style>
+</resources>
