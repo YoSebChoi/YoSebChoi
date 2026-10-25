@@ -1,0 +1,56 @@
+# 예비맘 혜택 지도: collects 네이버 블로그 posts (2024~) about benefits for pregnant women
+# into mom/data/blog.json (titles, links, dates only) and commits it; the build workflow then
+# links each place to the posts that mention it.
+# The run also keeps the benefit sentences of each post as an artifact (mom-blog-excerpts),
+# used when the place list is curated; they are not committed.
+# Keys: the same NCP_API_KEY_ID / NCP_API_KEY secrets as 우리 단지 거래 추적.
+name: 예비맘 혜택 블로그 수집
+
+on:
+  push:
+    paths:
+      - "mom/fetch_blog.py"
+      - ".github/workflows/mom-blog.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "37 20 * * 0"   # 05:37 KST every Monday
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mom-blog-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  blog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: 블로그 (네이버 검색)
+        env:
+          NCP_API_KEY_ID: ${{ secrets.NCP_API_KEY_ID }}
+          NCP_API_KEY: ${{ secrets.NCP_API_KEY }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+        run: python3 mom/fetch_blog.py --excerpts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mom-blog-excerpts
+          path: mom/data/excerpts.json
+          if-no-files-found: ignore
+          retention-days: 30
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mom/data/blog.json
+          if git diff --cached --quiet; then echo "nothing changed"; exit 0; fi
+          git commit -m "mom: refresh blog posts"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
