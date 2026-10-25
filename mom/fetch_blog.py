@@ -133,10 +133,10 @@ def main():
             try:
                 items = blog_search(q, sort=sort).get("items", [])
             except NoAccess as e:
-                print(e, file=sys.stderr)
+                print(f"::warning::{e} (via {search_endpoint()[0]}, keys: {sorted(search_endpoint()[1])})")
                 sys.exit(0 if not answered else 1)
             except RuntimeError as e:
-                print(e, file=sys.stderr)
+                print(f"::warning::{e}")
                 continue
             answered += 1
             for it in items:
@@ -158,7 +158,7 @@ def main():
     rows = sorted(posts.values(), key=lambda p: (p["date"], p["url"]), reverse=True)[:KEEP]
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps({"updated": time.strftime("%Y-%m-%d"), "posts": rows}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"블로그 글 {len(rows)}개 → {OUT}")
+    print(f"::notice::블로그 글 {len(rows)}개 (검색 {answered}번 응답)")
 
     if "--excerpts" in sys.argv:
         # the posts most likely to name a shop and its benefit first: the ones many searches found
@@ -172,7 +172,7 @@ def main():
             if i % 50 == 0:
                 print(f"본문 {i}/{len(ranked)} · 혜택 문장 있는 글 {len(ex)}")
         EXCERPTS.write_text(json.dumps(ex, ensure_ascii=False, indent=1), encoding="utf-8")
-        print(f"혜택 문장 {len(ex)}개 글 → {EXCERPTS}")
+        print(f"::notice::혜택 문장이 있는 글 {len(ex)}개 / 본문 {len(ranked)}개")
 
 
 if __name__ == "__main__":
