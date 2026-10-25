@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#3b1f33">
 <meta name="description" content="임산부에게 할인·우선입장·선물을 주는 식당, 카페, 베이커리, 호텔, 리조트와 정부·지자체 임신 지원을 한 지도에.">
-<title>최책임의 예비맘 혜택 지도</title>
+<title>예비맘 혜택 지도</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.02d1b31c.png">
 <link rel="apple-touch-icon" href="icon-192.02d1b31c.png">
@@ -223,7 +223,6 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .intro .panel-in { max-width: 460px; display: flex; flex-direction: column; gap: 18px; }
 .plate { margin: 18px auto 0; text-align: center; padding: 18px 26px 16px; border-radius: 22px; background: #fbe9ee; color: var(--plum); box-shadow: 0 18px 40px rgba(0, 0, 0, .4); }
 .plate h1 { margin: 0; font-family: var(--font-title); font-weight: 400; font-size: clamp(34px, 11vw, 46px); line-height: 1.1; }
-.plate h1 small { display: block; font-size: .45em; letter-spacing: .2em; color: #b0577a; margin-bottom: 4px; }
 .plate p { margin: 6px 0 0; font-size: 13px; font-weight: 700; color: #8a4a66; }
 .intro-lead { text-align: center; font-size: 15px; line-height: 1.65; color: #e6c9d4; margin: 0; text-wrap: balance; }
 .intro-lead b { color: #fff; }
@@ -263,7 +262,6 @@ button, input, select { font: inherit; color: inherit; letter-spacing: inherit; 
 .boot-inner { display: grid; justify-items: center; padding: 0 24px; text-align: center; }
 .boot-pic { width: min(44vw, 28vh); height: auto; border-radius: 28%; opacity: 0; box-shadow: 0 14px 30px rgba(0, 0, 0, .4); }
 .boot-name { margin: 20px 0 0; font-family: var(--font-title); color: #fbe9ee; font-size: min(9.5vw, 5.4vh); line-height: 1.15; opacity: 0; }
-.boot-name small { display: block; font-size: .5em; letter-spacing: .25em; color: #ffc2d4; margin-bottom: .2em; }
 .boot-line { margin: 12px 0 0; font-family: "Gowun Batang", serif; font-weight: 700; color: #f3d3df; font-size: min(5vw, 2.8vh); word-break: keep-all; text-wrap: balance; opacity: 0; }
 .boot.ready .boot-pic { animation: rise .5s ease both; }
 .boot.ready .boot-name { animation: rise .5s ease .15s both; }
@@ -294,7 +292,7 @@ dialog .btn { width: 100%; }
 <div class="boot" id="boot" aria-hidden="true">
   <div class="boot-inner">
     <img class="boot-pic" src="icon-512.f4d9d703.png" alt="" width="512" height="512">
-    <p class="boot-name"><small>최책임의</small>예비맘 혜택 지도</p>
+    <p class="boot-name">예비맘 혜택 지도</p>
     <p class="boot-line" id="bootLine"></p>
   </div>
 </div>
@@ -308,7 +306,7 @@ dialog .btn { width: 100%; }
     document.getElementById("bootLine").textContent = line;
     const ready = () => { boot.dataset.t = performance.now(); boot.classList.add("ready"); };
     if (document.fonts && document.fonts.load) {
-      Promise.race([Promise.all([document.fonts.load('1em "Jua"', "최책임의예비맘혜택지도"), document.fonts.load('700 1em "Gowun Batang"', line)]),
+      Promise.race([Promise.all([document.fonts.load('1em "Jua"', "예비맘혜택지도"), document.fonts.load('700 1em "Gowun Batang"', line)]),
         new Promise(r => setTimeout(r, 1200))]).then(ready, ready);
     } else ready();
   })();
@@ -362,7 +360,7 @@ dialog .btn { width: 100%; }
 <!-- opening screen -->
 <section class="panel intro" id="intro" role="dialog" aria-modal="true" aria-label="첫 화면" hidden>
   <div class="panel-in">
-    <div class="plate"><h1><small>최책임의</small>예비맘 혜택 지도</h1><p>산모수첩 하나로 달라지는 곳들</p></div>
+    <div class="plate"><h1>예비맘 혜택 지도</h1><p>산모수첩 하나로 달라지는 곳들</p></div>
     <p class="intro-lead">임산부에게 <b>할인·줄 없이 입장·선물</b>을 주는<br>식당, 카페, 빵집, 호텔, 리조트를 한 지도에.</p>
     <div class="board"><ul id="introBoard"></ul></div>
     <button class="coupon" type="button" id="introPick" hidden></button>
@@ -399,7 +397,7 @@ dialog .btn { width: 100%; }
 </dialog>
 
 <dialog id="about">
-  <h2>최책임의 예비맘 혜택 지도</h2>
+  <h2>예비맘 혜택 지도</h2>
   <p>지도 가운데(＋)에서 가까운 임산부 혜택을 보여 줘요. 카테고리를 누르면 그 종류의 혜택을 전국에서 가까운 순으로 모아 보여 줘요.</p>
   <div class="legend" id="aboutLegend"></div>
   <p id="aboutData"></p>
@@ -877,8 +875,8 @@ dialog .btn { width: 100%; }
     const nSrc = places.reduce((n, p) => n + p.src.length, 0), nOn = places.filter(p => p.st !== "end").length;
     $("aboutLegend").innerHTML = Object.entries(CATS).map(([k, v]) => `<span style="--k:var(--${k})"><span class="badge" style="width:26px;height:26px;border-radius:8px">${svg(v.i, 'style="width:16px;height:16px"')}</span>${v.n}</span>`).join("");
     $("aboutData").textContent = `혜택 ${places.length}곳 (지금 받을 수 있는 곳 ${nOn}) · 출처 ${nSrc}개 · 자료 ${meta.updated || ""}${meta.blogUpdated ? ` · 블로그 수집 ${meta.blogUpdated}` : ""}`;
-    $("aboutVersion").textContent = "화면 버전 886038bc";
-    if (native) call("App", "getInfo").then(i => { if (i && i.version) $("aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 886038bc`; }).catch(() => {});
+    $("aboutVersion").textContent = "화면 버전 2c1474e6";
+    if (native) call("App", "getInfo").then(i => { if (i && i.version) $("aboutVersion").textContent = `앱 버전 ${i.version} · 화면 버전 2c1474e6`; }).catch(() => {});
     $("about").showModal();
   });
   $("reportLink").href = REPORT_URL;
