@@ -3,6 +3,6 @@
     <color name="ic_launcher_background">#3B1F33</color>
     <color name="mom_red">#C2416B</color>
     <color name="mom_ink">#2A1622</color>
-    <!-- the launch screen: the alley at dusk behind 최책임 (the page's boot screen continues it) -->
+    <!-- the launch screen: the alley at dusk (the page's boot screen continues it) -->
     <color name="mom_launch">#3B1F33</color>
 </resources>
