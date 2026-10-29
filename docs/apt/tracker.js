@@ -197,6 +197,10 @@
       u.misses = (u.misses || 0) + 1;
       if (!u.firstMiss) u.firstMiss = ts;
       if (u.misses >= GONE_AFTER_MISSES && ts - u.lastSeen >= GONE_AFTER) {
+        // the same flat still listed under another floor label (「22/25」 by one agent, 「고/25」 by another):
+        // not gone, only one label dropped
+        const twin = Object.values(st.units).find(v => v !== u && presentUnits.has(v.key) && sameFlat(u, v));
+        if (twin) { delete st.units[key]; continue; }
         st.gone.push({ unit: key, cx, dong: u.dong, floor: u.floor, floorTotal: u.floorTotal, area: u.area, supply: u.supply, dir: u.dir,
           firstSeen: u.firstSeen, lastSeen: u.lastSeen, firstMiss: u.firstMiss, firstPrice: u.firstPrice, lastPrice: u.lastPrice,
           lastListings: u.lastListings || [], status: "거래 추정" });
@@ -219,6 +223,25 @@
   // ── 실거래 matching ────────────────────────────────────────────────
 
   // 저/중/고 → which third of the building
+  // two floor labels that can be the same floor: equal, or a number and the third (저/중/고) it falls in
+  function floorsMeet(a, b, total) {
+    if (String(a) === String(b)) return true;
+    const na = isFinite(+a) && String(a).trim() !== "", nb = isFinite(+b) && String(b).trim() !== "";
+    if (na === nb) return false;
+    return na ? floorFits(b, total, +a) : floorFits(a, total, +b);
+  }
+
+  // one flat listed twice under different labels: same complex, 동, size and direction, floors that can
+  // meet, asking prices within 5%
+  function sameFlat(u, v) {
+    if (u.cx !== v.cx || (u.dong || "") !== (v.dong || "")) return false;
+    if (u.area != null && v.area != null && Math.abs(u.area - v.area) > 0.3) return false;
+    if (u.dir && v.dir && u.dir !== v.dir) return false;
+    if (!floorsMeet(u.floor, v.floor, u.floorTotal || v.floorTotal)) return false;
+    if (u.lastPrice && v.lastPrice && Math.abs(u.lastPrice - v.lastPrice) / Math.max(u.lastPrice, v.lastPrice) > 0.05) return false;
+    return true;
+  }
+
   function floorFits(unitFloor, total, tradeFloor) {
     const f = +unitFloor;
     if (isFinite(f) && String(unitFloor).trim() !== "") return f === tradeFloor;
@@ -242,11 +265,24 @@
   // after it, or it is another flat): tracking began after it
   const BEFORE_FIRST_SEEN = 7 * DAY;
   const tooEarly = (g, t) => tradeTime(t) < g.firstSeen - BEFORE_FIRST_SEEN;
+  // a deal at 90–103% of the last asking price (a 13억 listing selling for 11억 2,000 is another flat)
+  const PRICE_LOW = 0.90, PRICE_HIGH = 1.03;
+  const priceOff = (g, t) => g.lastPrice && (t.price / g.lastPrice < PRICE_LOW || t.price / g.lastPrice > PRICE_HIGH);
 
   function matchTrades(st, trades) {
-    // confirmations made before this rule: back to 「거래 추정」
+    // flats taken as gone while still listed under another floor label: they were only relabelled
     for (const g of st.gone) {
-      if (g.status === "실거래 확인" && g.trade && tooEarly(g, g.trade)) {
+      if (g.status === "재등록") continue;
+      if (Object.values(st.units).some(v => v.lastSeen > g.lastSeen && sameFlat({ ...g, cx: g.cx }, v))) {
+        g.status = "재등록";
+        g.backAt = g.backAt || Date.now();
+        delete g.trade;
+        st.events = st.events.filter(e => !(e.type === "trade" && e.unit === g.unit && e.cx === g.cx));
+      }
+    }
+    // confirmations made before these rules: back to 「거래 추정」
+    for (const g of st.gone) {
+      if (g.status === "실거래 확인" && g.trade && (tooEarly(g, g.trade) || priceOff(g, g.trade))) {
         g.status = "거래 추정";
         delete g.trade;
         st.events = st.events.filter(e => !(e.type === "trade" && e.unit === g.unit && e.cx === g.cx));
@@ -266,7 +302,7 @@
         let score = Math.abs(dt) / DAY;
         if (g.lastPrice) {
           const r = t.price / g.lastPrice;
-          if (r < 0.85 || r > 1.03) continue;
+          if (r < PRICE_LOW || r > PRICE_HIGH) continue;
           score += Math.abs(1 - r) * 200;
         }
         if (score < bestScore) { best = t; bestScore = score; }
@@ -286,5 +322,5 @@
   const tradeId = t => [t.cx, t.date, t.area, t.floor, t.price, t.dong || ""].join("|");
 
   return { emptyState, ingest, recordFailure, matchTrades, repairPrices, normalizeArticle, parseFloor, parseHanPrice, formatPrice,
-    floorFits, tradeId, dayOf, unitKey, HOUR, DAY };
+    floorFits, floorsMeet, sameFlat, tradeId, dayOf, unitKey, HOUR, DAY };
 });

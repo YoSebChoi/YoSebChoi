@@ -136,3 +136,26 @@ test("a deal from before we first saw the listing does not confirm it", () => {
   T.matchTrades(st, []);
   assert.equal(st.gone[0].status, "거래 추정");
 });
+
+test("one flat under two floor labels is not gone when one label drops", () => {
+  const st = T.emptyState();
+  T.ingest(st, "111", t0, [art("1", { bildNm: "236동", flrInfo: "22/25", prc: 130000 }), art("2", { bildNm: "236동", flrInfo: "고/25", prc: 130000 })]);
+  T.ingest(st, "111", t0 + 12 * H, [art("2", { bildNm: "236동", flrInfo: "고/25", prc: 130000 })]);
+  T.ingest(st, "111", t0 + 30 * H, [art("2", { bildNm: "236동", flrInfo: "고/25", prc: 130000 })]);
+  assert.equal(st.gone.length, 0);
+  assert.ok(T.floorsMeet("22", "고", 25));
+  assert.ok(!T.floorsMeet("3", "고", 25));
+});
+
+test("a deal far below the asking price does not confirm, and such a confirmation goes back", () => {
+  const st = T.emptyState();
+  T.ingest(st, "111", t0, [art("1", { prc: 130000 }), art("2", { flrInfo: "5/25" })]);
+  T.ingest(st, "111", t0 + 12 * H, [art("2", { flrInfo: "5/25" })]);
+  T.ingest(st, "111", t0 + 30 * H, [art("2", { flrInfo: "5/25" })]);
+  const low = { date: "2026-10-02", cx: "111", area: 84.65, floor: 13, price: 112000 };   // 86% of 13억
+  low.id = T.tradeId(low);
+  assert.equal(T.matchTrades(st, [low]), 0);
+  st.gone[0].status = "실거래 확인"; st.gone[0].trade = { ...low };
+  T.matchTrades(st, []);
+  assert.equal(st.gone[0].status, "거래 추정");
+});
