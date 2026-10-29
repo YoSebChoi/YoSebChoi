@@ -243,15 +243,22 @@ def build(a):
             rows_ = "".join(f'<li><b>{lab[s_["outcome"]]}</b> · {traj(s_)}{" · PGT 배아" if s_.get("pgt") else ""} · <a href="{s_["traj"][0][3]}">글</a></li>' for s_ in cu["similar"])
             allsim = cu["similar"] + cu["excluded"]
             ms = measured_similar(a.bpm or 999)
-            meas_rows = ""
-            for key, d_ in ms.items():
-                cnt = {k: sum(x["cat"] == k for x in d_["main"]) for k in ("출산", "12주+ 유지", "유산", "진행 중·미상")}
-                okn, nn = cnt["출산"] + cnt["12주+ 유지"], cnt["출산"] + cnt["12주+ 유지"] + cnt["유산"]
-                sm = {k: sum(x["cat"] == k for x in d_["small"]) for k in ("출산", "12주+ 유지", "유산", "진행 중·미상")}
-                meas_rows += (f'<tr><td>{key}</td><td>{len(d_["main"])}</td><td>{cnt["출산"]}</td><td>{cnt["12주+ 유지"]}</td><td>{cnt["유산"]}</td><td>{cnt["진행 중·미상"]}</td>'
-                              f'<td class="num"><b>{pct(okn / nn, 0) if nn else "—"}</b> <span class="muted">{okn}/{nn}</span></td>'
-                              f'<td class="muted">{len(d_["small"])} (유산 {sm["유산"]})</td></tr>')
 
+            def meas_row(label, key_main, key_small):
+                rows_ = ""
+                for key, d_ in ms.items():
+                    cnt = {k: sum(x["cat"] == k for x in d_[key_main]) for k in ("출산", "12주+ 유지", "유산", "진행 중·미상")}
+                    okn, nn = cnt["출산"] + cnt["12주+ 유지"], cnt["출산"] + cnt["12주+ 유지"] + cnt["유산"]
+                    sm = {k: sum(x["cat"] == k for x in d_[key_small]) for k in ("출산", "12주+ 유지", "유산", "진행 중·미상")}
+                    rows_ += (f'<tr><td>{key}</td><td>{len(d_[key_main])}</td><td>{cnt["출산"]}</td><td>{cnt["12주+ 유지"]}</td><td>{cnt["유산"]}</td><td>{cnt["진행 중·미상"]}</td>'
+                              f'<td class="num"><b>{pct(okn / nn, 0) if nn else "—"}</b> <span class="muted">{okn}/{nn}</span></td>'
+                              f'<td class="muted">{len(d_[key_small])} (유산 {sm["유산"]})</td></tr>')
+                return rows_
+            meas_head = "<thead><tr><th></th><th>케이스</th><th>출산</th><th>12주+</th><th>유산</th><th>진행·미상</th><th>비율</th><th>아기집 작음</th></tr></thead>"
+            meas_rows = meas_row("전체", "main", "small")
+            meas_rows_late = meas_row("6주3일+", "late_main", "late_small")
+            border_html = "".join(f'<li><b>유산</b> · {html.escape(r_["manual"])} · <a href="{r_["url"]}">글</a></li>'
+                                  for d_ in ms.values() for r_ in d_["borderline"])
             def meas_li(x):
                 r_, t_ = x["row"], x["track"]
                 return (f'<li><b>{x["cat"]}</b> · 크기 {float(r_["crl_mm"]):.1f}mm(측정 기준 {r_["crl_ga"].replace("w", "주 ").replace("d", "일")}) · {r_["bpm"]}bpm · '
@@ -260,9 +267,13 @@ def build(a):
                                  + "".join(meas_li(x) for x in sorted(d_["main"] + d_["small"], key=lambda x: abs(int(x["row"]["bpm"]) - (a.bpm or 113)))) + "</ul></details>"
                                  for key, d_ in ms.items())
             meas_html = f"""<div class="cmp"><h3>측정 기준 주수와 심박수로 본 비슷한 케이스 (검색으로 새로 모은 후기)</h3>
-  <p>날짜 주수 대신 <b>아기 크기로 계산한 측정 기준 주수 6주 1일~5일</b>이면서 <b>심박수 {a.bpm + 7 if a.bpm else ''}bpm 이하</b>였던 후기입니다(우리 {a.crl}cm는 측정 기준 6주 1~2일). 시험관은 "시험관 7주 심박수 느림" 같은 검색어로, 자연임신은 시험관·이식 글을 뺀 검색어로 모았습니다. 이후 글로 출산·유지(12주 이상)·유산을 따라갔고, 아기집이 작다는 말을 들은 케이스는 따로 셉니다.</p>
-  <div class="tbl" style="overflow-x:auto"><table style="min-width:0"><thead><tr><th></th><th>케이스</th><th>출산</th><th>12주+</th><th>유산</th><th>진행·미상</th><th>비율</th><th>아기집 작음</th></tr></thead><tbody>{meas_rows}</tbody></table></div>
-  <p class="note">진행 중·미상은 비율에서 뺐습니다. 표본이 작고 후기를 남긴 사람 기준이라 좋은 결과 쪽으로 기울 수 있습니다. 시험관·자연임신 모두 심박수가 120 이하였던 케이스의 대부분이 이후 정상 진행됐고, 유산 케이스는 7~8주에 심박수가 떨어지거나 성장이 더뎠던 경우, 아기집이 작았던 경우였습니다.</p>
+  <p>날짜 주수 대신 <b>아기 크기로 계산한 측정 기준 주수 6주 1일~5일</b>이면서 <b>심박수 {a.bpm + 12 if a.bpm else ''}bpm 이하</b>였던 후기입니다(우리 {a.crl}cm는 측정 기준 6주 1~2일). 시험관은 "시험관 7주 심박수 느림" 같은 검색어로, 자연임신은 시험관·이식 글을 뺀 검색어로 모았습니다. 이후 글로 출산·유지(12주 이상)·유산을 따라갔고, 아기집이 작다는 말을 들은 케이스는 따로 셉니다.</p>
+  <div class="tbl" style="overflow-x:auto"><table style="min-width:0">{meas_head}<tbody>{meas_rows}</tbody></table></div>
+  <h3 style="margin-top:14px">그중 측정 기준 6주 3일 이후만</h3>
+  <p class="note">6주 1~2일에는 110 안팎도 정상으로 보는 경우가 있어서, 크기가 6주 3일 이후였는데도 심박수가 낮았던(125 이하) 케이스만 따로 봤습니다.</p>
+  <div class="tbl" style="overflow-x:auto"><table style="min-width:0">{meas_head}<tbody>{meas_rows_late}</tbody></table></div>
+  <p class="note">진행 중·미상은 비율에서 뺐습니다. 표본이 작고 후기를 남긴 사람 기준이라 좋은 결과 쪽으로 기울 수 있습니다. 유산 케이스는 7~8주에 심박수가 떨어지거나 성장이 더뎠던 경우, 아기집이 작았던 경우였습니다.</p>
+  {f'<h3 style="margin-top:14px">기준 경계의 유산 케이스(참고)</h3><ul class="note" style="margin:4px 0 0;padding-left:18px;display:grid;gap:3px">{border_html}</ul>' if border_html else ''}
   {meas_lists}</div>"""
             ab = sum(x["outcome"] in ("출산", "유지12") for x in allsim)
             an = ab + sum(x["outcome"] == "유산" for x in allsim)

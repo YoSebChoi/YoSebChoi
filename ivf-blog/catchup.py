@@ -184,8 +184,10 @@ def rate(res):
     return ok, n
 
 
-def measured_similar(bpm_mine):
-    """검색(심박수·크기 검색어)으로 새로 모은 후기에서 '측정 기준 주수 6주 1일~5일, 심박수 ≤ 우리+7'인 케이스(시험관 / 자연임신)와 경과.
+def measured_similar(bpm_mine, slack=12):
+    """검색(심박수·크기 검색어)으로 새로 모은 후기에서 '측정 기준 주수 6주 1일~5일, 심박수 ≤ 우리+slack'인 케이스(시험관 / 자연임신)와 경과.
+    late: 그중 측정 기준 6주 3일 이후만(6주 1~2일에는 110 안팎도 정상으로 보는 경우가 있어서).
+    borderline: 기준 밖이지만 참고할 유산 케이스(similar == 'B').
     natural.py extract/track 이 만든 data/{ivfhb,natural}_{cases,track}.csv 를 읽는다."""
     def cat(t):
         st, wk = t["status"], (int(t["last_week"]) if t["last_week"].isdigit() else 0)
@@ -196,16 +198,28 @@ def measured_similar(bpm_mine):
         if st == "유산":
             return "유산"
         return "진행 중·미상"
+
+    def ga_days(x):
+        import re as _re
+        m = _re.match(r"(\d+)w(\d)d", x or "")
+        return int(m.group(1)) * 7 + int(m.group(2)) if m else 0
+
     out = {}
     for pfx, key in (("ivfhb", "시험관"), ("natural", "자연임신")):
         cp, tp = os.path.join(DATA, f"{pfx}_cases.csv"), os.path.join(DATA, f"{pfx}_track.csv")
         if not (os.path.exists(cp) and os.path.exists(tp)):
             continue
         tr = {r["blog"]: r for r in read_csv(tp)}
-        seen = {}
+        seen, border = {}, []
         for r in read_csv(cp):
-            if r["similar"] == "Y" and int(r["bpm"]) <= bpm_mine + 7 and r["blog"] in tr:
+            if r["similar"] == "B":
+                if all(b_["blog"] != r["blog"] for b_ in border):
+                    border.append(r)
+            elif r["similar"] == "Y" and int(r["bpm"]) <= bpm_mine + slack and r["blog"] in tr:
                 seen.setdefault(r["blog"], r)
         items = [{"blog": b, "row": r, "track": tr[b], "cat": cat(tr[b])} for b, r in seen.items()]
-        out[key] = {"main": [x for x in items if not x["row"]["sac_small"]], "small": [x for x in items if x["row"]["sac_small"]]}
+        late = [x for x in items if ga_days(x["row"]["crl_ga"]) >= 45]
+        out[key] = {"main": [x for x in items if not x["row"]["sac_small"]], "small": [x for x in items if x["row"]["sac_small"]],
+                    "late_main": [x for x in late if not x["row"]["sac_small"]], "late_small": [x for x in late if x["row"]["sac_small"]],
+                    "borderline": border}
     return out
