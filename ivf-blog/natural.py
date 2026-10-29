@@ -23,9 +23,11 @@ from common import DATA, blog_search, canonical_url, parse_post_url, read_csv, s
 from fetch_posts import fetch
 from followup import post_list
 
-CAND = os.path.join(DATA, "natural_candidates.csv")
-CASES = os.path.join(DATA, "natural_cases.csv")
-TRACK = os.path.join(DATA, "natural_track.csv")
+IVFMODE = "--ivf" in sys.argv  # 시험관 후기를 '심박수·크기' 검색어로 따로 모은다(역전 검색에 안 잡힌 케이스 보완)
+PFX = "ivfhb" if IVFMODE else "natural"
+CAND = os.path.join(DATA, f"{PFX}_candidates.csv")
+CASES = os.path.join(DATA, f"{PFX}_cases.csv")
+TRACK = os.path.join(DATA, f"{PFX}_track.csv")
 CF = ["url", "blog", "postdate", "title"]
 SF = ["blog", "url", "lmp_ga", "crl_mm", "crl_ga", "bpm", "sac_small", "similar", "manual"]
 TF = ["blog", "start_logno", "similar_url", "status", "last_week", "last_logno", "checked", "note"]
@@ -35,6 +37,13 @@ QUERIES = [
     "주수보다 작다 심장소리", "임신 6주 초음파 아기 크기 심박수", "임신 6주 CRL", "임신 7주 CRL 심박수",
     "자연임신 6주 초음파", "자연임신 7주 심장소리", "6주 심장 반짝임 심박수", "임신 초기 심박수 낮음", "임신 6주 심박수 110",
     "임신 6주 심박수 115", "임신 6주 심박수 120", "6주 3일 심박수", "6주 4일 심박수", "6주 5일 심박수",
+]
+QUERIES_IVF = [
+    "시험관 6주 심박수", "시험관 7주 심박수", "시험관 7주 심박수 느림", "시험관 6주 심장소리", "시험관 7주 심장소리",
+    "시험관 심박수 느림", "시험관 심박수 100", "시험관 심박수 110", "시험관 심박수 120", "시험관 6주 아기 크기",
+    "시험관 주수보다 작다", "시험관 6주 CRL", "시험관 7주 CRL", "동결이식 6주 심박수", "동결이식 7주 심박수 느림",
+    "신선이식 6주 심박수", "5일배아 6주 심박수", "5일배아 7주 심박수", "3일배아 7주 심박수", "시험관 느린 심장소리",
+    "시험관 7주 초음파 심박수 정상 진입", "시험관 심박수 따라잡음", "시험관 6주 심장 반짝임 심박수", "시험관 6주 5일 심박수",
 ]
 IVF = re.compile(r"시험관|이식|난임|배아|피검|동결|신선|인공수정|\bIUI\b|\bIVF\b|과배란|채취|착상")
 GA = re.compile(r"([4-9])\s*주\s*차?\s*(?:([0-6])\s*일)?")
@@ -55,7 +64,7 @@ def crl_ga_days(mm):
 
 def collect():
     old = {r["url"]: r for r in read_csv(CAND)}
-    for q in QUERIES:
+    for q in (QUERIES_IVF if IVFMODE else QUERIES):
         for start in (1, 101, 201):
             try:
                 items = blog_search(q, start=start, display=100).get("items", [])
@@ -66,7 +75,7 @@ def collect():
                 m = re.search(r"blog\.naver\.com/([A-Za-z0-9_-]+)/(\d+)", it.get("link", ""))
                 date = it.get("postdate", "")
                 title, desc = strip_tags(it.get("title", "")), strip_tags(it.get("description", ""))
-                if not m or date < SINCE or IVF.search(title + " " + desc):
+                if not m or date < SINCE or bool(IVF.search(title + " " + desc)) != IVFMODE:
                     continue
                 if not re.search(r"[5-8]\s*주", title + desc) or not re.search(r"심박|심장|bpm|크기|CRL|초음파", title + desc):
                     continue
@@ -111,7 +120,7 @@ def extract():
         b, no = parse_post_url(c["url"])
         post = fetch(b, no)
         text = " / ".join(x for k, x in post.get("blocks", []) if k == "text")
-        if not text or IVF.search(text[:3000] + post.get("title", "")):
+        if not text or bool(IVF.search(text[:3000] + post.get("title", ""))) != IVFMODE:
             continue
         ms, small = measurements(text)
         for lmp, crl, bpm in ms:
