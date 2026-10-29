@@ -121,3 +121,18 @@ test("prices in 원 become 만원, and the false price changes they made go away
   assert.equal(st.events.filter(e => e.type === "price").length, 0);
   assert.equal(st.units[st.listings["1"].unit].lastPrice, 120000);
 });
+
+test("a deal from before we first saw the listing does not confirm it", () => {
+  const st = T.emptyState();
+  T.ingest(st, "111", t0, [art("1"), art("2", { flrInfo: "5/25" })]);
+  T.ingest(st, "111", t0 + 12 * H, [art("2", { flrInfo: "5/25" })]);
+  T.ingest(st, "111", t0 + 30 * H, [art("2", { flrInfo: "5/25" })]);
+  const early = { date: "2026-09-10", cx: "111", area: 84.65, floor: 13, price: 84000 };   // 3 weeks before t0
+  early.id = T.tradeId(early);
+  assert.equal(T.matchTrades(st, [early]), 0);
+  assert.equal(st.gone[0].status, "거래 추정");
+  // one confirmed that way earlier goes back
+  st.gone[0].status = "실거래 확인"; st.gone[0].trade = { ...early };
+  T.matchTrades(st, []);
+  assert.equal(st.gone[0].status, "거래 추정");
+});

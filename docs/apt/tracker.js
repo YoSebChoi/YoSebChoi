@@ -236,7 +236,20 @@
    * and the listing usually comes down around the contract, so the trade may be dated up to 30 days
    * before the unit was last seen... or a little after (the agent may leave it up a few days).
    */
+  // a deal dated more than a week before we first saw the listing is not that listing's sale (it went up
+  // after it, or it is another flat): tracking began after it
+  const BEFORE_FIRST_SEEN = 7 * DAY;
+  const tooEarly = (g, t) => tradeTime(t) < g.firstSeen - BEFORE_FIRST_SEEN;
+
   function matchTrades(st, trades) {
+    // confirmations made before this rule: back to 「거래 추정」
+    for (const g of st.gone) {
+      if (g.status === "실거래 확인" && g.trade && tooEarly(g, g.trade)) {
+        g.status = "거래 추정";
+        delete g.trade;
+        st.events = st.events.filter(e => !(e.type === "trade" && e.unit === g.unit && e.cx === g.cx));
+      }
+    }
     const used = new Set(st.gone.filter(g => g.trade).map(g => g.trade.id));
     let n = 0;
     for (const g of st.gone) {
@@ -247,7 +260,7 @@
         if (g.area != null && Math.abs(t.area - g.area) > 1.0) continue;
         if (!floorFits(g.floor, g.floorTotal, t.floor)) continue;
         const dt = tradeTime(t) - g.lastSeen;
-        if (dt < -30 * DAY || dt > 20 * DAY) continue;
+        if (dt < -30 * DAY || dt > 20 * DAY || tooEarly(g, t)) continue;
         let score = Math.abs(dt) / DAY;
         if (g.lastPrice) {
           const r = t.price / g.lastPrice;
