@@ -27,6 +27,7 @@ RECAP = re.compile(r"지난\s*(?:번|진료|주|초음파)|저번|이전\s*(?:�
 SMALL = re.compile(r"주수보다\s*(?:조금|약간|좀|살짝|며칠|하루|이틀|\d\s*일)?\s*(?:작|느리|늦|어리)|"
                    r"심장\s*(?:소리|박동|박동수|박수)?\s*(?:가|이|는)?\s*(?:너무|좀|조금|약간|아직|많이)?\s*(?:느리|느려|느린|약하)|"
                    r"(?:아기|태아|애기)\s*(?:크기|키)?\s*(?:가|도|는)?\s*(?:너무|좀|조금|약간)?\s*작(?:다|아|고|은|네)|주수\s*(?:가|보다)?\s*밀")
+SAC_SMALL = re.compile(r"아기\s*집\s*(?:크기)?\s*(?:이|가|은|는|도)?\s*(?:좀|너무|여전히|많이|조금|약간|계속)?\s*작(?:다|아|고|은|네|대|더)")
 SMALL_NEG = re.compile(r"^.{0,10}(?:않|아니|안\s*(?:느리|작))")
 
 
@@ -40,7 +41,7 @@ def extract():
             if d0:
                 T.setdefault(c["url"].split("/")[3], (d0, int(c["embryo_day"])))
     seq = collections.defaultdict(dict)
-    small = set()
+    small, sac_small = set(), set()
     for f in glob.glob(os.path.join(CACHE, "posts", "*.json")):
         d = json.load(open(f, encoding="utf-8"))
         b = d.get("blog_id")
@@ -51,6 +52,10 @@ def extract():
         post_ga = ga0 + (est_date(pts, int(d["log_no"])) - tr).days
         t = re.sub(r"\s+", " ", " ".join(x for k, x in d.get("blocks", []) if k == "text"))
         url = f"https://m.blog.naver.com/{b}/{d['log_no']}"
+        for m in SAC_SMALL.finditer(t):
+            if not SMALL_NEG.search(t[m.end():m.end() + 12]) and "#" not in t[max(0, m.start() - 2):m.start()]:
+                sac_small.add(b)
+                break
         for m in SMALL.finditer(t):
             if not SMALL_NEG.search(t[m.end():m.end() + 12]) and "#" not in t[max(0, m.start() - 2):m.start()]:
                 small.add(b)
@@ -102,14 +107,14 @@ def extract():
         b = c["url"].split("/")[3]
         if c["outcome"] == "심장소리확인":
             st[b] = adj.get(c["case_id"]) or "미상"
-    return seq, st, small
+    return seq, st, small, sac_small
 
 
 OKS = ("출산", "유지12")
 
 
 def analyze(ga_mine, crl_mine, bpm_mine):
-    seq, st, small = extract()
+    seq, st, small, sac_small = extract()
     # 반주 단위(0~3일 / 4~6일) 기준값: 그 구간 아래쪽 25%
     bins = collections.defaultdict(lambda: {"crl": [], "bpm": []})
     for b, m in seq.items():
@@ -132,7 +137,7 @@ def analyze(ga_mine, crl_mine, bpm_mine):
     group = set(behind) | (small & set(st))
     res = collections.Counter(st[b] for b in group)
 
-    similar = []
+    similar, excluded = [], []
     for b, m in seq.items():
         if b not in st:
             continue
@@ -140,10 +145,11 @@ def analyze(ga_mine, crl_mine, bpm_mine):
             x = m[g]
             if ga_mine - 1 <= g <= ga_mine + 2 and ((x.get("crl") and x["crl"] <= crl_mine * 1.2) or (x.get("bpm") and x["bpm"] <= bpm_mine + 7)):
                 traj = [(gg, m[gg].get("crl"), m[gg].get("bpm"), m[gg].get("url")) for gg in sorted(m) if 38 <= gg <= 70]
-                similar.append({"blog": b, "outcome": st[b], "traj": traj})
+                # 우리 아기집은 날짜와 같은 크기 → 아기집이 작다고 들은 케이스는 비교에서 뺀다
+                (excluded if b in sac_small else similar).append({"blog": b, "outcome": st[b], "traj": traj})
                 break
     sres = collections.Counter(s["outcome"] for s in similar)
-    return {"group_n": len(group), "group": res, "similar": similar, "similar_res": sres}
+    return {"group_n": len(group), "group": res, "similar": similar, "similar_res": sres, "excluded": excluded}
 
 
 def rate(res):
