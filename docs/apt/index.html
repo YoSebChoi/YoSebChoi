@@ -703,7 +703,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     }
     const recent = DATA.trades.filter(t => t.cx === (m && m.key)).slice(-5).reverse();
     h += `<div class="card"><h2>${esc(shortName(m) || "우리 단지")} 최근 실거래<button class="more" data-go="trades">더 보기</button></h2>
-      ${recent.length ? recent.map(tradeRow).join("") : `<div class="empty">${DATA.tradeMonths && DATA.tradeMonths.length ? "최근 거래가 없어요" : "실거래 자료를 아직 받지 않았어요 (저장소 Secret MOLIT_KEY 필요)"}</div>`}</div>`;
+      ${recent.length ? recent.map(t => tradeRow(t, matchedTrades())).join("") : `<div class="empty">${DATA.tradeMonths && DATA.tradeMonths.length ? "최근 거래가 없어요" : "실거래 자료를 아직 받지 않았어요 (저장소 Secret MOLIT_KEY 필요)"}</div>`}</div>`;
     const posts = DATA.blog.filter(p => p.deal && p.cx.includes(m && m.key)).slice(0, 3);
     if (posts.length) h += `<div class="card"><h2>블로그에서<button class="more" data-go="news">더 보기</button></h2>${posts.map(postRow).join("")}</div>`;
     el.innerHTML = h;
@@ -750,12 +750,19 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       <dl class="kv"><dt>면적</dt><dd>${esc(areaLabel(u.area, supply))}</dd><dt>방향</dt><dd>${esc(dirLabel(u.dir) || "-")}</dd>
         <dt>처음 본 날</dt><dd>${dfull(u.firstSeen)} (${fmt(u.firstPrice)})</dd><dt>마지막 본 날</dt><dd>${dfull(u.lastSeen)} (${fmt(u.lastPrice)})</dd>
         ${u.status ? `<dt>상태</dt><dd><span class="badge ${STATUS[u.status]}">${esc(u.status)}</span>${u.trade ? ` ${esc(u.trade.date)} ${fmt(u.trade.price)} · ${u.trade.floor}층` : ""}</dd>` : ""}</dl>
+      ${u.trade ? `<button class="btn" id="toTrade" style="margin-top:12px">실거래 탭에서 보기</button>` : ""}
       ${ls.length ? `<h4 style="margin:16px 0 4px">올린 중개사 ${ls.length}곳</h4>` + ls.map(l => `<div class="row"><div class="main">
           <div><b>${esc(l.priceText)}</b> <span class="small muted">${esc(l.realtor)}</span></div>
           <div class="meta">${esc(l.desc || "")}</div><div class="meta tiny">확인 ${esc(l.confirmed)}</div></div>
           <a class="small" href="${NAVER_ARTICLE(l.no)}" target="_blank" rel="noopener">보기</a></div>`).join("") : ""}
       ${hist.length > ls.length ? `<h4 style="margin:16px 0 4px">가격 기록</h4><ul class="list-plain">${hist.map(h => `<li>${dfull(h.t)} ${fmt(h.price)} <span class="muted">${esc(h.by)}</span></li>`).join("")}</ul>` : ""}
-      ${trades.length ? `<h4 style="margin:16px 0 4px">같은 면적 실거래</h4>${trades.map(tradeRow).join("")}` : ""}`;
+      ${trades.length ? `<h4 style="margin:16px 0 4px">같은 면적 실거래</h4>${trades.map(t => tradeRow(t, matchedTrades())).join("")}` : ""}`;
+    const go = $("#toTrade");
+    if (go) go.onclick = () => {
+      const key = keyOfNo(u.cx);
+      tradeKey = key; tradeArea = String(Math.round(u.trade.area)); tradeFocus = `${key}|${u.trade.date}|${u.trade.price}|${u.trade.floor}`;
+      $("#unitDlg").close(); showTab("trades");
+    };
     $("#unitDlg").showModal();
   }
 
@@ -811,9 +818,14 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       <li>네이버가 잠깐 막아서 0건이 오면 바로 믿지 않고 다음 확인까지 기다려요.</li></ul></div>`;
   }
 
-  function tradeRow(t) {
+  // the trades a disappeared listing was matched to (complex key|date|price|floor)
+  const matchedTrades = () => new Set(S.gone.filter(g => g.trade && keyOfNo(g.cx)).map(g => `${keyOfNo(g.cx)}|${g.trade.date}|${g.trade.price}|${g.trade.floor}`));
+  let tradeFocus = null;   // the trade opened from 거래 추정, highlighted on 실거래
+  function tradeRow(t, hits) {
     const c = byKey(t.cx);
-    return `<div class="row"><div class="main"><div class="price ${t.cancelled ? "strike" : ""}" style="font-size:15px">${fmt(t.price)}
+    const id = `${t.cx}|${t.date}|${t.price}|${t.floor}`, hit = hits && hits.has(id);
+    return `<div class="row" ${tradeFocus === id ? 'id="tradeFocus" style="background:var(--ok-soft);border-radius:10px;padding-left:8px;padding-right:8px"' : ""}><div class="main"><div class="price ${t.cancelled ? "strike" : ""}" style="font-size:15px">${fmt(t.price)}
+        ${hit ? `<span class="badge b-ok">사라진 매물</span>` : ""}
         ${t.cancelled ? `<span class="badge b-back">해제 ${esc(t.cancelDate || "")}</span>` : ""}${t.gbn === "직거래" ? ` <span class="badge b-back">직거래</span>` : ""}</div>
       <div class="meta">${esc(shortName(c))} ${t.aptDong ? esc(t.aptDong) + "동 " : ""}${t.floor}층 · ${t.area.toFixed(1)}㎡</div></div>
       <div class="side muted">${esc(t.date.replace(/-/g, "."))}</div></div>`;
@@ -869,9 +881,11 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <div class="stat"><b>${y1.length ? fmt(Math.max(...y1.map(t => t.price))) : "-"}</b><span>1년 최고</span></div>
         <div class="stat"><b>${ts.length ? fmt(ts.filter(t => !t.cancelled).at(-1)?.price) : "-"}</b><span>마지막 거래</span></div></div>
       ${tradeChart(ts, asks)}</div>
-      <div class="card">${ts.slice().reverse().slice(0, 120).map(tradeRow).join("") || `<div class="empty">${DATA.tradeMonths && DATA.tradeMonths.length ? "거래 기록이 없어요" : "실거래 자료를 아직 받지 않았어요.<br>저장소 Secret에 MOLIT_KEY를 넣으면 매일 받아요 (apt/README.md)."}</div>`}</div>
+      <div class="card">${(() => { const hits = matchedTrades(); return ts.slice().reverse().slice(0, 120).map(t => tradeRow(t, hits)).join(""); })() || `<div class="empty">${DATA.tradeMonths && DATA.tradeMonths.length ? "거래 기록이 없어요" : "실거래 자료를 아직 받지 않았어요.<br>저장소 Secret에 MOLIT_KEY를 넣으면 매일 받아요 (apt/README.md)."}</div>`}</div>
       <div class="tiny muted">국토교통부 아파트 매매 실거래가 (공공데이터포털). 계약 후 30일 안에 신고돼서 최근 거래는 늦게 보여요.</div>`;
     el.innerHTML = h;
+    const focus = $("#tradeFocus");
+    if (focus) { setTimeout(() => focus.scrollIntoView({ block: "center", behavior: "smooth" }), 50); tradeFocus = null; }
     bindChips(el, "tk", v => { tradeKey = v; tradeArea = "all"; renderTrades(); });
     bindChips(el, "ta", v => { tradeArea = v; renderTrades(); });
   }
@@ -942,7 +956,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       <label class="field">화면 밝기
         <select id="themeSel">${[["light", "밝게"], ["dark", "어둡게"], ["auto", "폰 설정 따라"]].map(([v, l]) => `<option value="${v}" ${(lget("aw-theme", "light")) === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 a66432ae1a</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 3f81f81132</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -1174,7 +1188,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "a66432ae1a" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "3f81f81132" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }

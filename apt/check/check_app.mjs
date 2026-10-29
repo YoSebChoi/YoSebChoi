@@ -126,6 +126,13 @@ const browser = await chromium.launch();
     await page.screenshot({ path: new URL(`./app-${t}.png`, import.meta.url).pathname, fullPage: true });
   }
   if (!(await page.locator("#panel-gone .badge.b-ok").count())) fail.push("app: no 실거래 확인 badge on 거래 추정 tab");
+  // the confirmed flat opens its trade on 실거래, marked
+  await page.click("#tab-gone");
+  await page.locator("#panel-gone .row.tap", { has: page.locator(".badge.b-ok") }).first().click();
+  await page.click("#toTrade");
+  await page.waitForTimeout(300);
+  if (!(await page.locator("#panel-trades #tradeFocus .badge.b-ok", { hasText: "사라진 매물" }).count())) fail.push("app: 실거래 탭에서 보기 does not show the matched trade marked");
+  await page.click("#tab-gone");
   // one more check without 103동: it is watched, not yet gone
   await page.evaluate(() => { window.__phase = 2; });
   await page.evaluate(() => { const S = window.__aptwatch.S; Object.values(S.units).forEach(u => { if (u.dong === "103동") u.misses = 0; }); });
