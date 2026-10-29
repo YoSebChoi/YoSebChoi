@@ -225,6 +225,25 @@ def build(a):
     if hb_ok and ss:
         ok_small = sum(x in ("출산", "유지12") for x in ss["small"])
         res_small = ok_small + ss["small"].count("유산")
+        catch_html = ""
+        try:
+            from catchup import analyze, rate
+            cu = analyze(ga(hb_date), float(a.crl) * 10 if a.crl else 99, a.bpm or 999)
+        except Exception:
+            cu = None
+        if cu:
+            gok, gn = rate(cu["group"])
+            sok, sn = rate(cu["similar_res"])
+            def traj(s_):
+                return " → ".join(f"{gw(g)} " + " · ".join(x for x in ((f"{c:.1f}mm" if c and not (g >= 49 and c < 4) else ""), (f"{b_}bpm" if b_ else "")) if x)
+                                  for g, c, b_, _ in s_["traj"])
+            lab = {"출산": "출산", "유지12": "12주+ 유지", "유산": "유산", "미상": "진행 중·미상"}
+            rows_ = "".join(f'<li><b>{lab[s_["outcome"]]}</b> · {traj(s_)} · <a href="{s_["traj"][0][3]}">글</a></li>' for s_ in cu["similar"])
+            catch_html = f"""<div class="cmp"><h3>주수보다 작거나 느렸던 케이스는 따라잡았나</h3>
+  <p>6~8주에 아기 크기나 심박수가 같은 주수 후기의 아래쪽 25%였거나 '주수보다 작다'는 말을 들은 심장소리 케이스 <b>{cu['group_n']}건</b> 중, 결과가 나온 {gn}건에서 <b>{gok}건({pct(gok / gn, 0) if gn else '—'})</b>이 출산하거나 12주 넘게 유지했습니다 (출산 {cu['group']['출산']} · 12주+ 유지 {cu['group']['유지12']} · 유산 {cu['group']['유산']} · 진행 중·미상 {cu['group']['미상']}). 심장소리 확인 전체(약 93%)와 비슷합니다.</p></div>
+  <div class="cmp"><h3>우리와 비슷한 케이스 (이식일 기준 {gw(ga(hb_date) - 1)}~{gw(ga(hb_date) + 2)}, 크기 {float(a.crl) * 12:.1f}mm 이하 또는 심박수 {a.bpm + 7} 이하)</h3>
+  <p>{len(cu['similar'])}건 중 결과가 나온 {sn}건에서 <b>{sok}건 출산</b>({pct(sok / sn, 0) if sn else '—'}), 나머지는 진행 중·미상. 표본이 매우 작아 비율보다 흐름을 보세요: 잘 된 케이스는 1주 뒤 크기 +8~10mm, 심박수 +40~50bpm이었고, 유산 케이스는 7주에 심박수가 떨어졌습니다.</p>
+  <ul class="note" style="margin:4px 0 0;padding-left:18px;display:grid;gap:4px">{rows_}</ul></div>"""
         scan_sec = f"""<section>
   <h2>{md(hb_date)} 초음파 결과를 후기와 비교</h2>
   <div class="panel">
@@ -232,6 +251,7 @@ def build(a):
   <div class="cmp"><h3>아기 크기</h3><p>우리: <b>{a.crl}cm</b> (측정 기준 {a.crl_ga}, 날짜보다 {ga(hb_date) - ga_of(a.crl_ga.replace('주', 'w').replace('일', 'd').replace(' ', '')) if a.crl_ga else ''}일 작음)</p><p class="note">'주수보다 작다' 언급이 있던 심장소리 케이스 {len(ss['small'])}건: {counts(ss['small'])} → 결과가 나온 {res_small}건 중 {ok_small}건({pct(ok_small / res_small, 0) if res_small else '—'}) 출산·유지. 이 시기 크기 측정은 앞뒤 3~5일 오차가 흔함.</p></div>
   {f'<div class="cmp"><h3>아기집 ({md(scan)})</h3><p>우리: <b>1.02cm</b> ({gw(ga(scan))}, 날짜와 같은 크기)</p><p class="note">5주 4~6일 아기집 크기 {ss['sac_n']}건: 중앙값 {ss['sac_q'][1]:.2f}cm, 가운데 50% {ss['sac_q'][0]:.2f}~{ss['sac_q'][2]:.2f}cm → 중간 정도</p></div>' if scan and ss['sac_q'] else ""}
 
+  {catch_html}
   <p class="note">심박수는 6주 무렵 100~120에서 시작해 9주쯤 150~170까지 빠르게 오릅니다. 일부 연구는 6주 3일~7주에 120 미만을 '조금 느린 편'으로 보지만 대부분 정상 진행됩니다. 다음 초음파에서 심박수가 오르고 크기가 1주에 약 0.5~0.7cm씩 자라는지가 가장 확실한 확인입니다. 후기 표본은 수십 건 이하라 참고용입니다.</p></div>
 </section>
 """
