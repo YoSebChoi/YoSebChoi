@@ -23,7 +23,11 @@ WHO = re.compile(r"CRL|crl|Crl|아기(?!\s*집)|태아|아가(?!\s*집)|애기(?
 BAD = re.compile(r"아기\s*집|애기\s*집|아가\s*집|난황|피\s*고임|혈종|자궁|경부|난포|내막|근종|낭종|물혹|GS|gs|MSD|태낭|목투명|NT|nt")
 BPM = re.compile(r"(\d{2,3})\s*(?:bpm|BPM|회|비피엠)")
 RECAP = re.compile(r"지난\s*(?:번|진료|주|초음파)|저번|이전\s*(?:진료|초음파)|전에는")
-SMALL = re.compile(r"주수보다\s*(?:조금|약간|좀|살짝|며칠|하루|이틀|\d\s*일)?\s*(?:작|느리|늦|어리)")
+# '주수보다 작다', '심장이 느리다', '아기가 작다', '주수가 밀렸다' 같은 말(부정·해시태그 제외)
+SMALL = re.compile(r"주수보다\s*(?:조금|약간|좀|살짝|며칠|하루|이틀|\d\s*일)?\s*(?:작|느리|늦|어리)|"
+                   r"심장\s*(?:소리|박동|박동수|박수)?\s*(?:가|이|는)?\s*(?:너무|좀|조금|약간|아직|많이)?\s*(?:느리|느려|느린|약하)|"
+                   r"(?:아기|태아|애기)\s*(?:크기|키)?\s*(?:가|도|는)?\s*(?:너무|좀|조금|약간)?\s*작(?:다|아|고|은|네)|주수\s*(?:가|보다)?\s*밀")
+SMALL_NEG = re.compile(r"^.{0,10}(?:않|아니|안\s*(?:느리|작))")
 
 
 def extract():
@@ -47,8 +51,10 @@ def extract():
         post_ga = ga0 + (est_date(pts, int(d["log_no"])) - tr).days
         t = re.sub(r"\s+", " ", " ".join(x for k, x in d.get("blocks", []) if k == "text"))
         url = f"https://m.blog.naver.com/{b}/{d['log_no']}"
-        if SMALL.search(t):
-            small.add(b)
+        for m in SMALL.finditer(t):
+            if not SMALL_NEG.search(t[m.end():m.end() + 12]) and "#" not in t[max(0, m.start() - 2):m.start()]:
+                small.add(b)
+                break
 
         def resolve(pos):
             if RECAP.search(t[max(0, pos - 40):pos]):
