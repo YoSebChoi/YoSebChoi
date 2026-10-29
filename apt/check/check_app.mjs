@@ -126,6 +126,11 @@ const browser = await chromium.launch();
     await page.screenshot({ path: new URL(`./app-${t}.png`, import.meta.url).pathname, fullPage: true });
   }
   if (!(await page.locator("#panel-gone .badge.b-ok").count())) fail.push("app: no 실거래 확인 badge on 거래 추정 tab");
+  // a row of 최근 변화 opens the flat; a flat that went shows its last listings
+  await page.click("#tab-home");
+  await page.locator("#panel-home .row.tap[data-unit*=\"101동\"]", { hasText: "사라짐" }).first().click();
+  if (!(await page.locator("#unitDlg[open]", { hasText: "마지막으로 본 매물" }).count())) fail.push("app: 최근 변화 → the gone flat's last listings not shown");
+  await page.locator("#unitDlg [data-close]").click();
   // the confirmed flat opens its trade on 실거래, marked
   await page.click("#tab-gone");
   await page.locator("#panel-gone .row.tap", { has: page.locator(".badge.b-ok") }).first().click();

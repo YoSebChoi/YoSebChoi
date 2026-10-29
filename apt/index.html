@@ -672,7 +672,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       new: [`<span class="badge b-new">새 매물</span>`, fmt(e.price)],
       price: [`<span class="badge ${e.to < e.from ? "b-new" : "b-guess"}">${e.to < e.from ? "가격 내림" : "가격 올림"}</span>`, `${fmt(e.from)} → <b class="${e.to < e.from ? "down" : "up"}">${fmt(e.to)}</b>`],
     }[e.type];
-    return `<div class="row"><div class="main"><div>${kinds[0]} <span class="small">${esc(label)}</span></div><div class="meta">${kinds[1]}</div></div><div class="side muted">${dshort(e.t)}</div></div>`;
+    return `<div class="row tap" data-unit="${esc(e.unit)}"><div class="main"><div>${kinds[0]} <span class="small">${esc(label)}</span></div><div class="meta">${kinds[1]}</div></div><div class="side muted">${dshort(e.t)} ›</div></div>`;
   }
 
   function renderHome() {
@@ -708,6 +708,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     if (posts.length) h += `<div class="card"><h2>블로그에서<button class="more" data-go="news">더 보기</button></h2>${posts.map(postRow).join("")}</div>`;
     el.innerHTML = h;
     el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.go)));
+    el.querySelectorAll("[data-unit]").forEach(r => r.addEventListener("click", () => openUnit(r.dataset.unit)));
   }
 
   function renderList() {
@@ -740,8 +741,10 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
 
   function openUnit(key) {
     const u = S.units[key] || S.gone.slice().reverse().find(g => g.unit === key);
-    if (!u) return;
+    if (!u) { toast("이 집의 기록이 남아 있지 않아요"); return; }
     const ls = S.units[key] ? listingsOf(u) : [];
+    // a flat that went: the listings as last seen (they may be gone from Naver too)
+    const last = !ls.length ? (u.lastListings || []) : [];
     $("#unitTitle").textContent = `${nameOfNo(u.cx)} ${unitLabel(u)}`;
     const hist = ls.flatMap(l => l.history.map(h => ({ ...h, by: l.realtor }))).sort((a, b) => a.t - b.t);
     const trades = DATA.trades.filter(t => cfg.links[t.cx] && String(cfg.links[t.cx].no) === u.cx && Math.abs(t.area - (u.area || 0)) <= 1).slice(-6).reverse();
@@ -755,6 +758,11 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
           <div><b>${esc(l.priceText)}</b> <span class="small muted">${esc(l.realtor)}</span></div>
           <div class="meta">${esc(l.desc || "")}</div><div class="meta tiny">확인 ${esc(l.confirmed)}</div></div>
           <a class="small" href="${NAVER_ARTICLE(l.no)}" target="_blank" rel="noopener">보기</a></div>`).join("") : ""}
+      ${last.length ? `<h4 style="margin:16px 0 4px">마지막으로 본 매물 ${last.length}건 <span class="small muted">(${dfull(u.lastSeen)})</span></h4>` + last.map(l => `<div class="row"><div class="main">
+          <div><b>${esc(l.priceText)}</b> <span class="small muted">${esc(l.realtor)}</span></div>
+          <div class="meta">${esc(l.desc || "")}</div>${l.confirmed ? `<div class="meta tiny">확인 ${esc(l.confirmed)}</div>` : ""}</div>
+          <a class="small" href="${NAVER_ARTICLE(l.no)}" target="_blank" rel="noopener">네이버</a></div>`).join("")
+        : !ls.length ? `<div class="small muted" style="margin-top:12px">이 집이 사라지기 전 매물 내용은 이 기능이 생기기 전이라 남아 있지 않아요.</div>` : ""}
       ${hist.length > ls.length ? `<h4 style="margin:16px 0 4px">가격 기록</h4><ul class="list-plain">${hist.map(h => `<li>${dfull(h.t)} ${fmt(h.price)} <span class="muted">${esc(h.by)}</span></li>`).join("")}</ul>` : ""}
       ${trades.length ? `<h4 style="margin:16px 0 4px">같은 면적 실거래</h4>${trades.map(t => tradeRow(t, matchedTrades())).join("")}` : ""}`;
     const go = $("#toTrade");

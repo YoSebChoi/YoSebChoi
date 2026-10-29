@@ -672,7 +672,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       new: [`<span class="badge b-new">새 매물</span>`, fmt(e.price)],
       price: [`<span class="badge ${e.to < e.from ? "b-new" : "b-guess"}">${e.to < e.from ? "가격 내림" : "가격 올림"}</span>`, `${fmt(e.from)} → <b class="${e.to < e.from ? "down" : "up"}">${fmt(e.to)}</b>`],
     }[e.type];
-    return `<div class="row"><div class="main"><div>${kinds[0]} <span class="small">${esc(label)}</span></div><div class="meta">${kinds[1]}</div></div><div class="side muted">${dshort(e.t)}</div></div>`;
+    return `<div class="row tap" data-unit="${esc(e.unit)}"><div class="main"><div>${kinds[0]} <span class="small">${esc(label)}</span></div><div class="meta">${kinds[1]}</div></div><div class="side muted">${dshort(e.t)} ›</div></div>`;
   }
 
   function renderHome() {
@@ -708,6 +708,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     if (posts.length) h += `<div class="card"><h2>블로그에서<button class="more" data-go="news">더 보기</button></h2>${posts.map(postRow).join("")}</div>`;
     el.innerHTML = h;
     el.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showTab(b.dataset.go)));
+    el.querySelectorAll("[data-unit]").forEach(r => r.addEventListener("click", () => openUnit(r.dataset.unit)));
   }
 
   function renderList() {
@@ -740,8 +741,10 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
 
   function openUnit(key) {
     const u = S.units[key] || S.gone.slice().reverse().find(g => g.unit === key);
-    if (!u) return;
+    if (!u) { toast("이 집의 기록이 남아 있지 않아요"); return; }
     const ls = S.units[key] ? listingsOf(u) : [];
+    // a flat that went: the listings as last seen (they may be gone from Naver too)
+    const last = !ls.length ? (u.lastListings || []) : [];
     $("#unitTitle").textContent = `${nameOfNo(u.cx)} ${unitLabel(u)}`;
     const hist = ls.flatMap(l => l.history.map(h => ({ ...h, by: l.realtor }))).sort((a, b) => a.t - b.t);
     const trades = DATA.trades.filter(t => cfg.links[t.cx] && String(cfg.links[t.cx].no) === u.cx && Math.abs(t.area - (u.area || 0)) <= 1).slice(-6).reverse();
@@ -755,6 +758,11 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
           <div><b>${esc(l.priceText)}</b> <span class="small muted">${esc(l.realtor)}</span></div>
           <div class="meta">${esc(l.desc || "")}</div><div class="meta tiny">확인 ${esc(l.confirmed)}</div></div>
           <a class="small" href="${NAVER_ARTICLE(l.no)}" target="_blank" rel="noopener">보기</a></div>`).join("") : ""}
+      ${last.length ? `<h4 style="margin:16px 0 4px">마지막으로 본 매물 ${last.length}건 <span class="small muted">(${dfull(u.lastSeen)})</span></h4>` + last.map(l => `<div class="row"><div class="main">
+          <div><b>${esc(l.priceText)}</b> <span class="small muted">${esc(l.realtor)}</span></div>
+          <div class="meta">${esc(l.desc || "")}</div>${l.confirmed ? `<div class="meta tiny">확인 ${esc(l.confirmed)}</div>` : ""}</div>
+          <a class="small" href="${NAVER_ARTICLE(l.no)}" target="_blank" rel="noopener">네이버</a></div>`).join("")
+        : !ls.length ? `<div class="small muted" style="margin-top:12px">이 집이 사라지기 전 매물 내용은 이 기능이 생기기 전이라 남아 있지 않아요.</div>` : ""}
       ${hist.length > ls.length ? `<h4 style="margin:16px 0 4px">가격 기록</h4><ul class="list-plain">${hist.map(h => `<li>${dfull(h.t)} ${fmt(h.price)} <span class="muted">${esc(h.by)}</span></li>`).join("")}</ul>` : ""}
       ${trades.length ? `<h4 style="margin:16px 0 4px">같은 면적 실거래</h4>${trades.map(t => tradeRow(t, matchedTrades())).join("")}` : ""}`;
     const go = $("#toTrade");
@@ -956,7 +964,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       <label class="field">화면 밝기
         <select id="themeSel">${[["light", "밝게"], ["dark", "어둡게"], ["auto", "폰 설정 따라"]].map(([v, l]) => `<option value="${v}" ${(lget("aw-theme", "light")) === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 3f81f81132</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 2e82f6925f</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -1188,7 +1196,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "3f81f81132" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "2e82f6925f" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }

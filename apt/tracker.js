@@ -186,6 +186,8 @@
       u.firstMiss = null;
       if (minPrice != null) u.lastPrice = minPrice;
       u.articles = ls.map(a => a.no);
+      // what the listings looked like last, kept when the flat goes (the listings themselves are dropped)
+      u.lastListings = ls.slice(0, 8).map(a => ({ no: a.no, priceText: a.priceText, realtor: a.realtor, desc: a.desc, confirmed: a.confirmed }));
       u.floorTotal = u.floorTotal || ls[0].floorTotal;
       u.supply = u.supply || ls[0].supply;
     }
@@ -197,7 +199,7 @@
       if (u.misses >= GONE_AFTER_MISSES && ts - u.lastSeen >= GONE_AFTER) {
         st.gone.push({ unit: key, cx, dong: u.dong, floor: u.floor, floorTotal: u.floorTotal, area: u.area, supply: u.supply, dir: u.dir,
           firstSeen: u.firstSeen, lastSeen: u.lastSeen, firstMiss: u.firstMiss, firstPrice: u.firstPrice, lastPrice: u.lastPrice,
-          status: "거래 추정" });
+          lastListings: u.lastListings || [], status: "거래 추정" });
         addEvent(st, { t: ts, type: "gone", cx, unit: key, price: u.lastPrice, lastSeen: u.lastSeen });
         delete st.units[key];
         res.gone++;
