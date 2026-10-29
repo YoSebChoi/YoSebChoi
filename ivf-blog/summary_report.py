@@ -226,9 +226,10 @@ def build(a):
         ok_small = sum(x in ("출산", "유지12") for x in ss["small"])
         res_small = ok_small + ss["small"].count("유산")
         catch_html = ""
+        meas_html = ""
         try:
             birth_last = {r_["case_id"]: r_["last_week"] for r_ in read_csv(os.path.join(DATA, "birth_log.csv"))}
-            from catchup import WIN, analyze, rate
+            from catchup import WIN, analyze, measured_similar, rate
             cu = analyze(ga(hb_date), float(a.crl) * 10 if a.crl else 99, a.bpm or 999)
         except Exception:
             cu = None
@@ -241,6 +242,28 @@ def build(a):
             lab = {"출산": "출산", "유지12": "12주+ 유지", "유산": "유산", "미상": "진행 중·미상"}
             rows_ = "".join(f'<li><b>{lab[s_["outcome"]]}</b> · {traj(s_)}{" · PGT 배아" if s_.get("pgt") else ""} · <a href="{s_["traj"][0][3]}">글</a></li>' for s_ in cu["similar"])
             allsim = cu["similar"] + cu["excluded"]
+            ms = measured_similar(a.bpm or 999)
+            meas_rows = ""
+            for key, d_ in ms.items():
+                cnt = {k: sum(x["cat"] == k for x in d_["main"]) for k in ("출산", "12주+ 유지", "유산", "진행 중·미상")}
+                okn, nn = cnt["출산"] + cnt["12주+ 유지"], cnt["출산"] + cnt["12주+ 유지"] + cnt["유산"]
+                sm = {k: sum(x["cat"] == k for x in d_["small"]) for k in ("출산", "12주+ 유지", "유산", "진행 중·미상")}
+                meas_rows += (f'<tr><td>{key}</td><td>{len(d_["main"])}</td><td>{cnt["출산"]}</td><td>{cnt["12주+ 유지"]}</td><td>{cnt["유산"]}</td><td>{cnt["진행 중·미상"]}</td>'
+                              f'<td class="num"><b>{pct(okn / nn, 0) if nn else "—"}</b> <span class="muted">{okn}/{nn}</span></td>'
+                              f'<td class="muted">{len(d_["small"])} (유산 {sm["유산"]})</td></tr>')
+
+            def meas_li(x):
+                r_, t_ = x["row"], x["track"]
+                return (f'<li><b>{x["cat"]}</b> · 크기 {float(r_["crl_mm"]):.1f}mm(측정 기준 {r_["crl_ga"].replace("w", "주 ").replace("d", "일")}) · {r_["bpm"]}bpm · '
+                        f'<a href="{r_["url"]}">글</a>' + (f' · {html.escape(t_["note"][:50])}' if t_["manual"] and t_["note"] else "") + "</li>")
+            meas_lists = "".join(f'<details><summary>{key} 케이스 {len(d_["main"]) + len(d_["small"])}건 보기</summary><ul class="note" style="margin:4px 0 0;padding-left:18px;display:grid;gap:3px">'
+                                 + "".join(meas_li(x) for x in sorted(d_["main"] + d_["small"], key=lambda x: abs(int(x["row"]["bpm"]) - (a.bpm or 113)))) + "</ul></details>"
+                                 for key, d_ in ms.items())
+            meas_html = f"""<div class="cmp"><h3>측정 기준 주수와 심박수로 본 비슷한 케이스 (검색으로 새로 모은 후기)</h3>
+  <p>날짜 주수 대신 <b>아기 크기로 계산한 측정 기준 주수 6주 1일~5일</b>이면서 <b>심박수 {a.bpm + 7 if a.bpm else ''}bpm 이하</b>였던 후기입니다(우리 {a.crl}cm는 측정 기준 6주 1~2일). 시험관은 "시험관 7주 심박수 느림" 같은 검색어로, 자연임신은 시험관·이식 글을 뺀 검색어로 모았습니다. 이후 글로 출산·유지(12주 이상)·유산을 따라갔고, 아기집이 작다는 말을 들은 케이스는 따로 셉니다.</p>
+  <div class="tbl" style="overflow-x:auto"><table style="min-width:0"><thead><tr><th></th><th>케이스</th><th>출산</th><th>12주+</th><th>유산</th><th>진행·미상</th><th>비율</th><th>아기집 작음</th></tr></thead><tbody>{meas_rows}</tbody></table></div>
+  <p class="note">진행 중·미상은 비율에서 뺐습니다. 표본이 작고 후기를 남긴 사람 기준이라 좋은 결과 쪽으로 기울 수 있습니다. 시험관·자연임신 모두 심박수가 120 이하였던 케이스의 대부분이 이후 정상 진행됐고, 유산 케이스는 7~8주에 심박수가 떨어지거나 성장이 더뎠던 경우, 아기집이 작았던 경우였습니다.</p>
+  {meas_lists}</div>"""
             ab = sum(x["outcome"] in ("출산", "유지12") for x in allsim)
             an = ab + sum(x["outcome"] == "유산" for x in allsim)
             lw = {}
@@ -264,6 +287,7 @@ def build(a):
   {f'<div class="cmp"><h3>아기집 ({md(scan)})</h3><p>우리: <b>1.02cm</b> ({gw(ga(scan))}, 날짜와 같은 크기)</p><p class="note">5주 4~6일 아기집 크기 {ss['sac_n']}건: 중앙값 {ss['sac_q'][1]:.2f}cm, 가운데 50% {ss['sac_q'][0]:.2f}~{ss['sac_q'][2]:.2f}cm → 중간 정도</p></div>' if scan and ss['sac_q'] else ""}
 
   {catch_html}
+  {meas_html}
   <p class="note">심박수는 6주 무렵 100~120에서 시작해 9주쯤 150~170까지 빠르게 오릅니다. 일부 연구는 6주 3일~7주에 120 미만을 '조금 느린 편'으로 보지만 대부분 정상 진행됩니다. 다음 초음파에서 심박수가 오르고 크기가 1주에 약 0.5~0.7cm씩 자라는지가 가장 확실한 확인입니다. 후기 표본은 수십 건 이하라 참고용입니다.</p></div>
 </section>
 """
@@ -272,7 +296,7 @@ def build(a):
                  ".tl li.next{border-color:var(--fg);border-left-style:dashed}.links a{color:var(--accent)}"
                  ".sb{display:grid;grid-template-columns:72px 1fr 92px;gap:10px;align-items:center}.sb b{font:600 14px var(--mono);text-align:right}"
                  ".track{position:relative;height:14px;border-radius:7px;background:var(--grid);overflow:hidden}"
-                 ".cmp{border-top:1px solid var(--line);padding-top:8px}.cmp h3{margin:0 0 4px}.cmp p{margin:0 0 4px}"
+                 ".cmp{border-top:1px solid var(--line);padding-top:8px;min-width:0}.cmp li,.cmp p{overflow-wrap:anywhere}.cmp details{min-width:0}.cmp h3{margin:0 0 4px}.cmp p{margin:0 0 4px}"
                  ".track i{position:absolute;top:0;bottom:0;left:0;background:var(--accent)}.track i.rng{background:var(--accent);opacity:.4}")
     q = lambda k: sched[k]
     return f"""<title>시험관 후기 종합</title>

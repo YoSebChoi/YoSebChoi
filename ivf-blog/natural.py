@@ -172,7 +172,17 @@ def track(today=None):
     for blog, url in sims.items():
         prev = old.get(blog)
         start = int(parse_post_url(url)[1])
-        items = [it for it in post_list(blog.split("#")[0], pages=40, stop_at=start) if it["logNo"] > start]  # '#'는 한 블로그의 두 임신 구분
+        items = None
+        for attempt in range(4):  # 네트워크가 끊기면(IncompleteRead 등) 몇 번 더 시도
+            try:
+                items = [it for it in post_list(blog.split("#")[0], pages=40, stop_at=start) if it["logNo"] > start]  # '#'는 한 블로그의 두 임신 구분
+                break
+            except Exception as e:  # noqa: BLE001
+                print("재시도", blog, type(e).__name__)
+        if items is None:
+            if prev:
+                rows.append(prev)
+            continue
         items.sort(key=lambda it: it["logNo"])
         status, wk, _ = judge_titles(items)
         last = max([it["logNo"] for it in items], default=start)

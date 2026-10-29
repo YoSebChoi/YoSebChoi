@@ -182,3 +182,30 @@ def rate(res):
     ok = sum(res[k] for k in OKS)
     n = ok + res["유산"]
     return ok, n
+
+
+def measured_similar(bpm_mine):
+    """검색(심박수·크기 검색어)으로 새로 모은 후기에서 '측정 기준 주수 6주 1일~5일, 심박수 ≤ 우리+7'인 케이스(시험관 / 자연임신)와 경과.
+    natural.py extract/track 이 만든 data/{ivfhb,natural}_{cases,track}.csv 를 읽는다."""
+    def cat(t):
+        st, wk = t["status"], (int(t["last_week"]) if t["last_week"].isdigit() else 0)
+        if st == "출산":
+            return "출산"
+        if st == "유지12" or (st == "진행중" and wk >= 12):
+            return "12주+ 유지"
+        if st == "유산":
+            return "유산"
+        return "진행 중·미상"
+    out = {}
+    for pfx, key in (("ivfhb", "시험관"), ("natural", "자연임신")):
+        cp, tp = os.path.join(DATA, f"{pfx}_cases.csv"), os.path.join(DATA, f"{pfx}_track.csv")
+        if not (os.path.exists(cp) and os.path.exists(tp)):
+            continue
+        tr = {r["blog"]: r for r in read_csv(tp)}
+        seen = {}
+        for r in read_csv(cp):
+            if r["similar"] == "Y" and int(r["bpm"]) <= bpm_mine + 7 and r["blog"] in tr:
+                seen.setdefault(r["blog"], r)
+        items = [{"blog": b, "row": r, "track": tr[b], "cat": cat(tr[b])} for b, r in seen.items()]
+        out[key] = {"main": [x for x in items if not x["row"]["sac_small"]], "small": [x for x in items if x["row"]["sac_small"]]}
+    return out
