@@ -242,7 +242,7 @@ def build(a):
             catch_html = f"""<div class="cmp"><h3>주수보다 작거나 느렸던 케이스는 따라잡았나</h3>
   <p>6~8주에 아기 크기나 심박수가 같은 주수 후기의 아래쪽 25%였거나 '주수보다 작다'는 말을 들은 심장소리 케이스 <b>{cu['group_n']}건</b> 중, 결과가 나온 {gn}건에서 <b>{gok}건({pct(gok / gn, 0) if gn else '—'})</b>이 출산하거나 12주 넘게 유지했습니다 (출산 {cu['group']['출산']} · 12주+ 유지 {cu['group']['유지12']} · 유산 {cu['group']['유산']} · 진행 중·미상 {cu['group']['미상']}). 심장소리 확인 전체(약 93%)와 비슷합니다.</p></div>
   <div class="cmp"><h3>우리와 비슷한 케이스 (이식일 기준 {gw(ga(hb_date) - 1)}~{gw(ga(hb_date) + 2)}, 크기 {float(a.crl) * 12:.1f}mm 이하 또는 심박수 {a.bpm + 7} 이하)</h3>
-  <p>{len(cu['similar'])}건 중 결과가 나온 {sn}건에서 <b>{sok}건 출산</b>({pct(sok / sn, 0) if sn else '—'}), 나머지는 진행 중·미상. 표본이 매우 작아 비율보다 흐름을 보세요: 잘 된 케이스는 1주 뒤 크기 +8~10mm, 심박수 +40~50bpm이었고, 유산 케이스는 7주에 심박수가 떨어졌습니다.</p>
+  <p>{len(cu['similar'])}건 중 결과가 나온 {sn}건에서 <b>{sok}건 출산</b>({pct(sok / sn, 0) if sn else '—'}), 나머지는 진행 중·미상. 표본이 매우 작아 비율보다 흐름을 보세요: 잘 된 케이스는 1주 뒤 크기 +8~10mm, 심박수 +40~50bpm이었고, 유산 케이스는 7주에 심박수가 떨어졌거나, 아기 크기·심박수는 정상이었지만 아기집이 주수보다 계속 작았습니다(우리 아기집은 날짜와 같은 크기).</p>
   <ul class="note" style="margin:4px 0 0;padding-left:18px;display:grid;gap:4px">{rows_}</ul></div>"""
         scan_sec = f"""<section>
   <h2>{md(hb_date)} 초음파 결과를 후기와 비교</h2>
