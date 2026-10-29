@@ -784,8 +784,9 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     if (goneFilter !== "all") gs = gs.filter(g => g.status === goneFilter);
     gs = gs.slice().sort((a, b) => b.lastSeen - a.lastSeen);
     const rows = gs.map(g => `<div class="row tap" data-gone="${esc(g.unit)}"><div class="main">
-        <div><span class="badge ${STATUS[g.status]}">${esc(g.status)}</span> <b class="price" style="font-size:15px">${fmt(g.lastPrice)}</b>
-          ${g.firstPrice && g.lastPrice && g.firstPrice !== g.lastPrice ? `<span class="tiny muted">(처음 ${fmt(g.firstPrice)})</span>` : ""}</div>
+        <div><span class="badge ${STATUS[g.status]}">${esc(g.status)}</span> ${g.trade
+          ? `<b class="price" style="font-size:15px">${fmt(g.trade.price)}</b> <span class="tiny muted">실거래 · 호가 ${fmt(g.lastPrice)}</span>`
+          : `<b class="price" style="font-size:15px">${fmt(g.lastPrice)}</b> <span class="tiny muted">호가${g.firstPrice && g.lastPrice && g.firstPrice !== g.lastPrice ? ` (처음 ${fmt(g.firstPrice)})` : ""}</span>`}</div>
         <div class="meta">${esc(nameOfNo(g.cx))} ${esc(unitLabel(g))} · ${esc(sizeLabel(g.area, g.supply))}</div>
         <div class="meta tiny">${g.trade ? `실거래 ${esc(g.trade.date)} ${fmt(g.trade.price)} (${g.trade.floor}층)` : g.status === "재등록" ? `${dshort(g.backAt)} 다시 올라옴` : "실거래 신고를 기다리는 중 (계약 후 30일 안)"}</div></div>
       <div class="side"><div>${dshort(g.lastSeen)}</div><div class="muted tiny">${days(g.firstSeen, g.lastSeen)}일 걸림</div></div></div>`).join("");
@@ -819,9 +820,9 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
 
   function explainGone() {
     return `<div class="card small"><h2>어떻게 추정하나요?</h2><ul class="list-plain">
-      <li>같은 동·층·면적·방향 매물은 중개사가 여럿이어도 <b>한 집</b>으로 봐요.</li>
+      <li>같은 동·층·면적·방향 매물은 중개사가 여럿이어도 <b>한 집</b>으로 봐요. 층을 「22층」과 「고층」으로 다르게 적어도 가격이 비슷하면 같은 집이에요.</li>
       <li>그 집의 매물이 모두 <b>두 번 연속, 20시간 넘게</b> 안 보이면 <span class="badge b-guess">거래 추정</span>이에요.</li>
-      <li>그 무렵(30일 전~20일 뒤) 같은 면적·층에서 호가의 85~103%로 신고된 실거래가 있으면 <span class="badge b-ok">실거래 확인</span>이에요.</li>
+      <li>그 무렵(30일 전~20일 뒤, 처음 본 날보다 1주 넘게 앞서지 않게) 같은 면적·층에서 호가의 90~103%로 신고된 실거래가 있으면 <span class="badge b-ok">실거래 확인</span>이에요.</li>
       <li>3주 안에 다시 올라오면 거래가 아니라 내렸다 올린 것이라 <span class="badge b-back">재등록</span>으로 바꿔요.</li>
       <li>네이버가 잠깐 막아서 0건이 오면 바로 믿지 않고 다음 확인까지 기다려요.</li></ul></div>`;
   }
@@ -847,7 +848,8 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
 
   function tradeChart(trades, asks) {
     if (trades.length < 2) return "";
-    const W = 340, H = 180, L = 40, R = 8, Tp = 10, B = 22;
+    // asking prices get their own column on the right, apart from the trades, so they are not read as deals
+    const W = 340, H = 180, L = 40, R = asks.length ? 54 : 8, Tp = 14, B = 22;
     const now = Date.now(), from = now - 3 * 365 * DAY;
     const pts = trades.filter(t => Date.parse(t.date) >= from && t.price);
     if (pts.length < 2) return "";
@@ -866,10 +868,18 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     }
     const hitIds = new Set(S.gone.filter(g => g.trade).map(g => g.trade.date + "|" + g.trade.price + "|" + g.trade.floor));
     const dots = pts.map(t => `<circle class="dot ${t.cancelled ? "cancel" : hitIds.has(t.date + "|" + t.price + "|" + t.floor) ? "hit" : ""}" cx="${x(Date.parse(t.date)).toFixed(1)}" cy="${y(t.price).toFixed(1)}" r="3.6"><title>${esc(t.date)} ${fmt(t.price)} ${t.floor}층</title></circle>`).join("");
-    const askDots = asks.map(a => `<rect class="ask" x="${(W - R - 4).toFixed(1)}" y="${(y(a.price) - 1.5).toFixed(1)}" width="8" height="3"><title>호가 ${fmt(a.price)}</title></rect>`).join("");
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 3년 실거래가">${g}${dots}${askDots}</svg>
+    let askCol = "", askLine = "";
+    if (asks.length) {
+      const ap = asks.map(a => a.price), amin = Math.min(...ap), amax = Math.max(...ap), cx = W - R / 2 + 4;
+      askCol = `<line x1="${W - R + 6}" x2="${W - R + 6}" y1="${Tp}" y2="${H - B}" class="grid" stroke-dasharray="3 3"/>
+        <text x="${cx}" y="${Tp - 3}" text-anchor="middle" style="fill:var(--warn);font-weight:700">호가</text>
+        <line x1="${cx}" x2="${cx}" y1="${y(amax).toFixed(1)}" y2="${y(amin).toFixed(1)}" style="stroke:var(--warn);stroke-width:2;opacity:.5"/>` +
+        asks.map(a => `<rect class="ask" x="${cx - 6}" y="${(y(a.price) - 1.5).toFixed(1)}" width="12" height="3"><title>호가 ${fmt(a.price)}</title></rect>`).join("");
+      askLine = `<div class="small" style="margin-top:6px"><b style="color:var(--warn)">지금 호가</b> (네이버 매물, 거래 아님) ${amin === amax ? fmt(amin) : `${fmt(amin)} ~ ${fmt(amax)}`} · ${asks.length}집</div>`;
+    }
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 3년 실거래가와 지금 호가">${g}${dots}${askCol}</svg>
       <div class="legend"><span><i style="background:var(--accent)"></i>실거래</span><span><i style="background:var(--ok)"></i>사라진 매물과 맞은 거래</span>
-      <span><i style="border:1px solid var(--muted)"></i>해제</span>${asks.length ? `<span><i style="background:var(--warn);border-radius:1px"></i>지금 호가</span>` : ""}</div>`;
+      <span><i style="border:1px solid var(--muted)"></i>해제</span>${asks.length ? `<span><i style="background:var(--warn);border-radius:1px"></i>지금 호가(오른쪽 칸)</span>` : ""}</div>${askLine}`;
   }
 
   function renderTrades() {
@@ -886,7 +896,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     if (groups.length > 1) h += `<div class="chips"><button class="chip" data-ta="all" aria-pressed="${tradeArea === "all"}">전체 면적</button>${groups.map(a => `<button class="chip" data-ta="${a}" aria-pressed="${String(a) === String(tradeArea)}">전용 ${a}㎡</button>`).join("")}</div>`;
     h += `<div class="card"><h2>실거래 ${ts.length}건</h2>
       <div class="stats" style="margin-bottom:10px"><div class="stat"><b>${y1.length}</b><span>최근 1년 거래</span></div>
-        <div class="stat"><b>${y1.length ? fmt(Math.max(...y1.map(t => t.price))) : "-"}</b><span>1년 최고</span></div>
+        <div class="stat"><b>${y1.length ? fmt(Math.max(...y1.map(t => t.price))) : "-"}</b><span>1년 실거래 최고</span></div>
         <div class="stat"><b>${ts.length ? fmt(ts.filter(t => !t.cancelled).at(-1)?.price) : "-"}</b><span>마지막 거래</span></div></div>
       ${tradeChart(ts, asks)}</div>
       <div class="card">${(() => { const hits = matchedTrades(); return ts.slice().reverse().slice(0, 120).map(t => tradeRow(t, hits)).join(""); })() || `<div class="empty">${DATA.tradeMonths && DATA.tradeMonths.length ? "거래 기록이 없어요" : "실거래 자료를 아직 받지 않았어요.<br>저장소 Secret에 MOLIT_KEY를 넣으면 매일 받아요 (apt/README.md)."}</div>`}</div>
@@ -964,7 +974,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
       <label class="field">화면 밝기
         <select id="themeSel">${[["light", "밝게"], ["dark", "어둡게"], ["auto", "폰 설정 따라"]].map(([v, l]) => `<option value="${v}" ${(lget("aw-theme", "light")) === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <h4 style="margin:20px 0 2px">자료</h4>
-      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 1017fd72ff</div>
+      <div class="small muted">실거래 ${esc(DATA.tradesUpdated || "받지 않음")} · 블로그 ${esc(DATA.blogUpdated || "-")} · 화면 버전 cbb0db901b</div>
       ${DATA.otherNames && DATA.otherNames.length ? `<details class="small"><summary>반송동의 다른 단지 이름 (실거래)</summary><div class="tiny muted">우리 단지가 여기 있으면 apt/data/complexes.json의 molit 패턴을 고쳐야 해요: ${DATA.otherNames.map(esc).join(", ")}</div></details>` : ""}
       <p class="tiny muted" style="margin-top:16px">네이버 부동산 매물은 이 폰이 사람이 보는 정도로 천천히 읽고, 어디에도 올리지 않아요. 거래 추정은 추정일 뿐이에요.</p>`;
     b.querySelectorAll("[data-unlink]").forEach(x => x.addEventListener("click", () => { delete cfg.links[x.dataset.unlink]; saveCfg(); renderSettings(); renderAll(); }));
@@ -1196,7 +1206,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
   async function freshPage() {
     try {
       const v = (await (await fetch(`version.txt?t=${Date.now()}`, { cache: "no-store" })).text()).trim();
-      if (v && v !== "1017fd72ff" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
+      if (v && v !== "cbb0db901b" && /^[0-9a-f]{6,}$/.test(v) && new URLSearchParams(location.search).get("v") !== v) {
         location.replace(`index.html?v=${v}${location.hash}`);
         return true;
       }
