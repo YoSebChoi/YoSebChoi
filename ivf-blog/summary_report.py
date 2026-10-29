@@ -227,7 +227,8 @@ def build(a):
         res_small = ok_small + ss["small"].count("유산")
         catch_html = ""
         try:
-            from catchup import analyze, rate
+            birth_last = {r_["case_id"]: r_["last_week"] for r_ in read_csv(os.path.join(DATA, "birth_log.csv"))}
+            from catchup import WIN, analyze, rate
             cu = analyze(ga(hb_date), float(a.crl) * 10 if a.crl else 99, a.bpm or 999)
         except Exception:
             cu = None
@@ -238,18 +239,23 @@ def build(a):
                 return " → ".join(f"{gw(g)} " + " · ".join(x for x in ((f"{c:.1f}mm" if c and not (g >= 49 and c < 4) else ""), (f"{b_}bpm" if b_ else "")) if x)
                                   for g, c, b_, _ in s_["traj"])
             lab = {"출산": "출산", "유지12": "12주+ 유지", "유산": "유산", "미상": "진행 중·미상"}
-            rows_ = "".join(f'<li><b>{lab[s_["outcome"]]}</b> · {traj(s_)} · <a href="{s_["traj"][0][3]}">글</a></li>' for s_ in cu["similar"])
+            rows_ = "".join(f'<li><b>{lab[s_["outcome"]]}</b> · {traj(s_)}{" · PGT 배아" if s_.get("pgt") else ""} · <a href="{s_["traj"][0][3]}">글</a></li>' for s_ in cu["similar"])
             allsim = cu["similar"] + cu["excluded"]
             ab = sum(x["outcome"] in ("출산", "유지12") for x in allsim)
             an = ab + sum(x["outcome"] == "유산" for x in allsim)
-            a11 = sum(x["outcome"] == "미상" and max(g for g, *_ in x["traj"]) >= 56 for x in allsim)
+            lw = {}
+            for c_ in cases:
+                r_ = birth_last.get(c_["case_id"], "")
+                if r_.isdigit():
+                    lw[c_["url"].split("/")[3]] = int(r_)
+            a11 = sum(x["outcome"] == "미상" and lw.get(x["blog"], 0) >= 11 for x in allsim)
             catch_html = f"""<div class="cmp"><h3>주수보다 작거나 느렸던 케이스는 따라잡았나</h3>
   <p>6~8주에 아기 크기나 심박수가 같은 주수 후기의 아래쪽 25%였거나, '주수보다 작다·심장이 느리다·아기가 작다·주수가 밀렸다'는 말을 들은 심장소리 케이스 <b>{cu['group_n']}건</b> 중, 결과가 나온 {gn}건에서 <b>{gok}건({pct(gok / gn, 0) if gn else '—'})</b>이 출산하거나 12주 넘게 유지했습니다 (출산 {cu['group']['출산']} · 12주+ 유지 {cu['group']['유지12']} · 유산 {cu['group']['유산']} · 진행 중·미상 {cu['group']['미상']}). 심장소리 확인 전체(약 93%)보다 조금 낮지만 대부분 따라잡았습니다.</p></div>
-  <div class="cmp"><h3>우리와 비슷한 케이스 (이식일 기준 {gw(ga(hb_date) - 1)}~{gw(ga(hb_date) + 2)}, 크기 {float(a.crl) * 12:.1f}mm 이하 또는 심박수 {a.bpm + 7} 이하, 아기집이 작다는 말을 들은 케이스 제외)</h3>
-  <p>{len(cu['similar'])}건 중 결과가 나온 {sn}건에서 <b>{sok}건 출산</b>({pct(sok / sn, 0) if sn else '—'}) · 유산 {cu['similar_res']['유산']}건 · 진행 중·미상 {cu['similar_res']['미상']}건. 표본이 매우 작아 비율보다 흐름을 보세요: 잘 된 케이스는 1주 뒤 크기 +8~10mm, 심박수 +40~50bpm이었고, 유산 케이스는 7주에 심박수가 110에서 99로 떨어졌습니다.</p>
+  <div class="cmp"><h3>우리와 비슷한 케이스 (이식일 기준 {gw(ga(hb_date) + WIN[0])}~{gw(ga(hb_date) + WIN[1])}, 크기 {float(a.crl) * 12:.1f}mm 이하 또는 심박수 {a.bpm + 7} 이하, 아기집이 작다는 말을 들은 케이스 제외)</h3>
+  <p>7주 무렵 느렸다가 좋아진 케이스도 포함했습니다(우리와 딱 같은 주수에 잰 것은 아니므로). {len(cu['similar'])}건 중 결과가 나온 {sn}건에서 <b>{sok}건 출산·12주+ 유지</b>({pct(sok / sn, 0) if sn else '—'}) · 유산 {cu['similar_res']['유산']}건 · 진행 중·미상 {cu['similar_res']['미상']}건. 표본이 매우 작아 비율보다 흐름을 보세요: 잘 된 케이스는 1주 뒤 크기 +8~10mm, 심박수 +40~50bpm이었고, 유산 케이스는 7주에 심박수가 110에서 99로 떨어졌습니다.</p>
   <ul class="note" style="margin:4px 0 0;padding-left:18px;display:grid;gap:4px">{rows_}</ul>
   <p class="note">우리 아기집은 10/21에 날짜와 같은 크기였으므로, 아기집이 주수보다 작다는 말을 들은 {len(cu['excluded'])}건({', '.join(lab[e['outcome']] for e in cu['excluded'])})은 비교에서 뺐습니다.</p>
-  <p class="note"><b>메모</b> · 아기집이 작은 케이스까지 포함한 {len(allsim)}건 기준: 출산 {pct(ab / an, 0) if an else '—'}({ab}/{an}, 결과 나온 것만) · 11주까지 진행 중인 케이스를 유지로 보면 {pct((ab + a11) / (an + a11), 0) if an + a11 else '—'}({ab + a11}/{an + a11}).</p></div>"""
+  <p class="note"><b>메모</b> · 아기집이 작은 케이스까지 포함한 {len(allsim)}건 기준: 출산 {pct(ab / an, 0) if an else '—'}({ab}/{an}, 결과 나온 것만) · 11주 이상 진행 중인 케이스를 유지로 보면 {pct((ab + a11) / (an + a11), 0) if an + a11 else '—'}({ab + a11}/{an + a11}).</p></div>"""
         scan_sec = f"""<section>
   <h2>{md(hb_date)} 초음파 결과를 후기와 비교</h2>
   <div class="panel">

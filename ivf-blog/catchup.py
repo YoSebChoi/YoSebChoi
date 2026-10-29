@@ -89,6 +89,8 @@ def extract():
             w = list(WHO.finditer(pre))
             if not (1 <= v <= 40) or not w or BAD.search(pre[w[-1].start():]) or BAD.search(t[m.end():m.end() + 6]):
                 continue
+            if re.match(r"\s*(?:에서|→|➡|에서부터|였던|이었던)", t[m.end():m.end() + 8]):  # '0.35cm에서 1.07cm로'처럼 이전 값을 적은 문장
+                continue
             g = resolve(m.start())
             if g:
                 seq[b].setdefault(g, {}).setdefault("crl", v)
@@ -111,6 +113,20 @@ def extract():
 
 
 OKS = ("출산", "유지12")
+# 우리 주수(이식일 기준)에서 앞 1일 ~ 뒤 4일(6주 5일~7주 3일)까지 '비슷한 시기'로 본다 — 7주 무렵 느렸다가 좋아진 케이스 포함
+WIN = (-1, 4)
+
+
+def manual_cases():
+    """cases.csv에 없는 케이스(사용자가 알려 준 후기 등): data/manual_cases.csv — traj는 '이식일기준일수:크기mm(0=없음):심박수:URL|…'."""
+    out = []
+    for r in read_csv(os.path.join(DATA, "manual_cases.csv")):
+        traj = []
+        for part in r["traj"].split("|"):
+            g, c, b, u = part.split(":", 3)
+            traj.append((int(g), float(c) or None, int(b) or None, u))
+        out.append({**r, "traj": traj})
+    return out
 
 
 def analyze(ga_mine, crl_mine, bpm_mine):
@@ -143,10 +159,20 @@ def analyze(ga_mine, crl_mine, bpm_mine):
             continue
         for g in sorted(m):
             x = m[g]
-            if ga_mine - 1 <= g <= ga_mine + 2 and ((x.get("crl") and x["crl"] <= crl_mine * 1.2) or (x.get("bpm") and x["bpm"] <= bpm_mine + 7)):
+            if ga_mine + WIN[0] <= g <= ga_mine + WIN[1] and ((x.get("crl") and x["crl"] <= crl_mine * 1.2) or (x.get("bpm") and x["bpm"] <= bpm_mine + 7)):
                 traj = [(gg, m[gg].get("crl"), m[gg].get("bpm"), m[gg].get("url")) for gg in sorted(m) if 38 <= gg <= 70]
                 # 우리 아기집은 날짜와 같은 크기 → 아기집이 작다고 들은 케이스는 비교에서 뺀다
                 (excluded if b in sac_small else similar).append({"blog": b, "outcome": st[b], "traj": traj})
+                break
+    mcs = manual_cases()
+    manual_blogs = {m["blog"] for m in mcs}  # 수동 입력이 있는 블로그는 자동 추출 대신 수동 값을 쓴다
+    similar = [x for x in similar if x["blog"] not in manual_blogs]
+    excluded = [x for x in excluded if x["blog"] not in manual_blogs]
+    for mc in mcs:
+        for g, c, b_, u in mc["traj"]:
+            if ga_mine + WIN[0] <= g <= ga_mine + WIN[1] and ((c and c <= crl_mine * 1.2) or (b_ and b_ <= bpm_mine + 7)):
+                item = {"blog": mc["blog"], "outcome": mc["outcome"], "traj": mc["traj"], "note": mc["note"], "pgt": mc["pgt"] == "Y"}
+                (excluded if mc["sac_small"] == "Y" else similar).append(item)
                 break
     sres = collections.Counter(s["outcome"] for s in similar)
     return {"group_n": len(group), "group": res, "similar": similar, "similar_res": sres, "excluded": excluded}
