@@ -30,7 +30,7 @@ CASES = os.path.join(DATA, f"{PFX}_cases.csv")
 TRACK = os.path.join(DATA, f"{PFX}_track.csv")
 CF = ["url", "blog", "postdate", "title"]
 SF = ["blog", "url", "lmp_ga", "crl_mm", "crl_ga", "bpm", "sac_small", "similar", "manual"]
-TF = ["blog", "start_logno", "similar_url", "status", "last_week", "last_logno", "checked", "note"]
+TF = ["blog", "start_logno", "similar_url", "status", "last_week", "last_logno", "checked", "note", "manual"]
 
 QUERIES = [
     "임신 6주 심박수", "임신 6주 심장소리", "임신 7주 심장소리", "6주 심장박동 느림", "7주 심박수 느림", "6주 아기 크기 작음",
@@ -167,22 +167,41 @@ def track(today=None):
     for r in read_csv(CASES):
         if r["similar"] == "Y" and r["blog"] not in sims:
             sims[r["blog"]] = r["url"]
-    old = {r["blog"]: r for r in read_csv(TRACK)}
+    old = {r["blog"]: {**{"manual": ""}, **r} for r in read_csv(TRACK)}
     rows = []
     for blog, url in sims.items():
         prev = old.get(blog)
         start = int(parse_post_url(url)[1])
-        items = [it for it in post_list(blog, pages=40, stop_at=start) if it["logNo"] > start]
+        items = [it for it in post_list(blog.split("#")[0], pages=40, stop_at=start) if it["logNo"] > start]  # '#'는 한 블로그의 두 임신 구분
         items.sort(key=lambda it: it["logNo"])
         status, wk, _ = judge_titles(items)
         last = max([it["logNo"] for it in items], default=start)
         note = prev["note"] if prev else ""
-        if prev and prev["status"] != status:
+        manual = prev["manual"] if prev else ""
+        if manual:  # 직접 판정한 케이스: 자동 판정으로 덮어쓰지 않고, 새 글이 생겼을 때만 표시
+            if prev and last > int(prev["last_logno"] or 0):
+                note = (note + "; " if note else "") + f"{today} 새 글 있음(수동 판정 재확인 필요)"
+            status, wk = prev["status"], prev["last_week"]
+        elif prev and prev["status"] != status:
             note = (note + "; " if note else "") + f"{today} {prev['status']}→{status}"
         rows.append({"blog": blog, "start_logno": start, "similar_url": url, "status": status, "last_week": wk,
-                     "last_logno": last, "checked": today, "note": note})
+                     "last_logno": last, "checked": today, "note": note, "manual": manual})
     write_csv(TRACK, rows, TF)
     print(f"{len(rows)}개 블로그 경과 갱신 → {TRACK}")
+
+
+def set_manual():
+    """stdin: blog|status|last_week|메모 — 직접 확인한 경과(자동 판정으로 덮어쓰지 않음)."""
+    rows = [{**{"manual": ""}, **r} for r in read_csv(TRACK)]
+    by = {r["blog"]: r for r in rows}
+    for line in sys.stdin:
+        if not line.strip():
+            continue
+        b, st, wk, note = (line.rstrip("\n").split("|", 3) + ["", "", ""])[:4]
+        r = by[b]
+        r["status"], r["last_week"], r["note"], r["manual"] = st, wk, note, "Y"
+    write_csv(TRACK, rows, TF)
+    print("수동 판정", sum(bool(r["manual"]) for r in rows))
 
 
 def show():
@@ -195,4 +214,4 @@ def show():
 
 
 if __name__ == "__main__":
-    {"collect": collect, "extract": extract, "track": track, "show": show}[sys.argv[1]]()
+    {"collect": collect, "extract": extract, "track": track, "show": show, "set": set_manual}[sys.argv[1]]()
