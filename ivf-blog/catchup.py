@@ -129,7 +129,8 @@ def manual_cases():
     return out
 
 
-def analyze(ga_mine, crl_mine, bpm_mine):
+def analyze(ga_mine, crl_mine, bpm_mine, win=None, late=True):
+    win = win or WIN
     seq, st, small, sac_small = extract()
     # 반주 단위(0~3일 / 4~6일) 기준값: 그 구간 아래쪽 25%
     bins = collections.defaultdict(lambda: {"crl": [], "bpm": []})
@@ -159,8 +160,8 @@ def analyze(ga_mine, crl_mine, bpm_mine):
             continue
         for g in sorted(m):
             x = m[g]
-            if ga_mine + WIN[0] <= g <= ga_mine + WIN[1] and ((x.get("crl") and x["crl"] <= crl_mine * 1.2) or (x.get("bpm") and x["bpm"] <= bpm_mine + 7)) \
-                    and late_enough(x.get("crl"), x.get("bpm")):
+            if ga_mine + win[0] <= g <= ga_mine + win[1] and ((x.get("crl") and x["crl"] <= crl_mine * 1.2) or (x.get("bpm") and x["bpm"] <= bpm_mine + 7)) \
+                    and (not late or late_enough(x.get("crl"), x.get("bpm"))):
                 traj = [(gg, m[gg].get("crl"), m[gg].get("bpm"), m[gg].get("url")) for gg in sorted(m) if 38 <= gg <= 70]
                 # 우리 아기집은 날짜와 같은 크기 → 아기집이 작다고 들은 케이스는 비교에서 뺀다
                 (excluded if b in sac_small else similar).append({"blog": b, "outcome": st[b], "traj": traj})
@@ -171,7 +172,7 @@ def analyze(ga_mine, crl_mine, bpm_mine):
     excluded = [x for x in excluded if x["blog"] not in manual_blogs]
     for mc in mcs:
         for g, c, b_, u in mc["traj"]:
-            if ga_mine + WIN[0] <= g <= ga_mine + WIN[1] and ((c and c <= crl_mine * 1.2) or (b_ and b_ <= bpm_mine + 7)) and late_enough(c, b_):
+            if ga_mine + win[0] <= g <= ga_mine + win[1] and ((c and c <= crl_mine * 1.2) or (b_ and b_ <= bpm_mine + 7)) and (not late or late_enough(c, b_)):
                 item = {"blog": mc["blog"], "outcome": mc["outcome"], "traj": mc["traj"], "note": mc["note"], "pgt": mc["pgt"] == "Y"}
                 (excluded if mc["sac_small"] == "Y" else similar).append(item)
                 break
@@ -238,3 +239,60 @@ def measured_similar(bpm_mine, slack=12):
         out[key] = {"main": [x for x in items if not x["row"]["sac_small"]], "small": [x for x in items if x["row"]["sac_small"]],
                     "dropped": dropped, "borderline": border}
     return out
+
+
+def ivf_unified(bpm_mine, crl_mine_mm, date_ga_mine):
+    """시험관 비슷한 케이스를 한 목록으로: 모두 '이식일 기준 주수'로 맞춘다.
+    - 검색으로 모은 후기(ivfhb_*): data/ga_overrides.csv에 사람이 확인한 이식일 기준 주수(날짜 주수)와, 초음파 기준으로 주수를 바꾼 경우의 보정이 있다.
+    - 처음 모은 케이스(cases.csv)에서 찾은 것(analyze)과 수동 입력(manual_cases.csv): 이미 이식일 기준 일수.
+    조건: 날짜 주수 6주 3일~7주 3일(날짜 주수 6주 1~2일의 110~120bpm은 정상 소견으로 본다),
+          심박수 ≤ 우리+12 이거나 크기가 날짜 주수(CRL 환산)보다 3일 이상 작음. 쌍둥이·자연임신 글은 뺀다."""
+    def d(x):
+        m = re.match(r"(\d)w(\d)d", x or "")
+        return int(m.group(1)) * 7 + int(m.group(2)) if m else None
+
+    def cat(t):
+        st, wk = t["status"], (int(t["last_week"]) if t["last_week"].isdigit() else 0)
+        if st == "출산":
+            return "출산"
+        if st == "유지12" or (st == "진행중" and wk >= 12):
+            return "12주+ 유지"
+        if st == "유산":
+            return "유산"
+        return "진행 중·미상"
+
+    tr = {r["blog"]: r for r in read_csv(os.path.join(DATA, "ivfhb_track.csv"))}
+    ov = {(r["blog"], r["crl_mm"], r["bpm"]): r for r in read_csv(os.path.join(DATA, "ga_overrides.csv"))}
+    items, dropped, seen = [], [], set()
+    for r in read_csv(os.path.join(DATA, "ivfhb_cases.csv")):
+        if r["similar"] != "Y" or r["blog"] not in tr:
+            continue
+        key = (r["blog"], r["crl_mm"], r["bpm"])
+        if key in seen:
+            continue
+        seen.add(key)
+        o = ov.get(key)
+        if not o:
+            continue
+        crl = float(o["crl_mm_new"] or r["crl_mm"] or 0) or None
+        bpm = int(o["bpm_new"] or r["bpm"])
+        g = d(o["date_ga"])
+        it = {"blog": r["blog"], "url": r["url"], "date_ga": g, "crl": crl, "bpm": bpm, "cat": cat(tr[r["blog"]]), "status": tr[r["blog"]],
+              "src": o["src"], "flag": o["flag"], "note": o["note"], "small": bool(r["sac_small"]), "via": "검색"}
+        ok = g is not None and 45 <= g <= 52 and not o["flag"] and (bpm <= bpm_mine + 12 or (crl and round(g - (8.052 * crl ** 0.5 + 23.73)) >= 3))
+        (items if ok else dropped).append(it)
+    # 처음 모은 케이스에서 찾은 것(이식일 기준 일수)
+    have = {x["blog"] for x in items + dropped}
+    cu = analyze(date_ga_mine, crl_mine_mm, bpm_mine, win=(-3, 4), late=False)
+    for grp, small in ((cu["similar"], False), (cu["excluded"], True)):
+        for s in grp:
+            if s["blog"] in have:
+                continue
+            pts = [(g, c, b_, u) for g, c, b_, u in s["traj"] if 45 <= g <= 52
+                   and ((b_ and b_ <= bpm_mine + 12) or (c and round(g - (8.052 * c ** 0.5 + 23.73)) >= 3))]
+            if not pts:
+                continue
+            g, c, b_, u = pts[0]
+            items.append({"blog": s["blog"], "url": u, "date_ga": g, "crl": c, "bpm": b_, "cat": {"출산": "출산", "유지12": "12주+ 유지", "유산": "유산"}.get(s["outcome"], "진행 중·미상"),
+                          "status": None, "src": "이식일 기준(케이스 기록)", "flag": "", "note": s.get("note", ""), "small": small, "via": "처음 모은 케이스", "pgt": s.get("pgt", False)})
+    return items, dropped
