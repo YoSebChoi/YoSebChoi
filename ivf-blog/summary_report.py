@@ -309,9 +309,30 @@ def build(a):
   <tr class="total"><td>합계</td><td>{len(uni)}</td><td>{c1["출산"] + c2["출산"]}</td><td>{c1["12주+ 유지"] + c2["12주+ 유지"]}</td><td>{c1["유산"] + c2["유산"]}</td><td>{c1["진행 중·미상"] + c2["진행 중·미상"]}</td><td class="num"><b>{pct(u_ok2 / u_n2, 0) if u_n2 else "—"}</b> <span class="muted">{u_ok2}/{u_n2}</span></td></tr></tbody></table></div>
   <p class="note">우리 아기집은 10/21에 날짜와 같은 크기였으므로 '아기집 작다는 말 없음' 줄이 더 비슷한 비교입니다. 진행 중·미상은 비율에서 뺐고, 후기를 남긴 사람 기준이라 좋은 쪽으로 기울 수 있습니다. 시험관 유산은 7주 무렵 심박수가 떨어졌거나(110 안팎), 성장이 더뎠거나, 아기집이 작았던 경우였습니다. 글에 적힌 주수가 이식일 기준인지는 '시험관 주수'를 따로 적은 경우만 확인했고, 나머지는 이식일 기준으로 가정했습니다.</p>
   {uni_list}</div>"""
+            lateU = [x for x in uni if x["date_ga"] >= 47]
+            lmain = [x for x in lateU if not x["small"]]
+            lsmall = [x for x in lateU if x["small"]]
+            l1, l2 = ucnt(lmain), ucnt(lsmall)
+            l_ok, l_n = l1["출산"] + l1["12주+ 유지"], l1["출산"] + l1["12주+ 유지"] + l1["유산"]
+            l_ok2 = l_ok + l2["출산"] + l2["12주+ 유지"]
+            l_n2 = l_n + l2["출산"] + l2["12주+ 유지"] + l2["유산"]
+            by_ga = "".join(f"<li>{gw(g)}: {sum(x['date_ga'] == g for x in lateU)}건"
+                            f" (유산 {sum(x['date_ga'] == g and x['cat'] == '유산' for x in lateU)})</li>" for g in range(47, 53))
+            late_list = "<details><summary>6주 5일 이후 케이스 {n}건 보기</summary><ul class=\"note\" style=\"margin:4px 0 0;padding-left:18px;display:grid;gap:3px\">".format(n=len(lateU)) \
+                + "".join(uni_li(x) for x in sorted(lateU, key=lambda x: ({"유산": 0, "출산": 1, "12주+ 유지": 2}.get(x["cat"], 3), abs((x["bpm"] or 113) - 113)))) + "</ul></details>"
+            late_html = f"""<div class="cmp"><h3>그중 6주 5일 이후 케이스만 (이식일 기준)</h3>
+  <p>위 목록을 <b>이식일 기준 6주 5일 이후</b>로만 좁힌 결과입니다. 우리 6주 6일 시점에 더 가까운 구간이지만 표본이 작습니다.</p>
+  <div class="tbl" style="overflow-x:auto"><table style="min-width:0"><thead><tr><th></th><th>케이스</th><th>출산</th><th>12주+</th><th>유산</th><th>진행·미상</th><th>비율</th></tr></thead><tbody>
+  <tr><td>아기집 작다는 말 없음</td><td>{len(lmain)}</td><td>{l1["출산"]}</td><td>{l1["12주+ 유지"]}</td><td>{l1["유산"]}</td><td>{l1["진행 중·미상"]}</td><td class="num"><b>{pct(l_ok / l_n, 0) if l_n else "—"}</b> <span class="muted">{l_ok}/{l_n}</span></td></tr>
+  <tr><td>아기집이 작다고 들은 케이스</td><td>{len(lsmall)}</td><td>{l2["출산"]}</td><td>{l2["12주+ 유지"]}</td><td>{l2["유산"]}</td><td>{l2["진행 중·미상"]}</td><td class="num muted">{l2["출산"] + l2["12주+ 유지"]}/{l2["출산"] + l2["12주+ 유지"] + l2["유산"]}</td></tr>
+  <tr class="total"><td>합계</td><td>{len(lateU)}</td><td>{l1["출산"] + l2["출산"]}</td><td>{l1["12주+ 유지"] + l2["12주+ 유지"]}</td><td>{l1["유산"] + l2["유산"]}</td><td>{l1["진행 중·미상"] + l2["진행 중·미상"]}</td><td class="num"><b>{pct(l_ok2 / l_n2, 0) if l_n2 else "—"}</b> <span class="muted">{l_ok2}/{l_n2}</span></td></tr></tbody></table></div>
+  <ul class="note" style="margin:4px 0;padding-left:18px">{by_ga}</ul>
+  <p class="note">이 구간의 유산은 모두 7주 0~1일에 110bpm 안팎이었던 경우입니다. 6주 6일 케이스는 없고, 자연임신(측정 기준)은 해당 케이스가 없습니다. 우리는 심박수가 아직 오르는 시기(6주 6일 113bpm)라, 11/5(7주 6일)에 심박수가 올랐는지가 더 중요한 신호입니다.</p>
+  {late_list}</div>"""
             catch_html = f"""<div class="cmp"><h3>주수보다 작거나 느렸던 케이스는 따라잡았나</h3>
   <p>6~8주에 아기 크기나 심박수가 같은 주수 후기의 아래쪽 25%였거나, '주수보다 작다·심장이 느리다·아기가 작다·주수가 밀렸다'는 말을 들은 심장소리 케이스 <b>{cu['group_n']}건</b> 중, 결과가 나온 {gn}건에서 <b>{gok}건({pct(gok / gn, 0) if gn else '—'})</b>이 출산하거나 12주 넘게 유지했습니다 (출산 {cu['group']['출산']} · 12주+ 유지 {cu['group']['유지12']} · 유산 {cu['group']['유산']} · 진행 중·미상 {cu['group']['미상']}). 심장소리 확인 전체(약 93%)보다 조금 낮지만 대부분 따라잡았습니다.</p></div>
-  {uni_html}"""
+  {uni_html}
+  {late_html}"""
         scan_sec = f"""<section>
   <h2>{md(hb_date)} 초음파 결과를 후기와 비교</h2>
   <div class="panel">
