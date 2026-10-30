@@ -195,7 +195,7 @@ def rate(res):
     return ok, n
 
 
-def measured_similar(bpm_mine, slack=12):
+def measured_similar(bpm_mine, slack=7):
     """검색(심박수·크기 검색어)으로 새로 모은 후기에서 '측정 기준 주수 6주 1일~5일, 심박수 ≤ 우리+slack'인 케이스(시험관 / 자연임신)와 경과.
     late: 그중 측정 기준 6주 3일 이후만(6주 1~2일에는 110 안팎도 정상으로 보는 경우가 있어서).
     borderline: 기준 밖이지만 참고할 유산 케이스(similar == 'B').
@@ -245,8 +245,7 @@ def ivf_unified(bpm_mine, crl_mine_mm, date_ga_mine):
     """시험관 비슷한 케이스를 한 목록으로: 모두 '이식일 기준 주수'로 맞춘다.
     - 검색으로 모은 후기(ivfhb_*): data/ga_overrides.csv에 사람이 확인한 이식일 기준 주수(날짜 주수)와, 초음파 기준으로 주수를 바꾼 경우의 보정이 있다.
     - 처음 모은 케이스(cases.csv)에서 찾은 것(analyze)과 수동 입력(manual_cases.csv): 이미 이식일 기준 일수.
-    조건: 날짜 주수 6주 3일~7주 3일(날짜 주수 6주 1~2일의 110~120bpm은 정상 소견으로 본다),
-          심박수 ≤ 우리+12 이거나 크기가 날짜 주수(CRL 환산)보다 3일 이상 작음. 쌍둥이·자연임신 글은 뺀다."""
+    조건: 날짜 주수 6주 3일~7주 3일(날짜 주수 6주 1~2일의 110~120bpm은 정상 소견으로 본다), 심박수 120 이하(우리+7). 쌍둥이·자연임신 글은 뺀다."""
     def d(x):
         m = re.match(r"(\d)w(\d)d", x or "")
         return int(m.group(1)) * 7 + int(m.group(2)) if m else None
@@ -279,7 +278,7 @@ def ivf_unified(bpm_mine, crl_mine_mm, date_ga_mine):
         g = d(o["date_ga"])
         it = {"blog": r["blog"], "url": r["url"], "date_ga": g, "crl": crl, "bpm": bpm, "cat": cat(tr[r["blog"]]), "status": tr[r["blog"]],
               "src": o["src"], "flag": o["flag"], "note": o["note"], "small": bool(r["sac_small"]), "via": "검색"}
-        ok = g is not None and 45 <= g <= 52 and not o["flag"] and (bpm <= bpm_mine + 12 or (crl and round(g - (8.052 * crl ** 0.5 + 23.73)) >= 3))
+        ok = g is not None and 45 <= g <= 52 and not o["flag"] and bpm <= bpm_mine + 7
         (items if ok else dropped).append(it)
     # 처음 모은 케이스에서 찾은 것(이식일 기준 일수)
     have = {x["blog"] for x in items + dropped}
@@ -288,8 +287,7 @@ def ivf_unified(bpm_mine, crl_mine_mm, date_ga_mine):
         for s in grp:
             if s["blog"] in have:
                 continue
-            pts = [(g, c, b_, u) for g, c, b_, u in s["traj"] if 45 <= g <= 52
-                   and ((b_ and b_ <= bpm_mine + 12) or (c and round(g - (8.052 * c ** 0.5 + 23.73)) >= 3))]
+            pts = [(g, c, b_, u) for g, c, b_, u in s["traj"] if 45 <= g <= 52 and b_ and b_ <= bpm_mine + 7]
             if not pts:
                 continue
             g, c, b_, u = pts[0]
