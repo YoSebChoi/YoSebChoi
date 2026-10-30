@@ -159,7 +159,8 @@ def analyze(ga_mine, crl_mine, bpm_mine):
             continue
         for g in sorted(m):
             x = m[g]
-            if ga_mine + WIN[0] <= g <= ga_mine + WIN[1] and ((x.get("crl") and x["crl"] <= crl_mine * 1.2) or (x.get("bpm") and x["bpm"] <= bpm_mine + 7)):
+            if ga_mine + WIN[0] <= g <= ga_mine + WIN[1] and ((x.get("crl") and x["crl"] <= crl_mine * 1.2) or (x.get("bpm") and x["bpm"] <= bpm_mine + 7)) \
+                    and late_enough(x.get("crl"), x.get("bpm")):
                 traj = [(gg, m[gg].get("crl"), m[gg].get("bpm"), m[gg].get("url")) for gg in sorted(m) if 38 <= gg <= 70]
                 # 우리 아기집은 날짜와 같은 크기 → 아기집이 작다고 들은 케이스는 비교에서 뺀다
                 (excluded if b in sac_small else similar).append({"blog": b, "outcome": st[b], "traj": traj})
@@ -170,12 +171,21 @@ def analyze(ga_mine, crl_mine, bpm_mine):
     excluded = [x for x in excluded if x["blog"] not in manual_blogs]
     for mc in mcs:
         for g, c, b_, u in mc["traj"]:
-            if ga_mine + WIN[0] <= g <= ga_mine + WIN[1] and ((c and c <= crl_mine * 1.2) or (b_ and b_ <= bpm_mine + 7)):
+            if ga_mine + WIN[0] <= g <= ga_mine + WIN[1] and ((c and c <= crl_mine * 1.2) or (b_ and b_ <= bpm_mine + 7)) and late_enough(c, b_):
                 item = {"blog": mc["blog"], "outcome": mc["outcome"], "traj": mc["traj"], "note": mc["note"], "pgt": mc["pgt"] == "Y"}
                 (excluded if mc["sac_small"] == "Y" else similar).append(item)
                 break
     sres = collections.Counter(s["outcome"] for s in similar)
     return {"group_n": len(group), "group": res, "similar": similar, "similar_res": sres, "excluded": excluded}
+
+
+def late_enough(crl_mm, bpm):
+    """측정 기준 6주 3일 이후만 비슷한 케이스로 본다. 크기로 계산한 주수가 6주 1~2일이면 110~120bpm은 정상 소견으로 보고 빼며,
+    110 미만일 때만 남긴다. 크기 정보가 없으면(심박수만 있는 글) 날짜 주수 창을 그대로 쓴다."""
+    if not crl_mm:
+        return True
+    g = 8.052 * crl_mm ** 0.5 + 23.73
+    return g >= 45 or (g >= 43 and bpm is not None and bpm < 110)
 
 
 def rate(res):
@@ -217,9 +227,14 @@ def measured_similar(bpm_mine, slack=12):
                     border.append(r)
             elif r["similar"] == "Y" and int(r["bpm"]) <= bpm_mine + slack and r["blog"] in tr:
                 seen.setdefault(r["blog"], r)
-        items = [{"blog": b, "row": r, "track": tr[b], "cat": cat(tr[b])} for b, r in seen.items()]
-        late = [x for x in items if ga_days(x["row"]["crl_ga"]) >= 45]
+        allitems = [{"blog": b, "row": r, "track": tr[b], "cat": cat(tr[b])} for b, r in seen.items()]
+
+        def keep(x):
+            """측정 기준 6주 3일 이후만. 6주 1~2일은 110~120bpm이면 정상 소견으로 보고 빼고, 110 미만만 남긴다."""
+            g, b_ = ga_days(x["row"]["crl_ga"]), int(x["row"]["bpm"])
+            return g >= 45 or (g in (43, 44) and b_ < 110)
+        items = [x for x in allitems if keep(x)]
+        dropped = [x for x in allitems if not keep(x)]
         out[key] = {"main": [x for x in items if not x["row"]["sac_small"]], "small": [x for x in items if x["row"]["sac_small"]],
-                    "late_main": [x for x in late if not x["row"]["sac_small"]], "late_small": [x for x in late if x["row"]["sac_small"]],
-                    "borderline": border}
+                    "dropped": dropped, "borderline": border}
     return out

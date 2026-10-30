@@ -256,7 +256,8 @@ def build(a):
                 return rows_
             meas_head = "<thead><tr><th></th><th>케이스</th><th>출산</th><th>12주+</th><th>유산</th><th>진행·미상</th><th>비율</th><th>아기집 작음</th></tr></thead>"
             meas_rows = meas_row("전체", "main", "small")
-            meas_rows_late = meas_row("6주3일+", "late_main", "late_small")
+            dropped_n = {k: len(d_["dropped"]) for k, d_ in ms.items()}
+            dropped_loss = [x for d_ in ms.values() for x in d_["dropped"] if x["cat"] == "유산"]
             border_html = "".join(f'<li><b>유산</b> · {html.escape(r_["manual"])} · <a href="{r_["url"]}">글</a></li>'
                                   for d_ in ms.values() for r_ in d_["borderline"])
             def meas_li(x):
@@ -267,12 +268,9 @@ def build(a):
                                  + "".join(meas_li(x) for x in sorted(d_["main"] + d_["small"], key=lambda x: abs(int(x["row"]["bpm"]) - (a.bpm or 113)))) + "</ul></details>"
                                  for key, d_ in ms.items())
             meas_html = f"""<div class="cmp"><h3>측정 기준 주수와 심박수로 본 비슷한 케이스 (검색으로 새로 모은 후기)</h3>
-  <p>날짜 주수 대신 <b>아기 크기로 계산한 측정 기준 주수 6주 1일~5일</b>이면서 <b>심박수 {a.bpm + 12 if a.bpm else ''}bpm 이하</b>였던 후기입니다(우리 {a.crl}cm는 측정 기준 6주 1~2일). 시험관은 "시험관 7주 심박수 느림" 같은 검색어로, 자연임신은 시험관·이식 글을 뺀 검색어로 모았습니다. 이후 글로 출산·유지(12주 이상)·유산을 따라갔고, 아기집이 작다는 말을 들은 케이스는 따로 셉니다.</p>
+  <p>날짜 주수 대신 <b>아기 크기로 계산한 측정 기준 주수 6주 3일~5일</b>이면서 <b>심박수 {a.bpm + 12 if a.bpm else ''}bpm 이하</b>였던 후기입니다. 측정 기준 6주 1~2일이면서 심박수가 110 이상이었던 케이스(110~120은 정상 소견)는 뺐습니다(시험관 {dropped_n.get("시험관", 0)}건, 자연임신 {dropped_n.get("자연임신", 0)}건. 6주 1~2일이라도 110 미만이면 포함). 시험관은 "시험관 7주 심박수 느림" 같은 검색어로, 자연임신은 시험관·이식 글을 뺀 검색어로 모았습니다. 이후 글로 출산·유지(12주 이상)·유산을 따라갔고, 아기집이 작다는 말을 들은 케이스는 따로 셉니다.</p>
   <div class="tbl" style="overflow-x:auto"><table style="min-width:0">{meas_head}<tbody>{meas_rows}</tbody></table></div>
-  <h3 style="margin-top:14px">그중 측정 기준 6주 3일 이후만</h3>
-  <p class="note">6주 1~2일에는 110 안팎도 정상으로 보는 경우가 있어서, 크기가 6주 3일 이후였는데도 심박수가 낮았던(125 이하) 케이스만 따로 봤습니다.</p>
-  <div class="tbl" style="overflow-x:auto"><table style="min-width:0">{meas_head}<tbody>{meas_rows_late}</tbody></table></div>
-  <p class="note">진행 중·미상은 비율에서 뺐습니다. 표본이 작고 후기를 남긴 사람 기준이라 좋은 결과 쪽으로 기울 수 있습니다. 유산 케이스는 7~8주에 심박수가 떨어지거나 성장이 더뎠던 경우, 아기집이 작았던 경우였습니다.</p>
+  <p class="note">진행 중·미상은 비율에서 뺐습니다. 표본이 작고 후기를 남긴 사람 기준이라 좋은 결과 쪽으로 기울 수 있습니다. 유산 케이스는 7~8주에 심박수가 떨어지거나 성장이 더뎠던 경우, 아기집이 작았던 경우였습니다.{(' 기준에서 빠진 유산 케이스: ' + ', '.join(f'측정 {x["row"]["crl_ga"].replace("w", "주 ").replace("d", "일")} {x["row"]["bpm"]}bpm' for x in dropped_loss) + '(성장 더딤·아기집 작음).') if dropped_loss else ''}</p>
   {f'<h3 style="margin-top:14px">기준 경계의 유산 케이스(참고)</h3><ul class="note" style="margin:4px 0 0;padding-left:18px;display:grid;gap:3px">{border_html}</ul>' if border_html else ''}
   {meas_lists}</div>"""
             ab = sum(x["outcome"] in ("출산", "유지12") for x in allsim)
@@ -285,7 +283,7 @@ def build(a):
             a11 = sum(x["outcome"] == "미상" and lw.get(x["blog"], 0) >= 11 for x in allsim)
             catch_html = f"""<div class="cmp"><h3>주수보다 작거나 느렸던 케이스는 따라잡았나</h3>
   <p>6~8주에 아기 크기나 심박수가 같은 주수 후기의 아래쪽 25%였거나, '주수보다 작다·심장이 느리다·아기가 작다·주수가 밀렸다'는 말을 들은 심장소리 케이스 <b>{cu['group_n']}건</b> 중, 결과가 나온 {gn}건에서 <b>{gok}건({pct(gok / gn, 0) if gn else '—'})</b>이 출산하거나 12주 넘게 유지했습니다 (출산 {cu['group']['출산']} · 12주+ 유지 {cu['group']['유지12']} · 유산 {cu['group']['유산']} · 진행 중·미상 {cu['group']['미상']}). 심장소리 확인 전체(약 93%)보다 조금 낮지만 대부분 따라잡았습니다.</p></div>
-  <div class="cmp"><h3>우리와 비슷한 케이스 (이식일 기준 {gw(ga(hb_date) + WIN[0])}~{gw(ga(hb_date) + WIN[1])}, 크기 {float(a.crl) * 12:.1f}mm 이하 또는 심박수 {a.bpm + 7} 이하, 아기집이 작다는 말을 들은 케이스 제외)</h3>
+  <div class="cmp"><h3>우리와 비슷한 케이스 (이식일 기준 {gw(ga(hb_date) + WIN[0])}~{gw(ga(hb_date) + WIN[1])}, 측정 기준 6주 3일 이후, 크기 {float(a.crl) * 12:.1f}mm 이하 또는 심박수 {a.bpm + 7} 이하, 아기집이 작다는 말을 들은 케이스 제외)</h3>
   <p>7주 무렵 느렸다가 좋아진 케이스도 포함했습니다(우리와 딱 같은 주수에 잰 것은 아니므로). {len(cu['similar'])}건 중 결과가 나온 {sn}건에서 <b>{sok}건 출산·12주+ 유지</b>({pct(sok / sn, 0) if sn else '—'}) · 유산 {cu['similar_res']['유산']}건 · 진행 중·미상 {cu['similar_res']['미상']}건. 표본이 매우 작아 비율보다 흐름을 보세요: 잘 된 케이스는 1주 뒤 크기 +8~10mm, 심박수 +40~50bpm이었고, 유산 케이스는 7주에 심박수가 110에서 99로 떨어졌습니다.</p>
   <ul class="note" style="margin:4px 0 0;padding-left:18px;display:grid;gap:4px">{rows_}</ul>
   <p class="note">우리 아기집은 10/21에 날짜와 같은 크기였으므로, 아기집이 주수보다 작다는 말을 들은 {len(cu['excluded'])}건({', '.join(lab[e['outcome']] for e in cu['excluded'])})은 비교에서 뺐습니다.</p>
