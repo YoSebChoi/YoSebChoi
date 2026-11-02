@@ -1,5 +1,5 @@
 // 우리 단지 거래 추적 service worker: the app shell from cache, refreshed in the background.
-const CACHE = "apt-watch-ab5beed815";
+const CACHE = "apt-watch-a51db79ed0";
 const SHELL = ["./", "./index.html", "./tracker.js", "./data.json"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL))); self.skipWaiting(); });
 self.addEventListener("activate", e => {
