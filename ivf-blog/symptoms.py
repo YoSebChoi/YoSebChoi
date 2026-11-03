@@ -31,7 +31,7 @@ WEEK = re.compile(r"(\d{1,2})\s*주\s*(\d)?\s*일?")
 
 def scan(blog, no, date):
     p = fetch(blog, no)
-    txt = " ".join(p.get("blocks", []))
+    txt = " ".join(b[1] if isinstance(b, list) else b for b in p.get("blocks", []) if not isinstance(b, list) or (len(b) > 1 and b[0] == "text"))
     if not txt or len(txt) < 200:
         return None
     hits = []
