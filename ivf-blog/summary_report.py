@@ -226,6 +226,9 @@ def build(a):
     sc = {k: sum(r["status"] == k for r in sy) for k in ("출산", "유지12", "유산")}
     sy_born, sy_ok = sc["출산"], sc["출산"] + sc["유지12"]
     sy_n = sy_ok + sc["유산"]
+    sy_all = read_csv(os.path.join(DATA, "symptom_cases.csv"))
+    sy_total, sy_cand = len(sy_all), sum(r.get("cand") == "Y" for r in sy_all)
+    sy_pend = sum(r.get("cand") == "Y" and r["url"] not in {x["url"] for x in sy} for r in sy_all)
     sym_sec = f"""<section>
   <h2>7. 심장소리를 들은 뒤 증상이 갑자기 사라진 경우</h2>
   <div class="panel"><div class="tbl"><table><thead><tr><th>결과</th><th>케이스</th></tr></thead><tbody>
@@ -233,7 +236,7 @@ def build(a):
   <tr><td>출산 글은 없지만 12주 이상 유지</td><td>{sc["유지12"]}건</td></tr>
   <tr><td>유산</td><td>{sc["유산"]}건</td></tr>
   <tr class="total"><td>출산 + 12주+ 유지</td><td><b>{pct(sy_ok / sy_n, 0) if sy_n else "—"}</b> <span class="muted">{sy_ok}/{sy_n}</span></td></tr></tbody></table></div>
-  <p class="note">후기에서 '심장소리(또는 심박수)를 먼저 확인한 뒤 입덧·가슴통증 같은 증상이 갑자기 사라져 불안했다'고 쓴 글을 검색해 모은 뒤, 이후 글로 출산·12주 이상 유지·유산을 판정했습니다(출산 글이나 12주 이상 진행이 확인되면 출산·유지, 계류·소파술 등은 유산). 후기 688건 중 심장소리를 먼저 확인한 글을 본문까지 읽어 갑자기 사라진 경우만 남겼고, 일반 정보글이나 입덧이 서서히 끝난 경우는 뺐습니다. 증상이 사라진 것 자체보다 그 뒤 초음파에서 심박수가 이어지는지가 판단 기준입니다. 결과 글이 아직 없는 글이 많고, 유산한 경우는 후기를 남기지 않을 수 있어 좋은 쪽으로 기울 수 있습니다.</p></div>
+  <p class="note">후기에서 '심장소리(또는 심박수)를 먼저 확인한 뒤 입덧·가슴통증 같은 증상이 갑자기 사라져 불안했다'고 쓴 글을 검색해 모은 뒤, 이후 글로 출산·12주 이상 유지·유산을 판정했습니다(출산 글이나 12주 이상 진행이 확인되면 출산·유지, 계류·소파술 등은 유산). 증상이 사라졌다고 쓴 후기 {sy_total}건 중 심장소리를 먼저 확인한 본인 경험 글 {sy_cand}건을 본문까지 읽어 갑자기 사라진 경우만 남겼고, 일반 정보글이나 입덧이 서서히 끝난 경우는 뺐습니다. 증상이 사라진 것 자체보다 그 뒤 초음파에서 심박수가 이어지는지가 판단 기준입니다. 결과 글이 아직 없는 글({sy_pend}건)은 매주 갱신하며 판정에 더하고, 유산한 경우는 후기를 남기지 않을 수 있어 좋은 쪽으로 기울 수 있습니다.</p></div>
 </section>"""
     if hb_ok and ss:
         ok_small = sum(x in ("출산", "유지12") for x in ss["small"])
