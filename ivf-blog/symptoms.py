@@ -10,7 +10,7 @@ data/symptom_outcomes.csv : 본문을 읽고 확정한 판정. blog, url, status
 원문은 저장하지 않는다(URL·주수·키워드·판정만).
 
 사용: python symptoms.py collect   # 검색 → 본문 확인(새 글 추가)
-      python symptoms.py track     # cand 글의 이후 글로 자동 판정 → 확정 판정 갱신(유지12→출산 자동 승격), 확인할 케이스 출력
+      python symptoms.py track     # cand 글의 이후 글로 자동 판정 → 확인할 케이스 출력(유지12인데 출산 제목이 보이는 글 포함, 확정은 직접)
       python symptoms.py show      # 확정 판정 집계
 """
 import datetime as dt
@@ -143,9 +143,8 @@ def track(today=None):
             st = "유지12"
         r["auto"], r["last_week"], r["checked"] = st, wk, today
         o = outs.get(r["url"])
-        if o and o["status"] == "유지12" and st == "출산":  # 12주 유지 → 출산 글이 올라오면 자동 승격
-            o["status"], o["note"], o["checked"] = "출산", (o["note"] + "; " if o["note"] else "") + f"{today} 출산 글 확인", today
-            print("유지12 → 출산", r["url"])
+        if o and o["status"] == "유지12" and st == "출산":  # 제목만으로는 출산 전 글(막달 후기·준비 글)과 구분이 안 돼 읽고 바꾼다
+            print("출산 확인 필요(확정은 유지12, 출산 제목이 보임)", r["url"])
         elif o and o["status"] in ("출산", "유지12") and st == "유산?":
             print("재확인 필요(확정은 출산·유지인데 유산 제목이 보임)", r["url"])
         elif not o and st in ("출산", "유지12", "유산?"):

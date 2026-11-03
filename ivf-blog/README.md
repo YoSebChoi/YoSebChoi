@@ -53,7 +53,7 @@ python bleeding.py collect                       # 임신 초기 피비침 언�
 python bleeding_report.py                       # 피비침 보고서 → results/bleeding_report.html
 python natural.py collect / extract / track / show [--ivf]  # 자연임신·시험관 '심박수·크기' 검색 케이스 수집·경과 추적 (data/natural_*, ivfhb_*)
 python symptoms.py collect                       # 증상(입덧·가슴통증 등) 소실 후기 검색 → data/symptom_cases.csv (cand=Y: 심장 확인 뒤 증상이 사라진 본인 경험 글)
-python symptoms.py track                         # cand 글의 이후 글로 자동 판정(birth.judge와 같은 규칙, 12주+ 진행은 유지12), 유지12→출산 자동 승격, 확인할 케이스 출력
+python symptoms.py track                         # cand 글의 이후 글로 자동 판정(birth.judge와 같은 규칙, 12주+ 진행은 유지12), 확인할 케이스 출력(유지12인데 출산 제목이 보이는 글 포함)
 python symptoms.py show                          # 확정 판정(data/symptom_outcomes.csv: 출산/유지12/유산/제외, 본문 확인) 집계
 python hcg.py collect                          # 피검 수치·측정일 추출(5일배 기준 경과일) → data/hcg_log.csv
 python hcg.py review / set                     # 범위 밖·역행 값 확인, 수동 기록
