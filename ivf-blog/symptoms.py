@@ -17,11 +17,17 @@ from natural import IVF, judge_titles
 from followup import post_list
 
 OUT = os.path.join(DATA, "symptom_cases.csv")
-FIELDS = ["blog", "url", "postdate", "week", "symptom", "ivf", "hb", "status", "last_week", "manual"]
+FIELDS = ["blog", "url", "postdate", "week", "symptom", "ivf", "hb", "hbf", "status", "last_week", "manual"]
 QUERIES = ["임신 초기 증상 사라짐", "입덧 갑자기 사라졌어요 임신 초기", "임신 초기 입덧 없어짐 불안", "가슴통증 사라짐 임신 초기",
            "임신 증상 없어짐 걱정 초음파", "입덧 사라짐 심장소리", "임신 초기 증상 없어졌는데 괜찮을까", "6주 입덧 사라짐",
            "7주 증상 사라짐 걱정", "8주 입덧 없어짐 유산", "임신 초기 증상 갑자기 없어짐 출산", "가슴 말랑해짐 임신 초기 입덧 줄어듦",
            "임신증상 사라짐 계류 걱정", "증상이 사라졌어요 임신 5주", "증상 사라짐 9주 초음파 괜찮"]
+QUERIES += [f"임신 {w}주 입덧 사라짐" for w in range(5, 13)] + [f"임신 {w}주 증상 사라짐 심장소리" for w in range(6, 12)]
+QUERIES += ["심장소리 듣고 입덧 사라짐", "심장소리 확인 후 증상 없어짐 불안", "심박수 확인했는데 입덧이 없어졌어요", "입덧 사라져서 서브병원 심장소리",
+            "입덧 사라짐 병원 갔더니 심장 잘 뛰어요", "가슴통증 사라져서 병원 갔더니 심장소리", "증상 사라짐 계류유산 후기 심장소리 들었는데",
+            "심장소리 듣고도 유산 입덧 사라짐", "입덧 사라지고 유산 확인", "증상 사라져서 병원 갔더니 심장이 멈췄", "입덧 없어짐 출산 후기",
+            "임신 초기 입덧 사라졌다 다시 돌아옴", "시험관 임신 입덧 사라짐 심장소리", "시험관 증상 사라짐 7주 심박수", "임신 초기 가슴통증 사라짐 후기",
+            "임신 초기 증상 사라졌지만 출산했어요", "입덧 갑자기 없어졌는데 아기 잘 있어요", "입덧 갑자기 없어졌는데 유산이었어요"]
 SYM = r"(입덧|구역|메스꺼|울렁|속\s*울렁|가슴\s*(통증|몽우리|뭉침|땡김|아픔|이\s*아프)|유방\s*통|피곤|졸림|졸려|임신\s*증상|증상|빈뇨|두통)"
 GONE = r"(사라(졌|지|진|짐|져)|없어(졌|지|진|짐|져)|없네|없다|줄었|줄어(들|든|듦|서)|덜해|약해(졌|지)|안\s*(나|느껴|아파|아프|해)|뚝\s*(끊|그쳤)|신기하게\s*괜찮)"
 RX = re.compile(SYM + r"[^.!?\n]{0,28}" + GONE)
@@ -45,16 +51,16 @@ def scan(blog, no, date):
     ws = [int(w.group(1)) for w in WEEK.finditer(p.get("title", "") + " " + txt[:1500]) if 4 <= int(w.group(1)) <= 11]
     if not ws:
         return None
-    worry = bool(re.search(r"불안|걱정|무서|두려|유산|계류|심란", txt))
-    if not worry:
-        return None
+    first = hits[0]
+    hb_pos = [h.start() for h in re.finditer(r"(\d{2,3})\s*bpm|심장\s*(소리|박동|뛰)[^.\n]{0,12}(들|확인|보였|뛰|듣)|(들|확인)[^.\n]{0,10}심장\s*(소리|박동)", txt)]
+    hb_before = "Y" if any(p < first.start() for p in hb_pos) else "N"
     sym = hits[0].group(1)
     hb = "Y" if re.search(r"심장\s*(소리|박동)|심박|bpm", txt) else "N"
-    return {"week": max(set(ws), key=ws.count), "symptom": sym, "hb": hb, "ivf": "Y" if IVF.search(p.get("title", "") + txt[:800]) else "N"}
+    return {"week": max(set(ws), key=ws.count), "symptom": sym, "hb": hb, "hbf": hb_before, "ivf": "Y" if IVF.search(p.get("title", "") + txt[:800]) else "N"}
 
 
 def run():
-    old = {r["url"]: r for r in read_csv(OUT)}
+    old = {}
     cands = {}
     for q in QUERIES:
         for start in (1, 101):
@@ -82,7 +88,7 @@ def run():
             old[url] = {"blog": ids[0], "url": url, "postdate": date, "status": "", "last_week": "", "manual": "", **r}
             new += 1
     print("증상 소실 글", new)
-    for r in old.values():
+    for r in ([] if "scan" in sys.argv else old.values()):
         if r["manual"] or r["status"] in ("출산",):
             continue
         start = int(parse_post_url(r["url"])[1])
@@ -98,8 +104,7 @@ def run():
         st, wk, _ = judge_titles(sorted(items, key=lambda it: it["logNo"]))
         r["status"], r["last_week"] = st, wk
     write_csv(OUT, sorted(old.values(), key=lambda r: r["postdate"], reverse=True), FIELDS)
-    from collections import Counter
-    print(Counter(r["status"] for r in old.values()))
+    print("저장", len(old))
 
 
 if __name__ == "__main__":
