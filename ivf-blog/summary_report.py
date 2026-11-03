@@ -223,13 +223,13 @@ def build(a):
 
     scan_sec = ""
     sy = read_csv(os.path.join(DATA, "symptom_outcomes.csv"))
-    sc = {k: sum(r["status"] == k for r in sy) for k in ("출산", "출산(가능성)", "유지12", "유산")}
-    sy_born, sy_ok = sc["출산"] + sc["출산(가능성)"], sc["출산"] + sc["출산(가능성)"] + sc["유지12"]
+    sc = {k: sum(r["status"] == k for r in sy) for k in ("출산", "유지12", "유산")}
+    sy_born, sy_ok = sc["출산"], sc["출산"] + sc["유지12"]
     sy_n = sy_ok + sc["유산"]
     sym_sec = f"""<section>
   <h2>7. 심장소리를 들은 뒤 증상이 갑자기 사라진 경우</h2>
   <div class="panel"><div class="tbl"><table><thead><tr><th>결과</th><th>케이스</th></tr></thead><tbody>
-  <tr><td>출산 확인</td><td>{sy_born}건 <span class="muted">(심장소리 시점이 분명하지 않은 {sc["출산(가능성)"]}건 포함)</span></td></tr>
+  <tr><td>출산 확인</td><td>{sy_born}건</td></tr>
   <tr><td>출산 글은 없지만 12주 이상 유지</td><td>{sc["유지12"]}건</td></tr>
   <tr><td>유산</td><td>{sc["유산"]}건</td></tr>
   <tr class="total"><td>출산 + 12주+ 유지</td><td><b>{pct(sy_ok / sy_n, 0) if sy_n else "—"}</b> <span class="muted">{sy_ok}/{sy_n}</span></td></tr></tbody></table></div>

@@ -1,23 +1,34 @@
-"""임신 초기 증상(입덧·가슴통증 등)이 갑자기 사라져 불안해한 후기를 모아 이후 경과(출산/유산/진행중)를 추적
+"""임신 초기 증상(입덧·가슴통증 등)이 갑자기 사라져 불안해한 후기를 모아 이후 경과(출산/12주+ 유지/유산)를 추적
 
-data/symptom_cases.csv : blog, url, postdate, week(증상이 사라진 주수), symptom, hb(그 글에서 심장소리 확인 여부 Y/N), status, last_week, manual
+심장소리(심박수)를 먼저 확인한 뒤 증상이 사라진 본인 경험 글(cand=Y)만 경과를 따라간다.
+판정 규칙은 시험관 출산 추적(birth.judge)과 같다: 출산 글(출산·분만·조리원 등, 날짜가 충분히 지난 것) → 출산,
+12주 이상 진행이 제목으로 확인 → 12주+ 유지, 계류·유산·소파술 제목 → 유산?(본문을 읽고 확정).
+
+data/symptom_cases.csv    : 검색으로 찾은 증상 소실 글. blog, url, postdate, week(글의 주수), symptom, ivf, hb(심장 언급), hbf(증상 문장보다
+                            앞에 심장 확인), cand(심장 확인 뒤 증상이 사라진 본인 경험 글), auto(자동 판정), last_week, checked
+data/symptom_outcomes.csv : 본문을 읽고 확정한 판정. blog, url, status(출산 / 유지12 / 유산 / 제외), note, checked
 원문은 저장하지 않는다(URL·주수·키워드·판정만).
 
-사용: python symptoms.py run      # 검색 → 본문 확인 → 이후 글로 경과 판정
-      python symptoms.py show
+사용: python symptoms.py collect   # 검색 → 본문 확인(새 글 추가)
+      python symptoms.py track     # cand 글의 이후 글로 자동 판정 → 확정 판정 갱신(유지12→출산 자동 승격), 확인할 케이스 출력
+      python symptoms.py show      # 확정 판정 집계
 """
+import datetime as dt
 import os
 import re
 import sys
+from collections import Counter
 
-from birth import LOSS
+import birth
 from common import DATA, blog_search, canonical_url, parse_post_url, read_csv, strip_tags, write_csv
 from fetch_posts import fetch
-from natural import IVF, judge_titles
 from followup import post_list
+from natural import IVF
 
 OUT = os.path.join(DATA, "symptom_cases.csv")
-FIELDS = ["blog", "url", "postdate", "week", "symptom", "ivf", "hb", "hbf", "status", "last_week", "manual"]
+OUTCOMES = os.path.join(DATA, "symptom_outcomes.csv")
+FIELDS = ["blog", "url", "postdate", "week", "symptom", "ivf", "hb", "hbf", "cand", "auto", "last_week", "checked"]
+OF = ["blog", "url", "status", "note", "checked"]
 QUERIES = ["임신 초기 증상 사라짐", "입덧 갑자기 사라졌어요 임신 초기", "임신 초기 입덧 없어짐 불안", "가슴통증 사라짐 임신 초기",
            "임신 증상 없어짐 걱정 초음파", "입덧 사라짐 심장소리", "임신 초기 증상 없어졌는데 괜찮을까", "6주 입덧 사라짐",
            "7주 증상 사라짐 걱정", "8주 입덧 없어짐 유산", "임신 초기 증상 갑자기 없어짐 출산", "가슴 말랑해짐 임신 초기 입덧 줄어듦",
@@ -33,6 +44,10 @@ GONE = r"(사라(졌|지|진|짐|져)|없어(졌|지|진|짐|져)|없네|없다|
 RX = re.compile(SYM + r"[^.!?\n]{0,28}" + GONE)
 BAD = re.compile(r"사라지면|없어지면|사라질\s*수|없어질\s*수|일반적|정상입니다|흔한|알려|원인|무조건|[?？]\s*$")
 WEEK = re.compile(r"(\d{1,2})\s*주\s*(\d)?\s*일?")
+HEARD = re.compile(r"(\d{2,3})\s*bpm|심장\s*(소리|박동|뛰)[^.\n]{0,12}(들|확인|보였|뛰|듣)|(들|확인)[^.\n]{0,10}심장\s*(소리|박동)")
+# 일반 정보글 문장(안내·설명체)과 본인 경험 표현
+GEN = re.compile(r"수\s*있|있습니다|가능성|일반적|걱정\s*(하지|마)|하세요|경우|합니다|됩니다|확인하세요|나타나|의심|주의|사람마다|개인차|해요\?")
+PERS = re.compile(r"(나는|저는|제가|내가|나도|저도|우리|난|ㅠ|ㅜ|😭|ㅎㅎ|ㅋㅋ|했다|했어요|였다|였어요|더라|네요|었는데|다\.\s)")
 
 
 def scan(blog, no, date):
@@ -52,15 +67,21 @@ def scan(blog, no, date):
     if not ws:
         return None
     first = hits[0]
-    hb_pos = [h.start() for h in re.finditer(r"(\d{2,3})\s*bpm|심장\s*(소리|박동|뛰)[^.\n]{0,12}(들|확인|보였|뛰|듣)|(들|확인)[^.\n]{0,10}심장\s*(소리|박동)", txt)]
+    hb_pos = [h.start() for h in HEARD.finditer(txt)]
     hb_before = "Y" if any(p < first.start() for p in hb_pos) else "N"
+    cand = "N"
+    for m in hits:  # 심장 확인 뒤에 나오는, 본인 경험으로 쓴 증상 소실 문장
+        if GEN.search(txt[m.start(): m.end() + 30]) or not PERS.search(txt[max(0, m.start() - 60): m.end() + 100]):
+            continue
+        cand = "Y" if hb_before == "Y" and any(p < m.start() for p in hb_pos) else "N"
+        break
     sym = hits[0].group(1)
     hb = "Y" if re.search(r"심장\s*(소리|박동)|심박|bpm", txt) else "N"
-    return {"week": max(set(ws), key=ws.count), "symptom": sym, "hb": hb, "hbf": hb_before, "ivf": "Y" if IVF.search(p.get("title", "") + txt[:800]) else "N"}
+    return {"week": max(set(ws), key=ws.count), "symptom": sym, "hb": hb, "hbf": hb_before, "cand": cand, "ivf": "Y" if IVF.search(p.get("title", "") + txt[:800]) else "N"}
 
 
-def run():
-    old = {}
+def collect():
+    old = {r["url"]: r for r in read_csv(OUT)}
     cands = {}
     for q in QUERIES:
         for start in (1, 101):
@@ -82,30 +103,68 @@ def run():
             continue
         try:
             r = scan(ids[0], ids[1], date)
-        except Exception as e:  # noqa: BLE001
+        except Exception:  # noqa: BLE001
             continue
         if r:
-            old[url] = {"blog": ids[0], "url": url, "postdate": date, "status": "", "last_week": "", "manual": "", **r}
+            old[url] = {"blog": ids[0], "url": url, "postdate": date, "auto": "", "last_week": "", "checked": "", **r}
             new += 1
-    print("증상 소실 글", new)
-    for r in ([] if "scan" in sys.argv else old.values()):
-        if r["manual"] or r["status"] in ("출산",):
+    write_csv(OUT, sorted(old.values(), key=lambda r: r["postdate"], reverse=True), FIELDS)
+    print(f"새 증상 소실 글 {new}건, 전체 {len(old)}건 (심장 확인 뒤 본인 경험 {sum(r['cand'] == 'Y' for r in old.values())}건)")
+
+
+def _date(s):
+    m = re.match(r"(\d{4})(\d{2})(\d{2})", s or "")
+    return dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else None
+
+
+def track(today=None):
+    today = today or dt.date.today().isoformat()
+    rows = read_csv(OUT)
+    pts = birth.log_dates()  # logNo → 작성일 보간표(이 파일의 글 날짜도 더한다)
+    pts += [(int(parse_post_url(r["url"])[1]), _date(r["postdate"]).toordinal()) for r in rows if _date(r["postdate"])]
+    pts.sort()
+    outs = {r["url"]: r for r in read_csv(OUTCOMES)}
+    for r in rows:
+        if r["cand"] != "Y":
             continue
-        start = int(parse_post_url(r["url"])[1])
+        blog, no = parse_post_url(r["url"])
+        start = _date(r["postdate"]) - dt.timedelta(days=int(r["week"]) * 7 - 19)  # 이식일(착상 무렵)에 해당하는 날로 환산
         items = None
         for _ in range(3):
             try:
-                items = [it for it in post_list(r["blog"], pages=40, stop_at=start) if it["logNo"] > start]
+                items = sorted((it for it in post_list(blog, pages=40, stop_at=int(no)) if it["logNo"] > int(no)), key=lambda it: it["logNo"])
                 break
             except Exception:  # noqa: BLE001
                 pass
         if items is None:
             continue
-        st, wk, _ = judge_titles(sorted(items, key=lambda it: it["logNo"]))
-        r["status"], r["last_week"] = st, wk
-    write_csv(OUT, sorted(old.values(), key=lambda r: r["postdate"], reverse=True), FIELDS)
-    print("저장", len(old))
+        st, wk, _ = birth.judge(items, start, pts)
+        if st == "진행중" and wk.isdigit() and int(wk) >= 12:
+            st = "유지12"
+        r["auto"], r["last_week"], r["checked"] = st, wk, today
+        o = outs.get(r["url"])
+        if o and o["status"] == "유지12" and st == "출산":  # 12주 유지 → 출산 글이 올라오면 자동 승격
+            o["status"], o["note"], o["checked"] = "출산", (o["note"] + "; " if o["note"] else "") + f"{today} 출산 글 확인", today
+            print("유지12 → 출산", r["url"])
+        elif o and o["status"] in ("출산", "유지12") and st == "유산?":
+            print("재확인 필요(확정은 출산·유지인데 유산 제목이 보임)", r["url"])
+        elif not o and st in ("출산", "유지12", "유산?"):
+            print(f"확인 필요(새 결과 {st}{' ' + wk + '주' if wk else ''})", r["url"])
+    write_csv(OUT, rows, FIELDS)
+    write_csv(OUTCOMES, list(outs.values()), OF)
+    show()
+
+
+def show():
+    outs = read_csv(OUTCOMES)
+    c = Counter(r["status"] for r in outs)
+    ok, n = c["출산"] + c["유지12"], c["출산"] + c["유지12"] + c["유산"]
+    print(f"확정: 출산 {c['출산']} · 12주+ 유지 {c['유지12']} · 유산 {c['유산']} → 출산·유지 {ok}/{n}"
+          + (f" = {ok / n:.0%}" if n else "") + f" (제외 {c['제외']})")
+    rows = read_csv(OUT)
+    pend = [r for r in rows if r["cand"] == "Y" and r["url"] not in {o["url"] for o in outs}]
+    print(f"아직 결과 없는 심장 확인 뒤 증상 소실 글 {len(pend)}건: {dict(Counter(r['auto'] or '미확인' for r in pend))}")
 
 
 if __name__ == "__main__":
-    run()
+    {"collect": collect, "track": track, "show": show}[sys.argv[1]]()
