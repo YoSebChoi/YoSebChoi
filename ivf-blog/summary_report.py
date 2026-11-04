@@ -79,7 +79,7 @@ def scan_stats(ga_hb, bpm, ids_status):
     return {"bpm_n": len(vals), "bpm_q": statistics.quantiles(vals, n=4) if len(vals) >= 4 else None,
             "bpm_pct": sum(v < bpm for v in vals) / len(vals) if vals and bpm else None,
             "low": [ids_status[b] for b in low], "sac_n": len(sac), "sac_q": statistics.quantiles(sac, n=4) if len(sac) >= 4 else None,
-            "small": [ids_status[b] for b in sm]}
+            "small": [ids_status[b] for b in sm], "near": [(v, ids_status[b]) for b, v in near]}
 
 
 def build(a):
@@ -189,6 +189,9 @@ def build(a):
             elif c["outcome"] in FAILURES:
                 st_map.setdefault(b, c["outcome"])
         ss = scan_stats(ga(hb_date), a.bpm, st_map)
+    s2 = datetime.date.fromisoformat(a.scan2) if a.scan2 else None
+    crl2_ga = round(8.052 * math.sqrt(float(a.crl2) * 10) + 23.73) if a.crl2 else None  # Robinson: CRL(mm) → 일
+    ss2 = scan_stats(ga(s2), a.bpm2, st_map) if s2 and hb_ok else None
 
     timeline = [(transfer, f"{a.embryo}일배 이식 (임신 {gw(ga0)})", "done"),
                 (transfer + datetime.timedelta(days=d1), f"1차 피검 {mine[d1]:,.0f}", "done"),
@@ -200,7 +203,11 @@ def build(a):
     if hb_ok:
         timeline.append((hb_date, f"초음파 {gw(ga(hb_date))}{f' ({a.hb_place})' if a.hb_place else ''}: 심장소리 확인" + (f" {a.bpm}bpm" if a.bpm else "")
                          + (f", 아기 크기 {a.crl}cm" if a.crl else "") + (f" (측정 기준 {a.crl_ga})" if a.crl_ga else ""), "done"))
-    if nxt and not (hb_ok and nxt <= hb_date):
+    if s2:
+        timeline.append((s2, f"초음파 {gw(ga(s2))}{f' ({a.scan2_place})' if a.scan2_place else ''}: 심장소리 재확인"
+                         + (f" 약 {a.bpm2}bpm" if a.bpm2 else "") + (f"({a.bpm2_note})" if a.bpm2_note else "")
+                         + (f", 아기 크기 {a.crl2}cm (측정 기준 {gw(crl2_ga)})" if a.crl2 else "") + (f", {a.scan2_note}" if a.scan2_note else ""), "done"))
+    if nxt and not (hb_ok and nxt <= hb_date) and not (s2 and nxt <= s2):
         timeline.append((nxt, f"{'다음 초음파 · 심장소리 재확인' if hb_ok else '심장소리 예정'} (임신 {gw(ga(nxt))})", "next"))
     tl = "".join(f'<li class="{k}"><b>{"최근" if k == "note" else md(d)}</b> {html.escape(t)}</li>' for d, t, k in sorted(timeline, key=lambda x: x[0]))
 
@@ -349,9 +356,19 @@ def build(a):
   <p>6~8주에 아기 크기나 심박수가 같은 주수 후기의 아래쪽 25%였거나, '주수보다 작다·심장이 느리다·아기가 작다·주수가 밀렸다'는 말을 들은 심장소리 케이스 <b>{cu['group_n']}건</b> 중, 결과가 나온 {gn}건에서 <b>{gok}건({pct(gok / gn, 0) if gn else '—'})</b>이 출산하거나 12주 넘게 유지했습니다 (출산 {cu['group']['출산']} · 12주+ 유지 {cu['group']['유지12']} · 유산 {cu['group']['유산']} · 진행 중·미상 {cu['group']['미상']}). 심장소리 확인 전체(약 93%)보다 조금 낮지만 대부분 따라잡았습니다.</p></div>
   {uni_html}
   {late_html}"""
+        re_html = ""
+        if s2 and ss2:
+            hi = [st for v, st in ss2["near"] if v >= 140]
+            hi_ok = sum(st in ("출산", "유지12") for st in hi)
+            hi_n = hi_ok + sum(st == "유산" for st in hi)
+            grow = (float(a.crl2) - float(a.crl)) * 10 / max(1, (s2 - hb_date).days) if a.crl2 and a.crl else None
+            re_html = f"""<div class="cmp"><h3>{md(s2)} 재확인 ({gw(ga(s2))})</h3>
+  <p>심박수 <b>{a.bpm}bpm → 약 {a.bpm2}bpm</b>{f" ({a.bpm2_note})" if a.bpm2_note else ""}, 아기 크기 <b>{a.crl}cm → {a.crl2}cm</b> (측정 기준 {gw(crl2_ga)}, 날짜와 {"같음" if crl2_ga == ga(s2) else f"{ga(s2) - crl2_ga:+d}일"}){f". {a.scan2_note}" if a.scan2_note else ""}.</p>
+  <p class="note">{gw(ga(s2) - 3)}~{gw(ga(s2))} 후기 심박수 {ss2['bpm_n']}건: 중앙값 {ss2['bpm_q'][1]:.0f}, 가운데 50% {ss2['bpm_q'][0]:.0f}~{ss2['bpm_q'][2]:.0f}bpm{f", 우리보다 낮은 케이스 {pct(ss2['bpm_pct'], 0)}" if ss2['bpm_pct'] is not None else ""}. 이 시기 140bpm 이상이던 케이스 중 결과가 나온 {hi_n}건의 {pct(hi_ok / hi_n, 0) if hi_n else "—"}({hi_ok}/{hi_n})가 출산·12주 이상 유지였습니다.{f" 일주일 동안 하루 약 {grow:.1f}mm씩 자라(보통 1mm 안팎) 지난번 며칠 작게 나왔던 크기가 날짜를 따라잡았습니다." if grow else ""} 심박수는 화면 녹화 소리로 박동 간격을 재 추정한 값이라 ±5bpm 정도 오차가 있을 수 있습니다(같은 방법으로 10/29 영상은 113bpm으로 병원 값과 같았음).</p></div>"""
         scan_sec = f"""<section>
   <h2>{md(hb_date)} 초음파 결과를 후기와 비교</h2>
   <div class="panel">
+  {re_html}
   <div class="cmp"><h3>심박수</h3><p>우리: <b>{a.bpm}bpm</b> ({gw(ga(hb_date))})</p><p class="note">{gw(ga(hb_date) - 3)}~{gw(ga(hb_date))} 심박수 {ss['bpm_n']}건: 중앙값 {ss['bpm_q'][1]:.0f}, 가운데 50% {ss['bpm_q'][0]:.0f}~{ss['bpm_q'][2]:.0f}bpm. 우리보다 낮은 케이스 {pct(ss['bpm_pct'], 0)}.<br>120 미만 {len(ss['low'])}건의 결과: {counts(ss['low'])}</p></div>
   <div class="cmp"><h3>아기 크기</h3><p>우리: <b>{a.crl}cm</b> (측정 기준 {a.crl_ga}, 날짜보다 {ga(hb_date) - ga_of(a.crl_ga.replace('주', 'w').replace('일', 'd').replace(' ', '')) if a.crl_ga else ''}일 작음)</p><p class="note">'주수보다 작다' 언급이 있던 심장소리 케이스 {len(ss['small'])}건: {counts(ss['small'])} → 결과가 나온 {res_small}건 중 {ok_small}건({pct(ok_small / res_small, 0) if res_small else '—'}) 출산·유지. 이 시기 크기 측정은 앞뒤 3~5일 오차가 흔함.</p></div>
   {f'<div class="cmp"><h3>아기집 ({md(scan)})</h3><p>우리: <b>1.02cm</b> ({gw(ga(scan))}, 날짜와 같은 크기)</p><p class="note">5주 4~6일 아기집 크기 {ss['sac_n']}건: 중앙값 {ss['sac_q'][1]:.2f}cm, 가운데 50% {ss['sac_q'][0]:.2f}~{ss['sac_q'][2]:.2f}cm → 중간 정도</p></div>' if scan and ss['sac_q'] else ""}
@@ -384,16 +401,17 @@ def build(a):
 
 <div class="kpis">
   <div class="kpi"><b>{"확인" if sac_seen else "—"}</b><span>자궁 안 아기집 ({md(scan) if scan else ""})</span></div>
-  {f'<div class="kpi"><b>확인</b><span>심장소리 ({md(hb_date)}, {a.bpm}bpm)</span></div>' if hb_ok else f'<div class="kpi"><b>{pct(hb_lo, 0)}~{pct(hb_hi, 0)}</b><span>심장소리 들을 확률</span></div>'}
+  {f'<div class="kpi"><b>{a.bpm}→{a.bpm2}</b><span>심박수 bpm ({md(hb_date)}→{md(s2)})</span></div>' if s2 and a.bpm2 else f'<div class="kpi"><b>확인</b><span>심장소리 ({md(hb_date)}, {a.bpm}bpm)</span></div>' if hb_ok else f'<div class="kpi"><b>{pct(hb_lo, 0)}~{pct(hb_hi, 0)}</b><span>심장소리 들을 확률</span></div>'}
   {f'<div class="kpi"><b>{pct(cond_lo, 0)}~{pct(cond_hi, 0)}</b><span>출산까지 확률 (심장소리 확인 후, 중심 약 {pct(born_hb_all["rate"], 0)})</span></div>' if hb_ok else f'<div class="kpi"><b>{pct(birth_lo, 0)}~{pct(birth_hi, 0)}</b><span>출산까지 확률 (중심 약 {pct(birth_mid, 0)})</span></div>'}
-  {f'<div class="kpi"><b>{a.crl}cm</b><span>아기 크기 (측정 기준 {a.crl_ga})</span></div>' if hb_ok and a.crl else f'<div class="kpi"><b>{pct(cond_lo, 0)}~{pct(cond_hi, 0)}</b><span>심장소리를 들은 뒤 출산할 확률{f" ({md(nxt)} 확인 시)" if nxt else ""}</span></div>'}
+  {f'<div class="kpi"><b>{a.crl2}cm</b><span>아기 크기 {md(s2)} (측정 기준 {gw(crl2_ga)})</span></div>' if s2 and a.crl2 else f'<div class="kpi"><b>{a.crl}cm</b><span>아기 크기 (측정 기준 {a.crl_ga})</span></div>' if hb_ok and a.crl else f'<div class="kpi"><b>{pct(cond_lo, 0)}~{pct(cond_hi, 0)}</b><span>심장소리를 들은 뒤 출산할 확률{f" ({md(nxt)} 확인 시)" if nxt else ""}</span></div>'}
 </div>
 
 <div class="key"><b>한 줄 요약</b>
 <ul>
+{f"<li><b>{md(s2)}({gw(ga(s2))}) 재확인: 심박수 약 {a.bpm2}bpm, 아기 크기 {a.crl2}cm(측정 기준 {gw(crl2_ga)})</b>{f', {a.scan2_note}' if a.scan2_note else ''}. 일주일 전 {a.bpm}bpm·{a.crl}cm에서 심박수가 정상 범위로 올라왔고 크기도 날짜를 따라잡았습니다.</li>" if s2 and a.bpm2 and a.crl2 else ""}
   <li>피검 2차 수치와 더블링은 심장소리를 들은 케이스 기준으로도 좋은 편이고, 자궁 안 아기집을 이미 확인했습니다. <b>갈색 소량 피비침은 흔했고 결과와 뚜렷한 관계가 없었습니다.</b></li>
 {"" if hb_ok else f"""<li>비슷한 케이스들은 <b>심장소리 {pct(hb_lo, 0)}~{pct(hb_hi, 0)}</b>, <b>출산 {pct(birth_lo, 0)}~{pct(birth_hi, 0)}</b>(가운데 약 {pct(birth_mid, 0)})였습니다. <b>심장소리를 들은 뒤에는 출산 {pct(cond_lo, 0)}~{pct(cond_hi, 0)}</b>(전체 기준 {pct(born_hb_all['rate'], 0)})로 올라갑니다.</li>"""}
-  {f"<li><b>{md(hb_date)}({gw(ga(hb_date))}) 심장소리 확인.</b> 이제 출산 확률은 심장소리를 들은 케이스 기준 <b>{pct(cond_lo, 0)}~{pct(cond_hi, 0)}</b>(전체 {pct(born_hb_all['rate'], 0)})입니다. 심장소리 후 유산은 주로 7~10주라 10주를 넘기면 더 올라갑니다.</li><li>심박수 {a.bpm}bpm은 같은 시기 후기 중앙값보다 조금 낮고, 아기 크기는 날짜보다 며칠 작게 측정됐지만 둘 다 흔한 범위입니다(아래 비교). {f"{md(nxt)}({gw(ga(nxt))}) 초음파에서" if nxt and nxt > hb_date else "다음 초음파에서"} 심박수 상승과 크기 증가를 확인하면 됩니다.</li>" if hb_ok else ""}
+  {f"<li><b>{md(hb_date)}({gw(ga(hb_date))}) 심장소리 확인.</b> 이제 출산 확률은 심장소리를 들은 케이스 기준 <b>{pct(cond_lo, 0)}~{pct(cond_hi, 0)}</b>(전체 {pct(born_hb_all['rate'], 0)})입니다. 심장소리 후 유산은 주로 7~10주라 10주를 넘기면 더 올라갑니다.</li><li>심박수 {a.bpm}bpm은 같은 시기 후기 중앙값보다 조금 낮고, 아기 크기는 날짜보다 며칠 작게 측정됐지만 둘 다 흔한 범위입니다(아래 비교). {"" if s2 else (f"{md(nxt)}({gw(ga(nxt))}) 초음파에서" if nxt and nxt > hb_date else "다음 초음파에서") + " 심박수 상승과 크기 증가를 확인하면 됩니다."}</li>" if hb_ok else ""}
   {"" if hb_ok else f"<li>{md(nxt)}({gw(ga(nxt))})은 출산 케이스의 {pct(hb_by_next[0] / hb_by_next[1], 0)}가 이미 심장을 처음 확인한 시점이라, 심장소리를 확인하기 충분한 날짜입니다.</li>" if hb_by_next and not hb_ok else ""}
 </ul></div>
 
@@ -492,6 +510,12 @@ def main():
     ap.add_argument("--hb-place", default="", help="심장소리 확인한 곳, 예) 서브병원")
     ap.add_argument("--crl", help="아기 크기 cm, 예) 0.62")
     ap.add_argument("--crl-ga", help="측정 기준 주수, 예) '6주 3일'")
+    ap.add_argument("--scan2", help="심장소리 재확인 날짜 YYYY-MM-DD")
+    ap.add_argument("--bpm2", type=int)
+    ap.add_argument("--bpm2-note", default="", help="심박수 메모, 예) '영상 소리로 추정'")
+    ap.add_argument("--crl2", help="아기 크기 cm")
+    ap.add_argument("--scan2-place", default="")
+    ap.add_argument("--scan2-note", default="", help="의사 소견, 예) '주수에 맞게 잘 자람'")
     ap.add_argument("--out", default=os.path.join(RESULTS, "my_summary_report.html"))
     a = ap.parse_args()
     with open(a.out, "w", encoding="utf-8") as f:
