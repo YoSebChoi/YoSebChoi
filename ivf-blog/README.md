@@ -58,5 +58,5 @@ python symptoms.py show                          # 확정 판정(data/symptom_ou
 python hcg.py collect                          # 피검 수치·측정일 추출(5일배 기준 경과일) → data/hcg_log.csv
 python hcg.py review / set                     # 범위 밖·역행 값 확인, 수동 기록
 python hcg_report.py --mine 9:90,14:1695 --transfer 2026-09-30 --scan 2026-10-21 --seen '아기집 확인' --next 2026-11-05  # 내 수치 위치·확률·예상 일정 → results/my_hcg_report.html (커밋 안 함)
-python summary_report.py --mine 9:90,14:1695 --transfer 2026-09-30 --scan 2026-10-21 --seen "아기집 확인" --spotting brown --next 2026-11-05 --hb-date 2026-10-29 --bpm 113 --crl 0.62 --crl-ga "6주 3일" --scan2 2026-11-05 --bpm2 160 --crl2 1.52  # 종합 보고서 (커밋 안 함, --scan2는 재확인 초음파)
+python summary_report.py --mine 9:90,14:1695 --transfer 2026-09-30 --scan 2026-10-21 --seen "아기집 확인" --spotting brown --next 2026-11-05 --hb-date 2026-10-29 --bpm 113 --crl 0.62 --crl-ga "6주 3일" --scan2 2026-11-05 --bpm2 161 --crl2 1.52 --rescan '2026-11-13|174|2.3' --spotting-date 2026-10-23  # 종합 보고서 (커밋 안 함, --scan2·--rescan은 재확인 초음파)
 ```
