@@ -82,7 +82,8 @@ def fetch_all():
     for q in read_csv(QUEUE):
         queue.setdefault(q["case_id"], []).append(q)
     cases = read_csv(CASES)
-    for i, c in enumerate(cases, 1):
+
+    def one(c):
         try:
             blog, log_no = parse_post_url(c["url"])
             titles_after(blog, log_no)  # .cache/birth/<blog>.json (이후 글 목록)
@@ -90,9 +91,13 @@ def fetch_all():
             for n in nums:
                 fetch(blog, str(n))
         except Exception as e:  # noqa: BLE001
-            print("실패", c.get("case_id"), type(e).__name__)
-        if i % 50 == 0:
-            print(f"{i}/{len(cases)}", flush=True)
+            print("실패", c.get("case_id"), type(e).__name__, flush=True)
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(8) as ex:  # 블로그마다 글 목록·본문을 받느라 오래 걸려 나눠 받는다
+        for i, _ in enumerate(ex.map(one, cases), 1):
+            if i % 50 == 0:
+                print(f"{i}/{len(cases)}", flush=True)
 
 
 if __name__ == "__main__":
