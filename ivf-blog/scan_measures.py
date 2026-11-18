@@ -3,12 +3,13 @@
 종합 보고서(summary_report.py)의 '초음파 결과를 후기와 비교'가 이 파일을 쓴다. 본문 캐시(.cache/posts)는 커밋하지 않아
 새 컨테이너에서는 사라지므로, 숫자만 남겨 두면 캐시 없이도 보고서를 만들 수 있다. 원문은 저장하지 않는다.
 
-data/scan_measures.csv : blog, kind(bpm / sac / small), ga(임신 일수, small은 빈칸), value
+data/scan_measures.csv : blog(블로그 아이디의 해시, 원래 아이디는 남기지 않음), kind(bpm / sac / small), ga(임신 일수, small은 빈칸), value
 
 사용: python scan_measures.py fetch   # 케이스 블로그의 첫 글과 이후 글 본문을 다시 캐시(milestones.py와 같은 글 선택)
       python scan_measures.py build   # 캐시 본문 → data/scan_measures.csv
 """
 import glob
+import hashlib
 import json
 import os
 import re
@@ -23,6 +24,11 @@ BPM = re.compile(r"(\d{2,3})\s*(?:bpm|BPM|회|비피엠)")
 SAC = re.compile(r"아기집\s*(?:크기)?\s*(?:는|은|가|이|:)?\s*(?:약\s*)?(\d(?:\.\d{1,2})?)\s*(cm|mm|센치|미리)")
 SMALL = re.compile(r"주수보다\s*(?:조금|약간|좀|살짝|며칠|하루|이틀|\d\s*일)?\s*(?:작|느리|늦|어리)|"
                    r"(?:하루|이틀|사흘|[1-6]\s*일|며칠)\s*(?:정도\s*)?(?:작|느리|늦|어리)(?:다|게|아|어|고|네|대|더)")
+
+
+def key(blog):
+    """블로그 아이디 → 짧은 해시. 파일에는 이것만 남기고, 보고서는 케이스 아이디를 같은 방식으로 바꿔 맞춘다."""
+    return hashlib.sha1(blog.encode()).hexdigest()[:12]
 
 
 def extract():
@@ -51,18 +57,21 @@ def extract():
 
 def build():
     bpms, sacs, small = extract()
-    rows = ([{"blog": b, "kind": "bpm", "ga": g, "value": v} for (b, g), v in sorted(bpms.items())]
-            + [{"blog": b, "kind": "sac", "ga": g, "value": v} for (b, g), v in sorted(sacs.items())]
-            + [{"blog": b, "kind": "small", "ga": "", "value": 1} for b in sorted(small)])
+    rows = ([{"blog": key(b), "kind": "bpm", "ga": g, "value": v} for (b, g), v in sorted(bpms.items())]
+            + [{"blog": key(b), "kind": "sac", "ga": g, "value": v} for (b, g), v in sorted(sacs.items())]
+            + [{"blog": key(b), "kind": "small", "ga": "", "value": 1} for b in sorted(small)])
     write_csv(OUT, rows, FIELDS)
     print(f"심박수 {len(bpms)} · 아기집 {len(sacs)} · 작다 언급 {len(small)} → {OUT}")
 
 
 def load():
-    """data/scan_measures.csv → extract()와 같은 모양. 파일이 없고 캐시가 있으면 캐시에서 뽑는다."""
+    """data/scan_measures.csv → extract()와 같은 모양(블로그는 key() 해시). 파일이 없고 캐시가 있으면 캐시에서 뽑는다."""
     rows = read_csv(OUT)
     if not rows:
-        return extract() if glob.glob(os.path.join(CACHE, "posts", "*.json")) else None
+        if not glob.glob(os.path.join(CACHE, "posts", "*.json")):
+            return None
+        bpms, sacs, small = extract()
+        return ({(key(b), g): v for (b, g), v in bpms.items()}, {(key(b), g): v for (b, g), v in sacs.items()}, {key(b) for b in small})
     bpms = {(r["blog"], int(r["ga"])): int(r["value"]) for r in rows if r["kind"] == "bpm"}
     sacs = {(r["blog"], int(r["ga"])): float(r["value"]) for r in rows if r["kind"] == "sac"}
     small = {r["blog"] for r in rows if r["kind"] == "small"}

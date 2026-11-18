@@ -38,10 +38,11 @@ def md(d):
 
 def scan_stats(ga_hb, bpm, ids_status):
     """후기 본문에서 뽑은 숫자(data/scan_measures.csv)로: 비슷한 주수의 심박수 분포·결과, '주수보다 작다' 언급 케이스의 결과, 5주 4~6일 아기집 크기."""
-    from scan_measures import load
+    from scan_measures import key, load
     got = load()
     if not got:
         return None
+    ids_status = {key(b): v for b, v in ids_status.items()}  # 숫자 파일의 블로그는 해시로 저장돼 있다
     bpms, sacs, small = got
     bpms = {k: v for k, v in bpms.items() if k[0] in ids_status}
     sacs = {k: v for k, v in sacs.items() if k[0] in ids_status}
