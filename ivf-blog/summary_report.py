@@ -37,40 +37,15 @@ def md(d):
 
 
 def scan_stats(ga_hb, bpm, ids_status):
-    """캐시된 후기 본문에서: 비슷한 주수의 심박수 분포·결과, '주수보다 작다' 언급 케이스의 결과, 5주 4~6일 아기집 크기."""
-    import glob
-    import json
-    import re
-    from common import CACHE
-    files = glob.glob(os.path.join(CACHE, "posts", "*.json"))
-    if not files:
+    """후기 본문에서 뽑은 숫자(data/scan_measures.csv)로: 비슷한 주수의 심박수 분포·결과, '주수보다 작다' 언급 케이스의 결과, 5주 4~6일 아기집 크기."""
+    from scan_measures import load
+    got = load()
+    if not got:
         return None
-    GA = re.compile(r"([4-9])\s*주\s*차?\s*([0-6])\s*일")
-    BPM = re.compile(r"(\d{2,3})\s*(?:bpm|BPM|회|비피엠)")
-    SAC = re.compile(r"아기집\s*(?:크기)?\s*(?:는|은|가|이|:)?\s*(?:약\s*)?(\d(?:\.\d{1,2})?)\s*(cm|mm|센치|미리)")
-    SMALL = re.compile(r"주수보다\s*(?:조금|약간|좀|살짝|며칠|하루|이틀|\d\s*일)?\s*(?:작|느리|늦|어리)|"
-                       r"(?:하루|이틀|사흘|[1-6]\s*일|며칠)\s*(?:정도\s*)?(?:작|느리|늦|어리)(?:다|게|아|어|고|네|대|더)")
-    bpms, sacs, small = {}, {}, set()
-    for f in files:
-        d = json.load(open(f, encoding="utf-8"))
-        b = d.get("blog_id")
-        if b not in ids_status:
-            continue
-        t = re.sub(r"\s+", " ", " ".join(x for k, x in d.get("blocks", []) if k == "text"))
-        for m in BPM.finditer(t):
-            v = int(m.group(1))
-            if 70 <= v <= 200 and re.search(r"심박|심장|bpm", t[max(0, m.start() - 40):m.end() + 5]):
-                g = list(GA.finditer(t[max(0, m.start() - 80):m.start()]))
-                if g:
-                    bpms.setdefault((b, int(g[-1][1]) * 7 + int(g[-1][2])), v)
-        for m in SAC.finditer(t):
-            v = float(m.group(1)) / (10 if m.group(2) in ("mm", "미리") else 1)
-            g = list(GA.finditer(t[max(0, m.start() - 80):m.start()]))
-            if g and 0.2 <= v <= 4:
-                sacs.setdefault((b, int(g[-1][1]) * 7 + int(g[-1][2])), v)
-        for m in SMALL.finditer(t):
-            if not re.search(r"^.{0,8}않", t[m.end():m.end() + 10]) and re.search(r"아기|태아|크기|CRL|crl|cm|주수", t[max(0, m.start() - 60):m.end() + 20]):
-                small.add(b)
+    bpms, sacs, small = got
+    bpms = {k: v for k, v in bpms.items() if k[0] in ids_status}
+    sacs = {k: v for k, v in sacs.items() if k[0] in ids_status}
+    small = {b for b in small if b in ids_status}
     near = [(b, v) for (b, g), v in bpms.items() if ga_hb - 3 <= g <= ga_hb]
     vals = sorted(v for _, v in near)
     low = [b for b, v in near if v < 120]
