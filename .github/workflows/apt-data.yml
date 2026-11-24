@@ -12,9 +12,10 @@ on:
       - "apt/**"
       - ".github/workflows/apt-data.yml"
   workflow_dispatch:
-  # daily: 실거래 reports arrive every day (within 30 days of the contract)
+  # every 3 hours: 실거래 reports arrive through the day (within 30 days of the contract), and other apps
+  # show them within hours; a run asks only the last 4 months again, a few requests
   schedule:
-    - cron: "17 21 * * *"   # 06:17 KST
+    - cron: "17 */3 * * *"
 
 permissions:
   contents: write
@@ -51,7 +52,10 @@ jobs:
           NCP_API_KEY_ID: ${{ secrets.NCP_API_KEY_ID }}
           NCP_API_KEY: ${{ secrets.NCP_API_KEY }}
         run: |
-          if [ -z "$NCP_API_KEY_ID" ]; then
+          # blog posts once a day (the 3-hourly runs are for 실거래): skip when today's are in; always on a manual run
+          if [ "${{ github.event_name }}" = "schedule" ] && grep -q "\"updated\": \"$(date -u +%F)\"" apt/data/blog.json 2>/dev/null; then
+            echo "blog: already fetched today"
+          elif [ -z "$NCP_API_KEY_ID" ]; then
             echo "::warning::NCP_API_KEY_ID is not set: the app keeps the blog posts it has (see apt/README.md)"
           else
             python3 apt/fetch_blog.py
