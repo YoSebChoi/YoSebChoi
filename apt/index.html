@@ -754,6 +754,15 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <dt>처음 본 날</dt><dd>${dfull(u.firstSeen)} (${fmt(u.firstPrice)})</dd><dt>마지막 본 날</dt><dd>${dfull(u.lastSeen)} (${fmt(u.lastPrice)})</dd>
         ${u.status ? `<dt>상태</dt><dd><span class="badge ${STATUS[u.status]}">${esc(u.status)}</span>${u.trade ? ` ${esc(u.trade.date)} ${fmt(u.trade.price)} · ${u.trade.floor}층` : ""}</dd>` : ""}</dl>
       ${u.trade ? `<button class="btn" id="toTrade" style="margin-top:12px">실거래 탭에서 보기</button>` : ""}
+      ${u.status === "거래 추정" ? (() => {
+        const near = T.nearTrades(u, tradesForMatching());
+        return `<h4 style="margin:16px 0 4px">비슷한 실거래</h4>` + (near.length
+          ? near.map(t => `<div class="row"><div class="main"><div><b>${fmt(t.price)}</b> <span class="small muted">${t.floor}층 · ${t.area.toFixed(1)}㎡</span></div>
+              <div class="meta tiny">${t.fits ? "조건에 맞아요 (다른 집과 더 잘 맞아서 그쪽으로 갔어요)" : esc(t.why.join(" · "))}</div></div>
+              <div class="side muted">${esc(t.date.replace(/-/g, "."))}</div></div>`).join("") +
+            `<div class="tiny muted">같은 면적·층, 사라진 무렵(60일 전~30일 뒤), 호가의 90~105%인 거래가 신고되면 「실거래 확인」으로 바뀌어요.</div>`
+          : `<div class="small muted">아직 비슷한 실거래 신고가 없어요. 계약 후 30일 안에 신고돼요.</div>`);
+      })() : ""}
       ${ls.length ? `<h4 style="margin:16px 0 4px">올린 중개사 ${ls.length}곳</h4>` + ls.map(l => `<div class="row"><div class="main">
           <div><b>${esc(l.priceText)}</b> <span class="small muted">${esc(l.realtor)}</span></div>
           <div class="meta">${esc(l.desc || "")}</div><div class="meta tiny">확인 ${esc(l.confirmed)}</div></div>
@@ -822,7 +831,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
     return `<div class="card small"><h2>어떻게 추정하나요?</h2><ul class="list-plain">
       <li>같은 동·층·면적·방향 매물은 중개사가 여럿이어도 <b>한 집</b>으로 봐요. 층을 「22층」과 「고층」으로 다르게 적어도 가격이 비슷하면 같은 집이에요.</li>
       <li>그 집의 매물이 모두 <b>두 번 연속, 20시간 넘게</b> 안 보이면 <span class="badge b-guess">거래 추정</span>이에요.</li>
-      <li>그 무렵(30일 전~20일 뒤, 처음 본 날보다 1주 넘게 앞서지 않게) 같은 면적·층에서 호가의 90~103%로 신고된 실거래가 있으면 <span class="badge b-ok">실거래 확인</span>이에요.</li>
+      <li>그 무렵(마지막으로 본 날의 60일 전~30일 뒤, 처음 본 날보다 1주 넘게 앞서지 않게) 같은 면적·층에서 호가의 90~105%로 신고된 실거래가 있으면 <span class="badge b-ok">실거래 확인</span>이에요.</li>
       <li>3주 안에 다시 올라오면 거래가 아니라 내렸다 올린 것이라 <span class="badge b-back">재등록</span>으로 바꿔요.</li>
       <li>네이버가 잠깐 막아서 0건이 오면 바로 믿지 않고 다음 확인까지 기다려요.</li></ul></div>`;
   }
