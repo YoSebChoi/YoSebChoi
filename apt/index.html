@@ -754,7 +754,7 @@ label.field input, label.field select { display: block; width: 100%; margin-top:
         <dt>처음 본 날</dt><dd>${dfull(u.firstSeen)} (${fmt(u.firstPrice)})</dd><dt>마지막 본 날</dt><dd>${dfull(u.lastSeen)} (${fmt(u.lastPrice)})</dd>
         ${u.status ? `<dt>상태</dt><dd><span class="badge ${STATUS[u.status]}">${esc(u.status)}</span>${u.trade ? ` ${esc(u.trade.date)} ${fmt(u.trade.price)} · ${u.trade.floor}층` : ""}</dd>` : ""}</dl>
       ${u.trade ? `<button class="btn" id="toTrade" style="margin-top:12px">실거래 탭에서 보기</button>` : ""}
-      ${u.status === "거래 추정" ? (() => {
+      ${u.status === "거래 추정" && T.nearTrades ? (() => {
         const near = T.nearTrades(u, tradesForMatching());
         return `<h4 style="margin:16px 0 4px">비슷한 실거래</h4>` + (near.length
           ? near.map(t => `<div class="row"><div class="main"><div><b>${fmt(t.price)}</b> <span class="small muted">${t.floor}층 · ${t.area.toFixed(1)}㎡</span></div>
