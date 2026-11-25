@@ -96,6 +96,8 @@ def main():
     (OUT / "tracker.js").write_text(tracker, encoding="utf-8")
 
     page = (SRC / "index.html").read_text(encoding="utf-8")
+    # the tracker under an address of its own version, so a cached older copy is never paired with a newer page
+    page = page.replace('src="tracker.js"', f'src="tracker.js?v={hashlib.sha256(tracker.encode()).hexdigest()[:10]}"')
     manifest = json.loads(json.dumps(MANIFEST))
     for old in OUT.glob("icon-*.*.png"):
         old.unlink()

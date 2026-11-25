@@ -180,6 +180,28 @@ const browser = await chromium.launch();
   await page.close();
 }
 
+// 7. a 거래 추정 flat with no deal near it opens, with 비슷한 실거래 (the phone could not open one)
+{
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  page.on("pageerror", e => fail.push("guess flat: page error: " + e.message));
+  await page.addInitScript(() => {
+    const t = Date.now() - 2 * 864e5;
+    localStorage.setItem("aw-cfg", JSON.stringify({ links: { kcc: { no: "1001", name: "KCC", src: "fin" } }, hours: 12, notify: true, askedNotify: true }));
+    localStorage.setItem("aw-state", JSON.stringify({ v: 1, complexes: [], listings: {}, units: {}, events: [], daily: {},
+      snaps: [{ t, cx: "1001", ok: true, count: 1, units: 1 }],
+      gone: [{ unit: "1001|216|3|84.7|ES", cx: "1001", dong: "216", floor: "3", floorTotal: 25, area: 84.7, dir: "ES",
+        firstSeen: t - 30 * 864e5, lastSeen: t, lastPrice: 100000, firstPrice: 100000, lastListings: [], status: "거래 추정" }] }));
+    window.Capacitor = { isNativePlatform: () => true, Plugins: { AptNet: { get: async () => ({ status: 200, body: "null" }), request: async () => ({ status: 200, body: "{}" }),
+      schedule: async () => {}, collect: async () => ({ snapshots: [] }), daily: async () => ({}) }, App: { addListener() {}, getInfo: async () => ({ build: "999" }) } } };
+  });
+  await page.goto("http://localhost:8766/apt/", { waitUntil: "networkidle" });
+  await page.click("#tab-gone");
+  await page.locator("#panel-gone .row.tap", { has: page.locator(".badge.b-guess") }).first().click();
+  await page.waitForTimeout(300);
+  if (!(await page.locator("#unitDlg[open]", { hasText: "비슷한 실거래" }).count())) fail.push("guess flat: tapping a 거래 추정 flat does not open it with 비슷한 실거래");
+  await page.close();
+}
+
 // 6. both mobile-site lists answer null (what the phone got): the new fin.land list is read (POST),
 //    prices in 원 become 만원, the agents' copies of one flat stay one flat, and the background check follows
 {
