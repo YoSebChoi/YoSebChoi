@@ -159,3 +159,49 @@ test("a deal far below the asking price does not confirm, and such a confirmatio
   T.matchTrades(st, []);
   assert.equal(st.gone[0].status, "거래 추정");
 });
+
+test("a 10억 listing sold for 9억 8,000 weeks before the ad came down is confirmed", () => {
+  const st = T.emptyState();
+  const t1 = Date.parse("2026-10-20T09:00:00+09:00");
+  T.ingest(st, "111", t1, [art("1", { bildNm: "216동", flrInfo: "23/25", prc: 100000 }), art("2", { flrInfo: "5/25" })]);
+  // the ad stays up until the balance is paid, then comes down on 11/24
+  T.ingest(st, "111", t1 + 35 * D, [art("1", { bildNm: "216동", flrInfo: "23/25", prc: 100000 }), art("2", { flrInfo: "5/25" })]);
+  T.ingest(st, "111", t1 + 35.5 * D, [art("2", { flrInfo: "5/25" })]);
+  T.ingest(st, "111", t1 + 36.5 * D, [art("2", { flrInfo: "5/25" })]);
+  assert.equal(st.gone.length, 1);
+  const deal = { date: "2026-10-24", cx: "111", area: 84.7, floor: 23, price: 98000 };   // 32 days before
+  deal.id = T.tradeId(deal);
+  assert.equal(T.matchTrades(st, [deal]), 1);
+  assert.equal(st.gone[0].status, "실거래 확인");
+});
+
+test("the 23층 deal goes to the 23층 flat, not to a 고층 flat seen first", () => {
+  const st = T.emptyState();
+  T.ingest(st, "111", t0, [art("1", { bildNm: "212동", flrInfo: "고/25", prc: 100000 }), art("2", { bildNm: "216동", flrInfo: "23/25", prc: 101000 }), art("3", { flrInfo: "5/25" })]);
+  T.ingest(st, "111", t0 + 12 * H, [art("3", { flrInfo: "5/25" })]);
+  T.ingest(st, "111", t0 + 30 * H, [art("3", { flrInfo: "5/25" })]);
+  assert.equal(st.gone.length, 2);
+  const deal = { date: "2026-10-02", cx: "111", area: 84.65, floor: 23, price: 98000 };
+  deal.id = T.tradeId(deal);
+  T.matchTrades(st, [deal]);
+  const g23 = st.gone.find(g => g.floor === "23"), gHigh = st.gone.find(g => g.floor === "고");
+  assert.equal(g23.status, "실거래 확인");
+  assert.equal(gHigh.status, "거래 추정");
+  assert.equal(T.nearTrades(gHigh, [deal]).length, 1);
+});
+
+test("a confirmation made first-come-first-served moves to the flat the deal fits best", () => {
+  const st = T.emptyState();
+  T.ingest(st, "111", t0, [art("1", { bildNm: "212동", flrInfo: "고/25", prc: 100000 }), art("2", { bildNm: "216동", flrInfo: "23/25", prc: 101000 }), art("3", { flrInfo: "5/25" })]);
+  T.ingest(st, "111", t0 + 12 * H, [art("3", { flrInfo: "5/25" })]);
+  T.ingest(st, "111", t0 + 30 * H, [art("3", { flrInfo: "5/25" })]);
+  const deal = { date: "2026-10-02", cx: "111", area: 84.65, floor: 23, price: 98000 };
+  deal.id = T.tradeId(deal);
+  const gHigh = st.gone.find(g => g.floor === "고"), g23 = st.gone.find(g => g.floor === "23");
+  gHigh.status = "실거래 확인"; gHigh.trade = { ...deal };   // what the old order did
+  T.matchTrades(st, [deal]);
+  assert.equal(g23.status, "실거래 확인");
+  assert.equal(gHigh.status, "거래 추정");
+  T.matchTrades(st, [deal]);   // stable: nothing new the second time
+  assert.equal(st.events.filter(e => e.type === "trade").length, 1);
+});

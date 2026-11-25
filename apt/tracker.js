@@ -266,8 +266,60 @@
   const BEFORE_FIRST_SEEN = 7 * DAY;
   const tooEarly = (g, t) => tradeTime(t) < g.firstSeen - BEFORE_FIRST_SEEN;
   // a deal at 90–103% of the last asking price (a 13억 listing selling for 11억 2,000 is another flat)
-  const PRICE_LOW = 0.90, PRICE_HIGH = 1.03;
+  // a deal at 90–105% of the last asking price (negotiated down, or a little over)
+  const PRICE_LOW = 0.90, PRICE_HIGH = 1.05;
+  // the deal's date around when the listing went: an agent may keep the ad up until the balance is paid
+  // (weeks after the contract), or take it down at the deposit before the contract
+  const BEFORE_GONE = 60 * DAY, AFTER_GONE = 30 * DAY;
   const priceOff = (g, t) => g.lastPrice && (t.price / g.lastPrice < PRICE_LOW || t.price / g.lastPrice > PRICE_HIGH);
+
+  // how well a deal fits a flat that went (lower is better), or null when it cannot be its sale
+  function fitScore(g, t) {
+    if (t.cancelled || String(t.cx) !== g.cx) return null;
+    if (g.area != null && Math.abs(t.area - g.area) > 1.0) return null;
+    if (!floorFits(g.floor, g.floorTotal, t.floor)) return null;
+    // 국토교통부 gives the 동 for some deals: then it must be the same
+    const dn = s => String(s || "").replace(/[^0-9]/g, "");
+    if (dn(t.dong) && dn(g.dong) && dn(t.dong) !== dn(g.dong)) return null;
+    const dt = tradeTime(t) - g.lastSeen;
+    if (dt < -BEFORE_GONE || dt > AFTER_GONE || tooEarly(g, t)) return null;
+    let score = Math.abs(dt) / DAY;
+    if (g.lastPrice) {
+      const r = t.price / g.lastPrice;
+      if (r < PRICE_LOW || r > PRICE_HIGH) return null;
+      score += Math.abs(1 - r) * 200;
+    }
+    // a floor number that is the deal's floor beats a third (저/중/고) it only falls in
+    if (!(isFinite(+g.floor) && +g.floor === t.floor)) score += 15;
+    return score;
+  }
+
+  function confirm(st, g, t, event = true) {
+    g.status = "실거래 확인";
+    g.trade = { id: t.id, date: t.date, price: t.price, floor: t.floor, area: t.area };
+    if (event) addEvent(st, { t: Date.now(), type: "trade", cx: g.cx, unit: g.unit, price: t.price, date: t.date });
+  }
+
+  /** Deals that came close for a flat that went (same complex and size, near in time, 80–110% of the asking
+   *  price), with why each did not confirm it: shown on the flat so its owner can judge. */
+  function nearTrades(g, trades) {
+    const out = [];
+    for (const t of trades) {
+      if (t.cancelled || String(t.cx) !== g.cx) continue;
+      if (g.area != null && Math.abs(t.area - g.area) > 1.5) continue;
+      const dt = tradeTime(t) - g.lastSeen;
+      if (dt < -90 * DAY || dt > 60 * DAY) continue;
+      const r = g.lastPrice ? t.price / g.lastPrice : 1;
+      if (r < 0.8 || r > 1.1) continue;
+      const why = [];
+      if (!floorFits(g.floor, g.floorTotal, t.floor)) why.push("층이 달라요");
+      if (r < PRICE_LOW || r > PRICE_HIGH) why.push(`호가의 ${Math.round(r * 100)}%`);
+      if (dt < -BEFORE_GONE || dt > AFTER_GONE) why.push("날짜가 멀어요");
+      if (tooEarly(g, t)) why.push("처음 본 날보다 앞서요");
+      out.push({ ...t, why, fits: !why.length });
+    }
+    return out.sort((a, b) => Math.abs(tradeTime(a) - g.lastSeen) - Math.abs(tradeTime(b) - g.lastSeen)).slice(0, 5);
+  }
 
   function matchTrades(st, trades) {
     // flats taken as gone while still listed under another floor label: they were only relabelled
@@ -288,32 +340,38 @@
         st.events = st.events.filter(e => !(e.type === "trade" && e.unit === g.unit && e.cx === g.cx));
       }
     }
+    // every flat still unconfirmed against every deal; the best pairs first, so a 「고층」 flat seen
+    // earlier does not take the 23층 deal from the 23층 flat
+    // confirmations are worked out again each time from every deal, so one made by the earlier rules
+    // (first come, first served) can move to the flat it fits best
+    const before = new Map();
+    if (trades.length) {
+      for (const g of st.gone) if (g.status === "실거래 확인" && g.trade) { before.set(g, g.trade.id); g.status = "거래 추정"; delete g.trade; }
+    }
     const used = new Set(st.gone.filter(g => g.trade).map(g => g.trade.id));
+    const open = st.gone.filter(g => g.status === "거래 추정");
+    const pairs = [];
+    for (const g of open) for (const t of trades) {
+      if (used.has(t.id)) continue;
+      const score = fitScore(g, t);
+      if (score != null) pairs.push({ g, t, score });
+    }
+    pairs.sort((a, b) => a.score - b.score);
     let n = 0;
-    for (const g of st.gone) {
-      if (g.status !== "거래 추정") continue;
-      let best = null, bestScore = Infinity;
-      for (const t of trades) {
-        if (t.cancelled || String(t.cx) !== g.cx || used.has(t.id)) continue;
-        if (g.area != null && Math.abs(t.area - g.area) > 1.0) continue;
-        if (!floorFits(g.floor, g.floorTotal, t.floor)) continue;
-        const dt = tradeTime(t) - g.lastSeen;
-        if (dt < -30 * DAY || dt > 20 * DAY || tooEarly(g, t)) continue;
-        let score = Math.abs(dt) / DAY;
-        if (g.lastPrice) {
-          const r = t.price / g.lastPrice;
-          if (r < PRICE_LOW || r > PRICE_HIGH) continue;
-          score += Math.abs(1 - r) * 200;
-        }
-        if (score < bestScore) { best = t; bestScore = score; }
+    const done = new Set();
+    for (const { g, t } of pairs) {
+      if (done.has(g) || used.has(t.id)) continue;
+      const again = before.get(g) === t.id;
+      confirm(st, g, t, !again);
+      done.add(g); used.add(t.id); if (!again) n++;
+      // the same flat taken as gone twice (two floor labels): confirmed by the same deal
+      for (const h of open) {
+        if (!done.has(h) && h !== g && sameFlat({ ...h, lastPrice: h.lastPrice }, g)) { confirm(st, h, t, false); done.add(h); }
       }
-      if (best) {
-        g.status = "실거래 확인";
-        g.trade = { id: best.id, date: best.date, price: best.price, floor: best.floor, area: best.area };
-        used.add(best.id);
-        addEvent(st, { t: Date.now(), type: "trade", cx: g.cx, unit: g.unit, price: best.price, date: best.date });
-        n++;
-      }
+    }
+    // confirmations that did not come back: their 「실거래」 event goes too
+    for (const [g] of before) {
+      if (g.status !== "실거래 확인") st.events = st.events.filter(e => !(e.type === "trade" && e.unit === g.unit && e.cx === g.cx));
     }
     return n;
   }
@@ -322,5 +380,5 @@
   const tradeId = t => [t.cx, t.date, t.area, t.floor, t.price, t.dong || ""].join("|");
 
   return { emptyState, ingest, recordFailure, matchTrades, repairPrices, normalizeArticle, parseFloor, parseHanPrice, formatPrice,
-    floorFits, floorsMeet, sameFlat, tradeId, dayOf, unitKey, HOUR, DAY };
+    floorFits, floorsMeet, sameFlat, nearTrades, tradeId, dayOf, unitKey, HOUR, DAY };
 });

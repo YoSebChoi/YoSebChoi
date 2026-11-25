@@ -131,6 +131,16 @@ const browser = await chromium.launch();
   await page.locator("#panel-home .row.tap[data-unit*=\"101동\"]", { hasText: "사라짐" }).first().click();
   if (!(await page.locator("#unitDlg[open]", { hasText: "마지막으로 본 매물" }).count())) fail.push("app: 최근 변화 → the gone flat's last listings not shown");
   await page.locator("#unitDlg [data-close]").click();
+  // a 거래 추정 flat lists the deals near it
+  await page.click("#tab-gone");
+  await page.click('#panel-gone [data-gf="거래 추정"]').catch(() => {});
+  const guess = page.locator("#panel-gone .row.tap", { has: page.locator(".badge.b-guess") }).first();
+  if (await guess.count()) {
+    await guess.click();
+    if (!(await page.locator("#unitDlg[open]", { hasText: "비슷한 실거래" }).count())) fail.push("app: 거래 추정 flat does not show 비슷한 실거래");
+    await page.locator("#unitDlg [data-close]").click();
+  }
+  await page.click('#panel-gone [data-gf="all"]').catch(() => {});
   // the confirmed flat opens its trade on 실거래, marked
   await page.click("#tab-gone");
   await page.locator("#panel-gone .row.tap", { has: page.locator(".badge.b-ok") }).first().click();
