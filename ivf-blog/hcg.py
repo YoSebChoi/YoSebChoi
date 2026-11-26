@@ -8,7 +8,7 @@ group  출산 / 심장후유산 / 심장(진행·미상) / 무심장(계류·화
 
 사용: python hcg.py collect
       python hcg.py review    # 시간에 따라 거꾸로 가거나 범위를 벗어나는 줄
-      python hcg.py set < 줄   # case_id|9:90;14:1695|메모  (경과일:수치, 5일배 기준) — 비우면 그 케이스 제외
+      python hcg.py set < 줄   # case_id|9:100;14:1500|메모  (경과일:수치, 5일배 기준) — 비우면 그 케이스 제외
 """
 import datetime as dt
 import math

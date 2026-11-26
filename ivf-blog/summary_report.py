@@ -1,14 +1,15 @@
 """지금까지의 분석(역전·심장소리·출산·초음파 시기·피검·피비침)을 한 장으로 묶고 우리 상황을 대입한 종합 보고서.
 개인 수치가 들어가므로 결과 파일은 커밋하지 않는다(.gitignore).
 
-사용: python summary_report.py --mine 9:90,14:1695 --transfer 2026-09-30 --embryo 5 \
-        --scan 2026-10-21 --seen '아기집 확인 1.02cm (5주 5일 크기)' --spotting brown --next 2026-11-05
+사용: python summary_report.py --mine 9:100,14:1500 --transfer YYYY-MM-DD --embryo 5 \
+        --scan YYYY-MM-DD --seen '아기집 확인' --spotting brown --next YYYY-MM-DD   (값은 예시, README 참고)
 """
 import argparse
 import datetime
 import html
 import math
 import os
+import re
 import statistics
 
 from cases import FAILURES, PATH as CASES, dedupe
@@ -166,11 +167,17 @@ def build(a):
                 st_map.setdefault(b, c["outcome"])
         ss = scan_stats(ga(hb_date), a.bpm, st_map)
     # 재확인 초음파: --scan2(첫 재확인) + --rescan(그 뒤) → 마지막 것을 '최근', 바로 앞 것을 비교 기준으로
-    rescans = ([(a.scan2, a.bpm2, a.crl2, a.scan2_place, a.scan2_note, a.bpm2_note)] if a.scan2 else []) + \
-        [tuple((x.split("|") + [""] * 6)[:6]) for x in a.rescan]
-    rescans = [(datetime.date.fromisoformat(d), int(b) if b else None, c or None, p, n, bn) for d, b, c, p, n, bn in rescans]
+    rescans = ([(a.scan2, a.bpm2, a.crl2, a.scan2_place, a.scan2_note, a.bpm2_note, "")] if a.scan2 else []) + \
+        [tuple((x.split("|") + [""] * 7)[:7]) for x in a.rescan]
+
+    def crl_days(c, cg):
+        """병원이 알려 준 크기 주수('11주 0일' 같은 값)가 있으면 그것, 없으면 Robinson 공식(CRL mm → 일)."""
+        m = re.match(r"(\d+)\s*주\s*(\d)\s*일", cg or "")
+        return int(m.group(1)) * 7 + int(m.group(2)) if m else (round(8.052 * math.sqrt(float(c) * 10) + 23.73) if c else None)
+    rescans = [(datetime.date.fromisoformat(d), int(b) if b else None, c or None, p, n, bn, crl_days(c, cg))
+               for d, b, c, p, n, bn, cg in rescans]
     if rescans:
-        _, a.bpm2, a.crl2, a.scan2_place, a.scan2_note, a.bpm2_note = rescans[-1]
+        _, a.bpm2, a.crl2, a.scan2_place, a.scan2_note, a.bpm2_note, crl2_ga = rescans[-1]
     p_date, p_bpm, p_crl = (rescans[-2][:3] if len(rescans) > 1 else (hb_date, a.bpm, a.crl))
     s2 = rescans[-1][0] if rescans else None
     # 정상 심박을 확인한 주수별 이후 유산 위험(위험이 낮은 산모 연구, Tong 2008: 6주 9.4%, 7주 4.2%, 8주 1.5%, 9주 이후 0.5%).
@@ -178,7 +185,8 @@ def build(a):
     lit_wk = ga(s2) // 7 if s2 else None
     lit_risk = {6: 9.4, 7: 4.2, 8: 1.5}.get(lit_wk, 0.5) if lit_wk and lit_wk >= 6 else None
     lit_lo, lit_hi = (math.floor(100 - 2 * lit_risk - 1.5), min(99, math.floor(100 - lit_risk))) if lit_risk is not None else (None, None)
-    crl2_ga = round(8.052 * math.sqrt(float(a.crl2) * 10) + 23.73) if a.crl2 else None  # Robinson: CRL(mm) → 일
+    if not rescans:
+        crl2_ga = None
     ss2 = scan_stats(ga(s2), a.bpm2, st_map) if s2 and hb_ok else None
 
     timeline = [(transfer, f"{a.embryo}일배 이식 (임신 {gw(ga0)})", "done"),
@@ -192,10 +200,10 @@ def build(a):
     if hb_ok:
         timeline.append((hb_date, f"초음파 {gw(ga(hb_date))}{f' ({a.hb_place})' if a.hb_place else ''}: 심장소리 확인" + (f" {a.bpm}bpm" if a.bpm else "")
                          + (f", 아기 크기 {a.crl}cm" if a.crl else "") + (f" (측정 기준 {a.crl_ga})" if a.crl_ga else ""), "done"))
-    for d_, b_, c_, pl_, n_, bn_ in rescans:
+    for d_, b_, c_, pl_, n_, bn_, cg_ in rescans:
         timeline.append((d_, f"초음파 {gw(ga(d_))}{f' ({pl_})' if pl_ else ''}: 심장소리 재확인"
                          + (f" {b_}bpm" if b_ else "") + (f"({bn_})" if bn_ else "")
-                         + (f", 아기 크기 {c_}cm (측정 기준 {gw(round(8.052 * math.sqrt(float(c_) * 10) + 23.73))})" if c_ else "") + (f", {n_}" if n_ else ""), "done"))
+                         + (f", 아기 크기 {c_}cm (측정 기준 {gw(cg_)})" if c_ else "") + (f", {n_}" if n_ else ""), "done"))
     if nxt and not (hb_ok and nxt <= hb_date) and not (s2 and nxt <= s2):
         timeline.append((nxt, f"{'다음 초음파 · 심장소리 재확인' if hb_ok else '심장소리 예정'} (임신 {gw(ga(nxt))})", "next"))
     tl = "".join(f'<li class="{k}"><b>{"최근" if k == "note" else md(d)}</b> {html.escape(t)}</li>' for d, t, k in sorted(timeline, key=lambda x: x[0]))
@@ -506,7 +514,7 @@ def main():
     ap.add_argument("--crl2", help="아기 크기 cm")
     ap.add_argument("--scan2-place", default="")
     ap.add_argument("--scan2-note", default="", help="의사 소견, 예) '주수에 맞게 잘 자람'")
-    ap.add_argument("--rescan", action="append", default=[], help="그 뒤 재확인 초음파 '날짜|bpm|크기cm|장소|소견|심박수 메모' (여러 번 가능)")
+    ap.add_argument("--rescan", action="append", default=[], help="그 뒤 재확인 초음파 '날짜|bpm|크기cm|장소|소견|심박수 메모|병원 크기 주수' (여러 번 가능)")
     ap.add_argument("--out", default=os.path.join(RESULTS, "my_summary_report.html"))
     a = ap.parse_args()
     with open(a.out, "w", encoding="utf-8") as f:

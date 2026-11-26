@@ -58,6 +58,6 @@ python symptoms.py show                          # 확정 판정(data/symptom_ou
 python scan_measures.py fetch / build             # 후기 본문에서 주수별 심박수·아기집·'작다' 언급을 숫자로만 → data/scan_measures.csv (종합 보고서 비교용, 캐시 없는 새 컨테이너에서도 사용)
 python hcg.py collect                          # 피검 수치·측정일 추출(5일배 기준 경과일) → data/hcg_log.csv
 python hcg.py review / set                     # 범위 밖·역행 값 확인, 수동 기록
-python hcg_report.py --mine 9:90,14:1695 --transfer 2026-09-30 --scan 2026-10-21 --seen '아기집 확인' --next 2026-11-05  # 내 수치 위치·확률·예상 일정 → results/my_hcg_report.html (커밋 안 함)
-python summary_report.py --mine 9:90,14:1695 --transfer 2026-09-30 --scan 2026-10-21 --seen "아기집 확인" --spotting brown --next 2026-11-05 --hb-date 2026-10-29 --bpm 113 --crl 0.62 --crl-ga "6주 3일" --scan2 2026-11-05 --bpm2 161 --crl2 1.52 --rescan '2026-11-13|174|2.3' --rescan '2026-11-19|171|2.99' --rescan '2026-11-26|169|4.47' --spotting-date 2026-10-23  # 종합 보고서 (커밋 안 함, --scan2·--rescan은 재확인 초음파)
+python hcg_report.py --mine 9:100,14:1500 --transfer YYYY-MM-DD --scan YYYY-MM-DD --seen '아기집 확인' --next YYYY-MM-DD  # 내 수치 위치·확률·예상 일정 → results/my_hcg_report.html (커밋 안 함, 값은 예시)
+python summary_report.py --mine 9:100,14:1500 --transfer YYYY-MM-DD --scan YYYY-MM-DD --seen '아기집 확인' --hb-date YYYY-MM-DD --bpm 120 --crl 0.6 --scan2 YYYY-MM-DD --bpm2 160 --crl2 1.5 --rescan 'YYYY-MM-DD|170|3.0||||9주 6일'  # 종합 보고서 (커밋 안 함, 값은 예시. --scan2·--rescan은 재확인 초음파, --rescan 칸: 날짜|bpm|크기cm|장소|소견|심박수 메모|병원 크기 주수)
 ```

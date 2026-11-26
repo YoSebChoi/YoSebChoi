@@ -1,6 +1,6 @@
 """data/hcg_log.csv → 피검 수치 보고서(그룹별 일자별 수치, 내 수치의 위치, 비슷한 케이스의 결과 확률)
 
-사용: python hcg_report.py --mine 9:90,14:1695 [--transfer 2026-09-30 --embryo 5 --scan 2026-10-21 --seen '아기집 확인 1.02cm' --next 2026-11-05] [--out ...]
+사용: python hcg_report.py --mine 9:100,14:1500 [--transfer YYYY-MM-DD --embryo 5 --scan YYYY-MM-DD --seen '아기집 확인 1.02cm' --next 2026-11-05] [--out ...]
 --mine 은 5일배 기준 경과일(이식일 = 0일):수치. 개인 수치가 들어간 결과 파일은 커밋하지 않는다(.gitignore).
 """
 import argparse
@@ -470,7 +470,7 @@ def build(rows, cases, miles, mine, transfer=None, embryo=5, scan=None, nxt=None
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--mine", required=True, help="5일배 기준 경과일:수치, 예) 9:90,14:1695")
+    ap.add_argument("--mine", required=True, help="5일배 기준 경과일:수치, 예) 9:100,14:1500")
     ap.add_argument("--out", default=os.path.join(RESULTS, "my_hcg_report.html"))
     ap.add_argument("--transfer", help="이식일 YYYY-MM-DD (예상 일정 섹션)")
     ap.add_argument("--embryo", type=int, default=5)
