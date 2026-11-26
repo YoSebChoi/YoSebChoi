@@ -19,7 +19,7 @@ from common import CACHE, DATA, read_csv, write_csv
 
 OUT = os.path.join(DATA, "scan_measures.csv")
 FIELDS = ["blog", "kind", "ga", "value"]
-GA = re.compile(r"([4-9])\s*주\s*차?\s*([0-6])\s*일")
+GA = re.compile(r"(1[0-2]|[4-9])\s*주\s*차?\s*([0-6])\s*일")
 BPM = re.compile(r"(\d{2,3})\s*(?:bpm|BPM|회|비피엠)")
 SAC = re.compile(r"아기집\s*(?:크기)?\s*(?:는|은|가|이|:)?\s*(?:약\s*)?(\d(?:\.\d{1,2})?)\s*(cm|mm|센치|미리)")
 SMALL = re.compile(r"주수보다\s*(?:조금|약간|좀|살짝|며칠|하루|이틀|\d\s*일)?\s*(?:작|느리|늦|어리)|"
